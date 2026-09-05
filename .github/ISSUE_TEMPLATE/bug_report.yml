@@ -1,0 +1,44 @@
+name: Bug report
+description: Something behaves differently from what the documentation promises.
+labels: [bug]
+body:
+  - type: textarea
+    id: what-happened
+    attributes:
+      label: What happened
+      description: What you expected, and what happened instead.
+    validations:
+      required: true
+  - type: textarea
+    id: reproduce
+    attributes:
+      label: How to reproduce
+      description: |
+        The workspace configuration matters. Say which repositories, documentation and data sources
+        were bound, and which tool was called.
+      placeholder: |
+        1. Workspace with ...
+        2. Called prumo_... with ...
+        3. Got ...
+    validations:
+      required: true
+  - type: input
+    id: versions
+    attributes:
+      label: Versions
+      placeholder: Prumo 0.1.0 · IntelliJ IDEA 2026.1.1 Community · Windows 11
+    validations:
+      required: true
+  - type: textarea
+    id: logs
+    attributes:
+      label: Relevant log
+      description: From Help → Show Log in Explorer/Files. Remove anything private before pasting.
+      render: text
+  - type: checkboxes
+    id: security
+    attributes:
+      label: Security
+      options:
+        - label: This is not a security vulnerability. (Those go to the address in SECURITY.md, never to a public issue.)
+          required: true

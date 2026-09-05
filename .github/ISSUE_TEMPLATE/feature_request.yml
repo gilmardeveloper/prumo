@@ -1,0 +1,26 @@
+name: Feature request
+description: Something Prumo should do and does not.
+labels: [enhancement]
+body:
+  - type: textarea
+    id: problem
+    attributes:
+      label: The problem
+      description: Describe the situation you are in, not the feature you imagined.
+    validations:
+      required: true
+  - type: textarea
+    id: proposal
+    attributes:
+      label: What you have in mind
+      description: Optional. If you already have a design, describe it and its trade-offs.
+  - type: checkboxes
+    id: scope
+    attributes:
+      label: Scope check
+      description: These are deliberately outside the product. Confirm the request is not one of them.
+      options:
+        - label: This is not RAG, embeddings or a vector database.
+          required: true
+        - label: This does not make Prumo write inside a user's repository.
+          required: true
