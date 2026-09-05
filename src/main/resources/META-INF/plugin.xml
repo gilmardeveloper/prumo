@@ -20,6 +20,12 @@
     <depends>com.intellij.modules.platform</depends>
     <depends>com.intellij.mcpServer</depends>
 
+    <extensions defaultExtensionNs="com.intellij">
+        <toolWindow id="Prumo MCP"
+                    anchor="right"
+                    factoryClass="io.prumo.mcp.ui.PrumoToolWindowFactory" />
+    </extensions>
+
     <extensions defaultExtensionNs="com.intellij.mcpServer">
         <mcpToolset implementation="io.prumo.mcp.toolsets.PrumoDiagnosticsToolset" />
     </extensions>
