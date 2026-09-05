@@ -1,5 +1,6 @@
 package io.prumo.mcp.workspace.domain
 
+import io.prumo.mcp.policy.WorkspacePolicies
 import kotlinx.serialization.Serializable
 
 /**
@@ -71,6 +72,7 @@ data class Workspace(
     val name: String,
     val type: WorkspaceType,
     val repositories: List<RepositoryBinding> = emptyList(),
+    val policies: WorkspacePolicies = WorkspacePolicies.DENY_ALL,
     val createdAt: String,
     val updatedAt: String,
 ) {

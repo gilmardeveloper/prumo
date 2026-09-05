@@ -1,5 +1,6 @@
 package io.prumo.mcp.workspace.infrastructure
 
+import io.prumo.mcp.policy.WorkspacePolicies
 import io.prumo.mcp.storage.JsonStore
 import io.prumo.mcp.storage.LocalStorageProvider
 import io.prumo.mcp.workspace.domain.RepositoryBinding
@@ -30,12 +31,15 @@ class WorkspaceStore(
         val repositories = json.read(root.resolve(REPOSITORIES_FILE), serializer<RepositoryList>())
             ?.repositories
             .orEmpty()
+        val policies = json.read(root.resolve(POLICIES_FILE), serializer<WorkspacePolicies>())
+            ?: WorkspacePolicies.DENY_ALL
 
         return Workspace(
             id = descriptor.id,
             name = descriptor.name,
             type = descriptor.type,
             repositories = repositories,
+            policies = policies,
             createdAt = descriptor.createdAt,
             updatedAt = descriptor.updatedAt,
         )
@@ -59,6 +63,7 @@ class WorkspaceStore(
             serializer<RepositoryList>(),
             RepositoryList(workspace.repositories),
         )
+        json.write(root.resolve(POLICIES_FILE), serializer<WorkspacePolicies>(), workspace.policies)
     }
 
     fun delete(workspaceId: String) {
@@ -100,6 +105,7 @@ class WorkspaceStore(
     private companion object {
         const val WORKSPACE_FILE = "workspace.json"
         const val REPOSITORIES_FILE = "repositories.json"
+        const val POLICIES_FILE = "policies.json"
     }
 }
 
