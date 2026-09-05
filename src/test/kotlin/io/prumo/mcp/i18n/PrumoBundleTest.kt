@@ -1,5 +1,6 @@
 package io.prumo.mcp.i18n
 
+import com.intellij.AbstractBundle
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertFalse
 import org.junit.jupiter.api.Assertions.assertTrue
@@ -8,6 +9,7 @@ import org.junit.jupiter.api.Test
 import java.nio.charset.StandardCharsets
 import java.nio.file.Files
 import java.nio.file.Path
+import java.util.Locale
 import java.util.Properties
 import kotlin.io.path.extension
 
@@ -85,6 +87,29 @@ class PrumoBundleTest {
     fun `o bundle resolve o texto no idioma pedido`() {
         assertEquals("Policies", base.getValue("toolwindow.policies"))
         assertEquals("Políticas", brazilian.getValue("toolwindow.policies"))
+    }
+
+    /**
+     * A premissa da preferência de idioma do Prumo: pedir um locale explicitamente tem que vencer o
+     * idioma da máquina. Sem isso, escolher "Português" com a IDE em inglês não teria efeito.
+     */
+    @Test
+    fun `o locale pedido vence o idioma da maquina`() {
+        val padrao = Locale.getDefault()
+        try {
+            Locale.setDefault(Locale.forLanguageTag("pt-BR"))
+
+            assertEquals(
+                "Policies",
+                AbstractBundle.message(PrumoBundle.localized(Locale.ENGLISH), "toolwindow.policies"),
+            )
+            assertEquals(
+                "Políticas",
+                AbstractBundle.message(PrumoBundle.localized(Locale.forLanguageTag("pt-BR")), "toolwindow.policies"),
+            )
+        } finally {
+            Locale.setDefault(padrao)
+        }
     }
 
     private fun load(path: String): Map<String, String> {

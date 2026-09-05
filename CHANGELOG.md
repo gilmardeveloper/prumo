@@ -22,7 +22,9 @@ All notable changes to this project are documented here. The format follows
   an informed consent screen and an approval queue that only a human can act on.
 - Assisted authoring: an AI client can read the pack specification, validate a draft and submit it —
   and cannot install it.
-- Interface in English and Brazilian Portuguese, following the language configured in the IDE.
+- Interface in English and Brazilian Portuguese, following the language configured in the IDE,
+  with an optional override in *Settings · Tools · Prumo MCP* for those who keep the IDE in one
+  language and prefer Prumo in another.
 - Security suite named and separated (`./gradlew test -PsecurityOnly`), and CI running build, tests
   and plugin verification on Windows and Linux.
 

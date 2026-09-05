@@ -29,6 +29,12 @@
                     key="toolwindow.title"
                     anchor="right"
                     factoryClass="io.prumo.mcp.ui.PrumoToolWindowFactory" />
+
+        <!-- Sem 'key' de proposito: o nome exibido vem de getDisplayName(), que obedece a
+             preferencia de idioma do Prumo; a chave do resource-bundle obedeceria so a IDE. -->
+        <applicationConfigurable id="io.prumo.mcp.settings"
+                                 parentId="tools"
+                                 instance="io.prumo.mcp.settings.PrumoLanguageConfigurable" />
     </extensions>
 
     <extensions defaultExtensionNs="com.intellij.mcpServer">

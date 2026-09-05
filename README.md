@@ -135,8 +135,10 @@ Every one of these is a named test in the security suite: `./gradlew test -Psecu
   pretend to read it.
 - **Validated on Windows first.** Linux parity is a design requirement and is covered by tests and
   by CI, but the end-to-end script was run on Windows.
-- **Interface in English and Brazilian Portuguese.** The MCP surface stays in English by design:
-  tool names and descriptions are a contract read by an AI, not interface text.
+- **Interface in English and Brazilian Portuguese.** It follows the IDE language, and
+  *Settings · Tools · Prumo MCP* overrides it when you want Prumo in a language the IDE is not
+  using. The MCP surface stays in English by design: tool names and descriptions are a contract
+  read by an AI, not interface text.
 
 ## Roadmap
 

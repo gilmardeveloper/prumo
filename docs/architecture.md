@@ -74,6 +74,7 @@ picking one.
 | 2026-09-05 | JSqlParser for statement classification | Pure Java, Apache-2.0/LGPL, 1.2 MB. Writing our own SQL recognizer is how most security bypasses happen |
 | 2026-09-05 | Gradle build cache disabled | It restored stale test output after an ABI change: 34 tests failed against old bytecode, and worse, some had passed |
 | 2026-09-05 | Interface bilingual, MCP surface English-only | Tool names and descriptions are a contract read by an AI; interface text is for a human |
+| 2026-09-05 | Interface language resolved by Prumo, not only by the IDE | The IDE language is the default; forcing one requires loading the bundle for an explicit locale, because the platform's `<resource-bundle>` and the internal `getResourceBundleLocalized` follow the IDE |
 
 ## Testing strategy
 

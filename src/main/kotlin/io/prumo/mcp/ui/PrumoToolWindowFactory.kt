@@ -1,9 +1,12 @@
 package io.prumo.mcp.ui
 
 import com.intellij.openapi.project.Project
+import com.intellij.openapi.project.ProjectManager
 import com.intellij.openapi.wm.ToolWindow
 import com.intellij.openapi.wm.ToolWindowFactory
+import com.intellij.openapi.wm.ToolWindowManager
 import com.intellij.ui.components.JBLabel
+import com.intellij.ui.content.Content
 import com.intellij.ui.content.ContentFactory
 import com.intellij.ui.dsl.builder.panel
 import com.intellij.util.ui.JBUI
@@ -20,10 +23,39 @@ import javax.swing.JPanel
  */
 class PrumoToolWindowFactory : ToolWindowFactory {
 
+    /**
+     * O título da faixa é resolvido aqui, e não pelo `<resource-bundle>` do `plugin.xml`: aquele
+     * obedece só ao idioma da IDE e ignoraria a preferência de idioma do próprio Prumo.
+     */
+    override fun init(toolWindow: ToolWindow) {
+        toolWindow.stripeTitle = PrumoBundle.message("toolwindow.title")
+    }
+
     override fun createToolWindowContent(project: Project, toolWindow: ToolWindow) {
-        val panel = PrumoWorkspacePanel(project)
-        val content = ContentFactory.getInstance().createContent(panel.component, null, false)
-        toolWindow.contentManager.addContent(content)
+        toolWindow.contentManager.addContent(content(project))
+    }
+
+    companion object {
+        private const val TOOL_WINDOW_ID = "Prumo MCP"
+
+        /**
+         * Remonta o painel dos projetos abertos depois que o idioma muda. Sem isso a tela montada
+         * antes da troca permaneceria na língua anterior até a IDE reiniciar.
+         */
+        fun refreshOpenProjects() {
+            ProjectManager.getInstance().openProjects.forEach { project ->
+                val toolWindow = ToolWindowManager.getInstance(project).getToolWindow(TOOL_WINDOW_ID)
+                    ?: return@forEach
+                toolWindow.stripeTitle = PrumoBundle.message("toolwindow.title")
+                toolWindow.contentManager.apply {
+                    removeAllContents(true)
+                    addContent(content(project))
+                }
+            }
+        }
+
+        private fun content(project: Project): Content =
+            ContentFactory.getInstance().createContent(PrumoWorkspacePanel(project).component, null, false)
     }
 }
 

@@ -182,6 +182,20 @@ the operating system directory.
 
 ---
 
+## 18 · The interface speaks your language
+
+Open *Settings · Tools · Prumo MCP* and set **Prumo interface language** to *Portuguese (Brazil)*,
+leaving the IDE itself in English. Apply, then look at the tool window and open the workspace editor.
+
+**Observe:** the panel, the editor, the buttons and the stripe title are in Portuguese while the
+rest of the IDE stays in English — no half-translated screen. Now ask your AI client for
+`prumo_workspace_get_context` again: tool names, descriptions and any error still come back in
+English. Interface text is for you; the MCP surface is a contract.
+
+Set it back to *Follow the IDE* and the plugin returns to the IDE's own language.
+
+---
+
 ## Recording the result
 
 For each step, note what you observed. Where behaviour differs from this script, that difference is
@@ -192,5 +206,7 @@ either a bug or an undocumented limitation — both belong in an issue, not in y
 Steps 1 to 10, 15 and 17 were exercised on Windows during development, partly through a real MCP
 client against a sandbox IDE. Steps 11 to 14 are proven by automated tests over the same code paths,
 and by construction of the approval flow, but the full cycle with a real AI client is the validation
-the maintainer runs on a real project. Linux parity is a design requirement, covered by tests and by
+the maintainer runs on a real project. Step 18 is proven by tests for the part that can be tested —
+an explicit locale beats the machine's language, and the two language files carry the same keys —
+while seeing both languages on screen is part of that same validation. Linux parity is a design requirement, covered by tests and by
 CI, and is validated afterwards by third parties on a stable build.
