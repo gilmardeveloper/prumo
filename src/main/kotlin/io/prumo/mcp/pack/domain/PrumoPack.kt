@@ -113,6 +113,51 @@ data class KnowledgeItem(
     }
 }
 
+/** Como a ferramenta do pack é executada. */
+@Serializable
+enum class PackToolKind {
+    /** Consulta salva: o Prumo executa com o motor nativo, sob as mesmas camadas da seção 9. */
+    QUERY,
+
+    /** Script do usuário: executado confinado, e só com a capacidade `PROCESS_EXECUTE` concedida. */
+    SCRIPT,
+}
+
+/**
+ * Uma ferramenta que o pack acrescenta ao workspace.
+ *
+ * Aparece ao cliente MCP sob o namespace `user.`, marcada como recurso de terceiro. O datasource é
+ * referenciado por identificador lógico e resolvido no workspace de destino: caminho de máquina e
+ * credencial não viajam dentro de um pack (regras 4 e 5 da seção 8.3).
+ */
+@Serializable
+data class PackTool(
+    val id: String,
+    val title: LocalizedText,
+    val description: LocalizedText,
+    val kind: PackToolKind,
+    val capabilities: Set<Capability> = emptySet(),
+    val datasourceRef: String? = null,
+    val sql: String? = null,
+    /** Comando por sistema operacional (`windows`, `linux`, `macos`), já quebrado em argumentos. */
+    val commands: Map<String, List<String>> = emptyMap(),
+    val timeoutSeconds: Int = DEFAULT_TIMEOUT_SECONDS,
+) {
+    init {
+        require(id.matches(IDENTIFIER)) { "Invalid tool id '$id'." }
+        require(timeoutSeconds in 1..MAX_TIMEOUT_SECONDS) { "Tool '$id' has an invalid timeout." }
+        when (kind) {
+            PackToolKind.QUERY -> require(!sql.isNullOrBlank()) { "Query tool '$id' must carry its SQL." }
+            PackToolKind.SCRIPT -> require(commands.isNotEmpty()) { "Script tool '$id' must declare a command." }
+        }
+    }
+
+    companion object {
+        const val DEFAULT_TIMEOUT_SECONDS = 30
+        const val MAX_TIMEOUT_SECONDS = 300
+    }
+}
+
 /**
  * O que um Prumo Pack declara sobre si.
  *
@@ -130,6 +175,7 @@ data class PackManifest(
     val author: String? = null,
     val capabilities: Set<Capability> = emptySet(),
     val knowledge: List<KnowledgeItem> = emptyList(),
+    val tools: List<PackTool> = emptyList(),
     val createdAt: String,
     val updatedAt: String,
 ) {
@@ -138,9 +184,13 @@ data class PackManifest(
         require(version.isNotBlank()) { "Pack '$id' must declare a version." }
         val duplicated = knowledge.groupBy { it.id }.filterValues { it.size > 1 }.keys
         require(duplicated.isEmpty()) { "Duplicated knowledge ids in pack '$id': $duplicated." }
+        val duplicatedTools = tools.groupBy { it.id }.filterValues { it.size > 1 }.keys
+        require(duplicatedTools.isEmpty()) { "Duplicated tool ids in pack '$id': $duplicatedTools." }
     }
 
     fun knowledge(itemId: String): KnowledgeItem? = knowledge.firstOrNull { it.id == itemId }
+
+    fun tool(toolId: String): PackTool? = tools.firstOrNull { it.id == toolId }
 }
 
 /** Identificadores viram nome de diretório: travessia de caminho é barrada aqui. */
