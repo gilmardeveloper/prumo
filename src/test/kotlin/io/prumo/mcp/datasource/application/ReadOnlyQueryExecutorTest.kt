@@ -107,6 +107,56 @@ class ReadOnlyQueryExecutorTest {
         assertTrue(failure.message.orEmpty().contains("did not answer in time"), failure.message.orEmpty())
     }
 
+    @Test
+    fun `coluna inexistente devolve o nome recusado, e nao falha de conexao`() {
+        assumeTrue(dockerAvailable, "Docker nao esta disponivel nesta maquina")
+
+        val failure = assertThrows<DataSourceAccessException> {
+            executor().execute(workspaceId, profile(AccessMode.READ_ONLY), "SELECT coluna_que_nao_existe FROM servidor")
+        }
+
+        val message = failure.message.orEmpty()
+        assertTrue(message.contains("coluna_que_nao_existe"), message)
+        assertFalse(message.contains("connect", ignoreCase = true), message)
+    }
+
+    /**
+     * O driver traduz os rótulos conforme o locale da JVM; a resposta ao cliente MCP é sempre em
+     * inglês, e a sugestão do servidor é o que permite acertar a coluna na tentativa seguinte.
+     */
+    @Test
+    fun `o rotulo e a sugestao do servidor chegam em ingles`() {
+        assumeTrue(dockerAvailable, "Docker nao esta disponivel nesta maquina")
+
+        val failure = assertThrows<DataSourceAccessException> {
+            executor().execute(workspaceId, profile(AccessMode.READ_ONLY), "SELECT nom FROM servidor")
+        }
+
+        val message = failure.message.orEmpty()
+        assertTrue(message.contains("Position: "), message)
+        assertTrue(message.contains("Hint: "), message)
+        assertTrue(message.contains("servidor.nome"), message)
+    }
+
+    /**
+     * Sintaxe que o parser recusa nunca chega ao servidor; o agrupamento inválido chega, e volta
+     * pela mesma classe 42 da coluna inexistente.
+     */
+    @Test
+    fun `tabela inexistente e agrupamento invalido tambem chegam descritos`() {
+        assumeTrue(dockerAvailable, "Docker nao esta disponivel nesta maquina")
+
+        val semTabela = assertThrows<DataSourceAccessException> {
+            executor().execute(workspaceId, profile(AccessMode.READ_ONLY), "SELECT id FROM tabela_que_nao_existe")
+        }
+        assertTrue(semTabela.message.orEmpty().contains("tabela_que_nao_existe"), semTabela.message.orEmpty())
+
+        val semGroupBy = assertThrows<DataSourceAccessException> {
+            executor().execute(workspaceId, profile(AccessMode.READ_ONLY), "SELECT nome, count(*) FROM servidor")
+        }
+        assertTrue(semGroupBy.message.orEmpty().contains("GROUP BY"), semGroupBy.message.orEmpty())
+    }
+
     private fun executor(timeoutSeconds: Int = 15): ReadOnlyQueryExecutor {
         val credentials = InMemoryCredentialProvider()
         credentials.store(CredentialKey(workspaceId, "folha"), container.username, container.password.toCharArray())

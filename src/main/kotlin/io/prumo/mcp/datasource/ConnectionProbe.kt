@@ -19,6 +19,9 @@ enum class ConnectionTestOutcome {
     DATABASE_NOT_FOUND,
     SSL_ERROR,
 
+    /** O servidor respondeu e recusou o statement: objeto inexistente, sintaxe ou privilégio. */
+    STATEMENT_REJECTED,
+
     /** Falha que não se encaixa nas anteriores. */
     UNEXPECTED_ERROR,
 }
@@ -36,6 +39,7 @@ val ConnectionTestOutcome.hint: String
         ConnectionTestOutcome.TIMEOUT -> "The database did not answer in time."
         ConnectionTestOutcome.DATABASE_NOT_FOUND -> "The server answered, but that database does not exist."
         ConnectionTestOutcome.SSL_ERROR -> "The TLS handshake failed. Check the SSL mode and the server certificate."
+        ConnectionTestOutcome.STATEMENT_REJECTED -> "The database rejected the statement."
         ConnectionTestOutcome.UNEXPECTED_ERROR -> "The connection failed for a reason Prumo does not recognise. See the IDE log."
     }
 
@@ -48,14 +52,16 @@ val ConnectionTestOutcome.messageKey: String
         ConnectionTestOutcome.TIMEOUT -> "datasource.outcome.timeout"
         ConnectionTestOutcome.DATABASE_NOT_FOUND -> "datasource.outcome.databaseNotFound"
         ConnectionTestOutcome.SSL_ERROR -> "datasource.outcome.sslError"
+        ConnectionTestOutcome.STATEMENT_REJECTED -> "datasource.outcome.statementRejected"
         ConnectionTestOutcome.UNEXPECTED_ERROR -> "datasource.outcome.unexpected"
     }
 
 /**
- * Traduz a falha do driver em desfecho, sem repassar o texto.
+ * Traduz a falha do driver em desfecho.
  *
  * Decide por `SQLState` — que é padrão e estável — e recorre à mensagem apenas onde o PostgreSQL
  * não distingue por estado, como no caso de TLS, que chega com o mesmo `08006` de falha de rede.
+ * O texto do servidor só é repassado na classe `42`, por [ConnectionFailureClassifier.statementError].
  */
 object ConnectionFailureClassifier {
 
@@ -66,6 +72,12 @@ object ConnectionFailureClassifier {
     /** O PostgreSQL cancela por timeout com este estado, e a mensagem nao cita tempo algum. */
     private const val QUERY_CANCELED = "57014"
     private const val CONNECTION_CLASS = "08"
+
+    /** Sintaxe inválida, objeto inexistente e privilégio insuficiente compartilham esta classe. */
+    private const val SYNTAX_OR_ACCESS_CLASS = "42"
+
+    private const val MAX_STATEMENT_ERROR_LENGTH = 500
+    private val WHITESPACE = Regex("""\s+""")
 
     private val SSL_MARKERS = listOf("ssl", "certificate", "pkix", "tls")
     private val TIMEOUT_MARKERS = listOf("timeout", "timed out", "canceling statement")
@@ -83,6 +95,10 @@ object ConnectionFailureClassifier {
             state == UNDEFINED_DATABASE -> ConnectionTestOutcome.DATABASE_NOT_FOUND
             state == QUERY_CANCELED -> ConnectionTestOutcome.TIMEOUT
 
+            // Precede os marcadores de texto: a mensagem da classe 42 cita o objeto da consulta, e
+            // uma coluna chamada "certificate" ou "timeout" cairia no marcador errado.
+            state.startsWith(SYNTAX_OR_ACCESS_CLASS) -> ConnectionTestOutcome.STATEMENT_REJECTED
+
             // O PostgreSQL reporta falha de TLS com o mesmo SQLState 08006 da rede; só a mensagem separa.
             SSL_MARKERS.any { text.contains(it) } -> ConnectionTestOutcome.SSL_ERROR
             TIMEOUT_MARKERS.any { text.contains(it) } -> ConnectionTestOutcome.TIMEOUT
@@ -91,6 +107,22 @@ object ConnectionFailureClassifier {
             NETWORK_MARKERS.any { text.contains(it) } -> ConnectionTestOutcome.NETWORK_UNREACHABLE
 
             else -> ConnectionTestOutcome.UNEXPECTED_ERROR
+        }
+    }
+
+    /**
+     * Reduz a mensagem do servidor a uma linha, para devolvê-la a quem chamou.
+     *
+     * Aplica-se apenas a [ConnectionTestOutcome.STATEMENT_REJECTED], cujo texto descreve o objeto ou
+     * a sintaxe recusada e não cita host, usuário nem banco. Mensagem em branco recai na frase fixa
+     * do desfecho; texto acima de [MAX_STATEMENT_ERROR_LENGTH] caracteres é truncado.
+     */
+    fun statementError(message: String?): String {
+        val text = message.orEmpty().replace(WHITESPACE, " ").trim()
+        return when {
+            text.isEmpty() -> ConnectionTestOutcome.STATEMENT_REJECTED.hint
+            text.length > MAX_STATEMENT_ERROR_LENGTH -> text.take(MAX_STATEMENT_ERROR_LENGTH) + "…"
+            else -> text
         }
     }
 }

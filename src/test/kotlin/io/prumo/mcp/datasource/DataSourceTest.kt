@@ -183,6 +183,56 @@ class ConnectionFailureClassifierTest {
     }
 
     @Test
+    fun `objeto inexistente e recusa de statement, nao falha de conexao`() {
+        listOf(
+            "42703" to "ERROR: column \"coluna_que_nao_existe\" does not exist",
+            "42P01" to "ERROR: relation \"servidr\" does not exist",
+            "42601" to "ERROR: syntax error at or near \"SELCT\"",
+            "42501" to "ERROR: permission denied for table servidor",
+        ).forEach { (state, message) ->
+            assertEquals(
+                ConnectionTestOutcome.STATEMENT_REJECTED,
+                ConnectionFailureClassifier.classify(state, message),
+                state,
+            )
+        }
+    }
+
+    @Test
+    fun `coluna com nome de marcador nao vira falha de TLS nem timeout`() {
+        // A mensagem da classe 42 cita o objeto da consulta; o estado tem de decidir antes do texto.
+        assertEquals(
+            ConnectionTestOutcome.STATEMENT_REJECTED,
+            ConnectionFailureClassifier.classify("42703", "ERROR: column \"certificate\" does not exist"),
+        )
+        assertEquals(
+            ConnectionTestOutcome.STATEMENT_REJECTED,
+            ConnectionFailureClassifier.classify("42P01", "ERROR: relation \"timeout\" does not exist"),
+        )
+    }
+
+    @Test
+    fun `a mensagem do servidor volta em uma linha e sem dado de conexao`() {
+        val devolvida = ConnectionFailureClassifier.statementError(
+            "ERROR: column \"nome_erado\" does not exist\n  Position: 8",
+        )
+
+        assertEquals("ERROR: column \"nome_erado\" does not exist Position: 8", devolvida)
+        assertFalse(devolvida.contains("jdbc"))
+    }
+
+    @Test
+    fun `mensagem em branco recai na frase fixa e mensagem longa e truncada`() {
+        assertEquals(ConnectionTestOutcome.STATEMENT_REJECTED.hint, ConnectionFailureClassifier.statementError(null))
+        assertEquals(ConnectionTestOutcome.STATEMENT_REJECTED.hint, ConnectionFailureClassifier.statementError("   "))
+
+        val truncada = ConnectionFailureClassifier.statementError("x".repeat(2_000))
+
+        assertEquals(501, truncada.length)
+        assertTrue(truncada.endsWith("…"))
+    }
+
+    @Test
     fun `falha desconhecida nao e vestida de falha de rede`() {
         assertEquals(
             ConnectionTestOutcome.UNEXPECTED_ERROR,

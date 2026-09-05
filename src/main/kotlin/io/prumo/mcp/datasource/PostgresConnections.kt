@@ -5,6 +5,7 @@ import io.prumo.mcp.credential.CredentialProvider
 import io.prumo.mcp.datasource.domain.DataSourceProfile
 import io.prumo.mcp.workspace.domain.AccessMode
 import org.postgresql.Driver
+import org.postgresql.util.PSQLException
 import java.sql.Connection
 import java.sql.SQLException
 import java.util.Arrays
@@ -53,12 +54,43 @@ class PostgresConnectionFactory(
             try {
                 block(connection)
             } catch (failure: SQLException) {
-                throw DataSourceAccessException(
-                    "Data source '${profile.name}' refused the operation: " +
-                        ConnectionFailureClassifier.classify(failure.sqlState, failure.message).hint,
-                )
+                throw DataSourceAccessException(describe(profile, failure))
             }
         }
+
+    /**
+     * Monta a mensagem devolvida ao chamador para uma falha ocorrida com a conexão já aberta.
+     *
+     * Statement recusado pelo servidor devolve o texto dele, que nomeia o objeto ou a sintaxe
+     * inválida. Os demais desfechos devolvem a frase fixa, que não cita dado de conexão.
+     */
+    private fun describe(profile: DataSourceProfile, failure: SQLException): String =
+        when (val outcome = ConnectionFailureClassifier.classify(failure.sqlState, failure.message)) {
+            ConnectionTestOutcome.STATEMENT_REJECTED ->
+                "Data source '${profile.name}' rejected the statement: " + serverText(failure)
+
+            else -> "Data source '${profile.name}' refused the operation: " + outcome.hint
+        }
+
+    /**
+     * Remonta o erro do servidor a partir dos campos crus, com rótulos em inglês.
+     *
+     * `SQLException.getMessage()` traz os rótulos traduzidos pelo driver conforme o locale da JVM, e
+     * a resposta ao cliente MCP é sempre em inglês. `detail` e `hint` entram porque o PostgreSQL
+     * sugere ali a coluna correta. Driver que não expõe os campos recai na mensagem pronta.
+     */
+    private fun serverText(failure: SQLException): String {
+        val server = (failure as? PSQLException)?.serverErrorMessage
+            ?: return ConnectionFailureClassifier.statementError(failure.message)
+
+        val text = buildString {
+            append(server.message.orEmpty())
+            server.detail?.let { append(" Detail: ").append(it) }
+            server.hint?.let { append(" Hint: ").append(it) }
+            server.position.takeIf { it > 0 }?.let { append(" Position: ").append(it) }
+        }
+        return ConnectionFailureClassifier.statementError(text)
+    }
 
     private fun Connection.applyAccessMode(accessMode: AccessMode) {
         if (accessMode == AccessMode.READ_ONLY) {

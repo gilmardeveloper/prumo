@@ -100,6 +100,7 @@ internal suspend fun <T> prumoToolCall(
         throw McpExpectedError(failure.message ?: QUERY_REFUSED)
     } catch (failure: DataSourceAccessException) {
         service.record(context, call, tool, operation, AuditResult.ERROR, startedAt)
+        LOG.warn("Prumo MCP tool '$tool' failed for workspace '${context.workspace.id}'.", failure)
         throw McpExpectedError(failure.message ?: READ_REFUSED)
     } catch (failure: Exception) {
         service.record(context, call, tool, operation, AuditResult.ERROR, startedAt)

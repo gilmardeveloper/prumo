@@ -108,6 +108,8 @@ One read-only statement. Accepts `SELECT`, `WITH … SELECT` and `EXPLAIN` witho
 DML, DDL, DCL, `CALL`, `COPY`, multiple statements and anything the parser could not read. Runs in a
 read-only transaction that is rolled back. `maxRows` defaults to 100, ceiling 1000, with `truncated`
 in the response. Columns whose name announces a secret come back masked.
+A statement the server itself rejects — unknown column or table, missing `GROUP BY`, denied
+privilege — comes back with the server's own message, naming what it refused.
 
 ---
 
