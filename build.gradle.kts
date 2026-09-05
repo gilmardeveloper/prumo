@@ -1,5 +1,4 @@
 import org.jetbrains.intellij.platform.gradle.IntelliJPlatformType
-import org.jetbrains.intellij.platform.gradle.TestFrameworkType
 import org.jetbrains.kotlin.gradle.dsl.JvmTarget
 import org.jetbrains.kotlin.gradle.tasks.KotlinCompile
 
@@ -28,7 +27,10 @@ dependencies {
             version = providers.gradleProperty("platformVersion")
             useInstaller = false
         }
-        testFramework(TestFrameworkType.Platform)
+        // O Prumo contribui tools ao MCP Server nativo da IDE (bundled desde 2025.2) em vez de
+        // subir um servidor MCP paralelo.
+        bundledPlugin("com.intellij.mcpServer")
+
     }
 
     // A plataforma IntelliJ ja fornece kotlinx-serialization em runtime. Empacotar uma segunda
@@ -85,6 +87,19 @@ intellijPlatform {
             }
         }
     }
+}
+
+// A sandbox de desenvolvimento nao deve parar em dialogos de consentimento a cada execucao.
+tasks.runIde {
+    // -PsandboxProject=<caminho> abre a sandbox ja com um projeto: o MCP Server da IDE so inicia
+    // quando ha projeto aberto.
+    providers.gradleProperty("sandboxProject").orNull?.let { args(it) }
+
+    jvmArgs(
+        "-Djb.privacy.policy.text=<!--999.999-->",
+        "-Djb.consents.confirmation.enabled=false",
+        "-Didea.suppress.statistics.report=true",
+    )
 }
 
 tasks.test {

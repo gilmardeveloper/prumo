@@ -18,7 +18,9 @@
     ]]></description>
 
     <depends>com.intellij.modules.platform</depends>
+    <depends>com.intellij.mcpServer</depends>
 
-    <extensions defaultExtensionNs="com.intellij">
+    <extensions defaultExtensionNs="com.intellij.mcpServer">
+        <mcpToolset implementation="io.prumo.mcp.toolsets.PrumoDiagnosticsToolset" />
     </extensions>
 </idea-plugin>
