@@ -13,6 +13,7 @@ import org.junit.jupiter.api.Assertions.assertFalse
 import org.junit.jupiter.api.Assertions.assertTrue
 import org.junit.jupiter.api.Assumptions.assumeTrue
 import org.junit.jupiter.api.BeforeAll
+import org.junit.jupiter.api.Tag
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.assertThrows
 import org.testcontainers.DockerClientFactory
@@ -26,6 +27,7 @@ import java.sql.SQLException
  * O que se prova aqui é o que só um servidor de verdade responde: o catálogo devolve o que o
  * Prumo espera, e um nome de tabela com SQL dentro é comparado como texto em vez de executado.
  */
+@Tag("security")
 class PostgresIntrospectorTest {
 
     private val introspector = PostgresIntrospector()

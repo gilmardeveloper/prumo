@@ -3,9 +3,11 @@ package io.prumo.mcp.repository
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertNotEquals
 import org.junit.jupiter.api.Assertions.assertNull
+import org.junit.jupiter.api.Tag
 import org.junit.jupiter.api.Test
 import java.nio.file.Path
 
+@Tag("security")
 class RepositoryFingerprintTest {
 
     @Test

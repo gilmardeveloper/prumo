@@ -4,6 +4,7 @@ import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertFalse
 import org.junit.jupiter.api.Assertions.assertNull
 import org.junit.jupiter.api.Assertions.assertTrue
+import org.junit.jupiter.api.Tag
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.assertThrows
 import org.junit.jupiter.api.io.TempDir
@@ -15,6 +16,7 @@ import java.nio.file.Path
  * Os comandos são escolhidos pelo SO corrente para que a suíte prove o mesmo em Windows e em Linux,
  * que é onde o produto promete rodar.
  */
+@Tag("security")
 class ProcessExecutorTest {
 
     private val executor = ProcessExecutor()

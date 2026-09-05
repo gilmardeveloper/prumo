@@ -133,7 +133,17 @@ tasks.runIde {
 }
 
 tasks.test {
-    useJUnitPlatform()
+    // `-PsecurityOnly` roda so a suite de seguranca, que e como o CI a mostra separada: quando ela
+    // quebra, o que quebrou e um principio inviolavel, e isso nao pode aparecer diluido entre os
+    // demais testes. A tarefa e a mesma que o plugin da plataforma configura, porque so ela tem o
+    // classpath da IDE.
+    val securityOnly = providers.gradleProperty("securityOnly").isPresent
+
+    useJUnitPlatform {
+        if (securityOnly) {
+            includeTags("security")
+        }
+    }
     testLogging {
         events("passed", "skipped", "failed")
     }

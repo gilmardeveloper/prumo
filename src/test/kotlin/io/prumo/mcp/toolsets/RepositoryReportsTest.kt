@@ -20,6 +20,7 @@ import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertFalse
 import org.junit.jupiter.api.Assertions.assertNull
 import org.junit.jupiter.api.Assertions.assertTrue
+import org.junit.jupiter.api.Tag
 import org.junit.jupiter.api.Test
 
 class RepositoryReportsTest {
@@ -195,6 +196,7 @@ class RepositoryReportsTest {
  * de comandos Git disponíveis: acrescentar uma tool — ou um comando que escreva — passa a exigir
  * alterar este teste, e portanto aparece em revisão.
  */
+@Tag("security")
 class ToolSurfaceTest {
 
     @Test

@@ -9,6 +9,7 @@ import io.prumo.mcp.storage.FileSystemStorageProvider
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertFalse
 import org.junit.jupiter.api.Assertions.assertTrue
+import org.junit.jupiter.api.Tag
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.io.TempDir
 import java.nio.file.Files
@@ -65,6 +66,7 @@ class AuthoringSpecTest {
     }
 }
 
+@Tag("security")
 class PackValidatorTest {
 
     @Test
@@ -144,6 +146,7 @@ class PackValidatorTest {
     }
 }
 
+@Tag("security")
 class SubmissionQueueTest {
 
     private fun storage(root: Path) = FileSystemStorageProvider(
@@ -184,6 +187,7 @@ class SubmissionQueueTest {
  * O teste lê o próprio código do toolset — se alguém acrescentar uma chamada de instalação ali,
  * a suíte quebra antes de a revisão começar.
  */
+@Tag("security")
 class AuthoringHasNoInstallPathTest {
 
     @Test

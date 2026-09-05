@@ -4,6 +4,7 @@ import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertFalse
 import org.junit.jupiter.api.Assertions.assertNull
 import org.junit.jupiter.api.Assertions.assertTrue
+import org.junit.jupiter.api.Tag
 import org.junit.jupiter.api.Test
 
 /**
@@ -12,6 +13,7 @@ import org.junit.jupiter.api.Test
  * Cada caso recusado aqui é uma forma conhecida de fazer escrita passar por leitura. O teste existe
  * para que acrescentar um caminho novo exija encarar a lista.
  */
+@Tag("security")
 class SqlStatementClassifierTest {
 
     @Test
@@ -120,6 +122,7 @@ class SqlStatementClassifierTest {
     }
 }
 
+@Tag("security")
 class DataMaskingPolicyTest {
 
     @Test

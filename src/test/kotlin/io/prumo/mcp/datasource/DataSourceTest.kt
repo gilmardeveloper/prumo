@@ -15,6 +15,7 @@ import kotlinx.serialization.serializer
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertFalse
 import org.junit.jupiter.api.Assertions.assertTrue
+import org.junit.jupiter.api.Tag
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.assertThrows
 import org.junit.jupiter.api.io.TempDir
@@ -39,6 +40,7 @@ private fun profile(
     sslMode = SslMode.REQUIRE,
 )
 
+@Tag("security")
 class DataSourceProfileTest {
 
     private val json = Json { encodeDefaults = true }
@@ -202,6 +204,7 @@ class ConnectionFailureClassifierTest {
     }
 }
 
+@Tag("security")
 class CredentialKeyTest {
 
     @Test
@@ -221,6 +224,7 @@ class CredentialKeyTest {
     }
 }
 
+@Tag("security")
 class DataSourceAuditTest {
 
     @Test

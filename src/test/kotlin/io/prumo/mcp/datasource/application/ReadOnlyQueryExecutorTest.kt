@@ -14,6 +14,7 @@ import org.junit.jupiter.api.Assertions.assertFalse
 import org.junit.jupiter.api.Assertions.assertTrue
 import org.junit.jupiter.api.Assumptions.assumeTrue
 import org.junit.jupiter.api.BeforeAll
+import org.junit.jupiter.api.Tag
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.assertThrows
 import org.testcontainers.DockerClientFactory
@@ -27,6 +28,7 @@ import org.testcontainers.containers.PostgreSQLContainer
  * `READ_WRITE`, o teto de linhas se declara, o timeout corta a consulta e coluna com nome de
  * segredo volta mascarada.
  */
+@Tag("security")
 class ReadOnlyQueryExecutorTest {
 
     private val workspaceId = "folha-2026"

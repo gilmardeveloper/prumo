@@ -1,0 +1,94 @@
+name: CI
+
+# O produto promete Windows e Linux, entao a integracao roda nos dois. Um teste de seguranca que
+# falha bloqueia a entrega: nao existe caminho verde com suite vermelha.
+on:
+  push:
+    branches: [main, develop]
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  build:
+    name: Build and test (${{ matrix.os }})
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, windows-latest]
+
+    steps:
+      - name: Check out
+        uses: actions/checkout@v4
+
+      # A plataforma IntelliJ 2026.1 e bytecode Java 21, mas o build usa toolchain 25.
+      - name: Set up JDK 25
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: 25
+
+      - name: Set up Gradle
+        uses: gradle/actions/setup-gradle@v4
+
+      # Os testes de banco sobem PostgreSQL por Testcontainers quando ha Docker. O runner Linux tem;
+      # o Windows nao, e la esses testes se declaram pulados em vez de falharem.
+      - name: Build, test and verify
+        run: ./gradlew build verifyPlugin --stacktrace
+
+      - name: Publish test report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: test-results-${{ matrix.os }}
+          path: |
+            build/reports/tests/test
+            build/test-results/test
+          retention-days: 7
+
+      - name: Publish plugin verification report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: plugin-verifier-${{ matrix.os }}
+          path: build/reports/pluginVerifier
+          retention-days: 7
+
+  security:
+    name: Security suite (${{ matrix.os }})
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, windows-latest]
+
+    steps:
+      - name: Check out
+        uses: actions/checkout@v4
+
+      - name: Set up JDK 25
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: 25
+
+      - name: Set up Gradle
+        uses: gradle/actions/setup-gradle@v4
+
+      # A suite de seguranca roda separada para aparecer sozinha no resultado: quando ela quebra, o
+      # que quebrou e um principio inviolavel, nao um teste qualquer.
+      - name: Run the security suite
+        run: ./gradlew test -PsecurityOnly --stacktrace
+
+      - name: Publish security report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: security-results-${{ matrix.os }}
+          path: build/reports/tests/test
+          retention-days: 7

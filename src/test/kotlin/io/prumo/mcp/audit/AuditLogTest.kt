@@ -4,12 +4,14 @@ import io.prumo.mcp.platform.PrumoDirectories
 import io.prumo.mcp.storage.FileSystemStorageProvider
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertTrue
+import org.junit.jupiter.api.Tag
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.io.TempDir
 import java.nio.file.Files
 import java.nio.file.Path
 import java.time.Instant
 
+@Tag("security")
 class AuditLogTest {
 
     private fun log(root: Path) = AuditLog(
