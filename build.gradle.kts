@@ -41,6 +41,16 @@ dependencies {
     // copia geraria classes duplicadas no classloader do plugin.
     compileOnly("org.jetbrains.kotlinx:kotlinx-serialization-json:1.9.0")
 
+    // Classificacao de statement SQL (camada 3 da secao 9). Parser proprio e vetado pelo escopo:
+    // reconhecer SQL por expressao regular e como a maioria dos bypass de seguranca acontece.
+    implementation("com.github.jsqlparser:jsqlparser:5.3") {
+        // O JSqlParser declara o JMH como dependencia de compilacao. Sem excluir, o plugin sairia
+        // com 2,8 MB de biblioteca de benchmark dentro, que nada carrega em runtime.
+        exclude(group = "org.openjdk.jmh")
+        exclude(group = "net.sf.jopt-simple")
+        exclude(group = "org.apache.commons", module = "commons-math3")
+    }
+
     // Driver PostgreSQL empacotado com o plugin: o Prumo nao depende do Database Tools, que so
     // existe no Ultimate (F-007). Vai como implementation para ser carregado pelo classloader do
     // plugin em Community e Ultimate.

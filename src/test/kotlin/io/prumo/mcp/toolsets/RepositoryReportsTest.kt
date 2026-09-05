@@ -211,6 +211,7 @@ class ToolSurfaceTest {
         assertEquals(
             listOf(
                 "prumo_database_describe_table",
+                "prumo_database_execute_readonly",
                 "prumo_database_get_schema",
                 "prumo_database_list_available",
                 "prumo_database_list_tables",

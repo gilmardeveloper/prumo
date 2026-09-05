@@ -1,8 +1,8 @@
 package io.prumo.mcp.datasource.postgres
 
 import io.prumo.mcp.credential.CredentialKey
-import io.prumo.mcp.credential.CredentialProvider
 import io.prumo.mcp.datasource.DataSourceAccessException
+import io.prumo.mcp.datasource.InMemoryCredentialProvider
 import io.prumo.mcp.datasource.PostgresConnectionFactory
 import io.prumo.mcp.datasource.domain.DataSourceProfile
 import io.prumo.mcp.datasource.domain.SslMode
@@ -19,23 +19,6 @@ import org.testcontainers.DockerClientFactory
 import org.testcontainers.containers.PostgreSQLContainer
 import java.sql.Connection
 import java.sql.SQLException
-
-/** Cofre de teste: guarda em memória e nunca toca o PasswordSafe da máquina de quem roda a suíte. */
-private class InMemoryCredentialProvider : CredentialProvider {
-
-    private val entries = mutableMapOf<String, CharArray>()
-
-    override fun store(key: CredentialKey, user: String, password: CharArray) {
-        entries["${key.serviceName}|$user"] = password.copyOf()
-    }
-
-    override fun password(key: CredentialKey, user: String): CharArray? =
-        entries["${key.serviceName}|$user"]?.copyOf()
-
-    override fun remove(key: CredentialKey, user: String) {
-        entries.remove("${key.serviceName}|$user")
-    }
-}
 
 /**
  * Introspecção contra um PostgreSQL real.

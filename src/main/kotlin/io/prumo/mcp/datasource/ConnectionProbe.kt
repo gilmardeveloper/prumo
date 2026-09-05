@@ -57,10 +57,13 @@ object ConnectionFailureClassifier {
     private const val INVALID_PASSWORD = "28P01"
     private const val INVALID_AUTHORIZATION = "28000"
     private const val UNDEFINED_DATABASE = "3D000"
+
+    /** O PostgreSQL cancela por timeout com este estado, e a mensagem nao cita tempo algum. */
+    private const val QUERY_CANCELED = "57014"
     private const val CONNECTION_CLASS = "08"
 
     private val SSL_MARKERS = listOf("ssl", "certificate", "pkix", "tls")
-    private val TIMEOUT_MARKERS = listOf("timeout", "timed out")
+    private val TIMEOUT_MARKERS = listOf("timeout", "timed out", "canceling statement")
     private val NETWORK_MARKERS = listOf(
         "connection refused", "unknownhost", "unknown host", "no route to host",
         "network is unreachable", "connection reset",
@@ -73,6 +76,7 @@ object ConnectionFailureClassifier {
         return when {
             state == INVALID_PASSWORD || state == INVALID_AUTHORIZATION -> ConnectionTestOutcome.AUTHENTICATION_FAILED
             state == UNDEFINED_DATABASE -> ConnectionTestOutcome.DATABASE_NOT_FOUND
+            state == QUERY_CANCELED -> ConnectionTestOutcome.TIMEOUT
 
             // TLS antes de rede: o PostgreSQL reporta falha de TLS com o mesmo estado 08006 de
             // conexão interrompida, e só a mensagem separa os dois casos.

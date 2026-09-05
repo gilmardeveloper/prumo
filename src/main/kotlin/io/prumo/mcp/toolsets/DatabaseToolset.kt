@@ -4,6 +4,9 @@ import com.intellij.mcpserver.McpToolset
 import com.intellij.mcpserver.annotations.McpDescription
 import com.intellij.mcpserver.annotations.McpTool
 import io.prumo.mcp.datasource.PostgresConnectionFactory
+import io.prumo.mcp.datasource.application.QueryOutcome
+import io.prumo.mcp.datasource.application.ReadOnlyQueryExecutor
+import io.prumo.mcp.datasource.security.DataMaskingPolicy
 import io.prumo.mcp.datasource.domain.DataSourceProfile
 import io.prumo.mcp.datasource.postgres.PostgresIntrospector
 import io.prumo.mcp.datasource.postgres.TableDetail
@@ -86,6 +89,24 @@ data class IndexResponse(
 )
 
 @Serializable
+data class QueryColumnResponse(
+    val name: String,
+    val type: String,
+    val masked: Boolean,
+)
+
+@Serializable
+data class QueryResultResponse(
+    val datasourceId: String,
+    val statementType: String,
+    val columns: List<QueryColumnResponse>,
+    val rows: List<List<String?>>,
+    val rowCount: Int,
+    val truncated: Boolean,
+    val durationMillis: Long,
+)
+
+@Serializable
 data class TableDetailResponse(
     val datasourceId: String,
     val schema: String,
@@ -143,6 +164,17 @@ object DatabaseReports {
             },
             constraints = detail.constraints.map { ConstraintResponse(it.name, it.kind, it.definition) },
             indexes = detail.indexes.map { IndexResponse(it.name, it.unique, it.definition) },
+        )
+
+    fun query(profile: DataSourceProfile, outcome: QueryOutcome): QueryResultResponse =
+        QueryResultResponse(
+            datasourceId = profile.id,
+            statementType = outcome.statementType.name,
+            columns = outcome.columns.map { QueryColumnResponse(it.name, it.type, it.masked) },
+            rows = outcome.rows,
+            rowCount = outcome.rowCount,
+            truncated = outcome.truncated,
+            durationMillis = outcome.durationMillis,
         )
 
     private const val ENGINE = "PostgreSQL"
@@ -221,6 +253,45 @@ class DatabaseToolset : McpToolset {
             )
         }
 
+    @McpTool(name = EXECUTE_READONLY_TOOL)
+    @McpDescription(
+        "Runs one read-only SQL statement against a bound database and returns the rows. Only " +
+            "SELECT, WITH … SELECT and EXPLAIN without ANALYZE are accepted: anything that writes " +
+            "is refused before reaching the database, and the transaction is read-only anyway. " +
+            "Columns whose name announces a secret come back masked.",
+    )
+    suspend fun executeReadonly(
+        @McpDescription("Data source id from prumo_database_list_available.")
+        datasourceId: String,
+        @McpDescription("A single read-only SQL statement.")
+        sql: String,
+        @McpDescription("How many rows to return at most. Default 100, ceiling 1000.")
+        maxRows: Int = ReadOnlyQueryExecutor.DEFAULT_MAX_ROWS,
+    ): QueryResultResponse =
+        prumoToolCall(
+            tool = EXECUTE_READONLY_TOOL,
+            operation = "database.execute_readonly",
+            action = PolicyAction.QUERY_DATABASE,
+            datasource = { context -> context.datasource(datasourceId) },
+        ) { call ->
+            val service = PrumoWorkspaceService.getInstance()
+            val outcome = withContext(Dispatchers.IO) {
+                ReadOnlyQueryExecutor(PostgresConnectionFactory(service.credentials)).execute(
+                    workspaceId = call.context.workspace.id,
+                    profile = call.requiredDatasource,
+                    sql = sql,
+                    maxRows = maxRows,
+                    // Regras por coluna chegam com a configuração de masking; o padrão já mascara
+                    // toda coluna cujo nome anuncia segredo.
+                    masking = DataMaskingPolicy.NONE,
+                )
+            }
+            call.auditDetails["statementType"] = outcome.statementType.name
+            call.auditDetails["rowCount"] = outcome.rowCount.toString()
+            call.auditDetails["truncated"] = outcome.truncated.toString()
+            DatabaseReports.query(call.requiredDatasource, outcome)
+        }
+
     /**
      * Resolve o datasource dentro da fronteira, abre a conexão pelo tempo da leitura e a fecha em
      * seguida. A conexão nunca sobrevive à chamada.
@@ -252,6 +323,7 @@ class DatabaseToolset : McpToolset {
         const val GET_SCHEMA_TOOL = "prumo_database_get_schema"
         const val LIST_TABLES_TOOL = "prumo_database_list_tables"
         const val DESCRIBE_TABLE_TOOL = "prumo_database_describe_table"
+        const val EXECUTE_READONLY_TOOL = "prumo_database_execute_readonly"
     }
 }
 
