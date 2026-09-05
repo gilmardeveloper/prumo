@@ -204,6 +204,7 @@ class ToolSurfaceTest {
             RepositoryToolset::class.java,
             IdeToolset::class.java,
             DatabaseToolset::class.java,
+            PackToolset::class.java,
         )
             .flatMap { toolset -> toolset.declaredMethods.mapNotNull { it.getAnnotation(McpTool::class.java)?.name } }
             .sorted()
@@ -216,6 +217,9 @@ class ToolSurfaceTest {
                 "prumo_database_list_available",
                 "prumo_database_list_tables",
                 "prumo_ide_get_current_context",
+                "prumo_pack_get_knowledge",
+                "prumo_pack_list",
+                "prumo_pack_search_knowledge",
                 "prumo_repository_get_branch",
                 "prumo_repository_get_diff",
                 "prumo_repository_get_status",

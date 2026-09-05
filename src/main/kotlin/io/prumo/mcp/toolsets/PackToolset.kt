@@ -1,0 +1,182 @@
+package io.prumo.mcp.toolsets
+
+import com.intellij.mcpserver.McpToolset
+import com.intellij.mcpserver.annotations.McpDescription
+import com.intellij.mcpserver.annotations.McpTool
+import io.prumo.mcp.ide.PrumoWorkspaceService
+import io.prumo.mcp.pack.application.KnowledgeMatch
+import io.prumo.mcp.pack.application.PackStore
+import io.prumo.mcp.pack.domain.PackManifest
+import io.prumo.mcp.policy.PolicyAction
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.withContext
+import kotlinx.serialization.Serializable
+
+@Serializable
+data class PackResponse(
+    val packId: String,
+    val version: String,
+    val title: String,
+    val description: String,
+    val author: String? = null,
+    val capabilities: List<String>,
+    val knowledgeCount: Int,
+    /** Sempre verdadeiro: um pack é recurso do usuário, não do produto (seção 8.3). */
+    val thirdParty: Boolean = true,
+)
+
+@Serializable
+data class PackListResponse(
+    val workspaceId: String,
+    val packs: List<PackResponse>,
+)
+
+@Serializable
+data class KnowledgeMatchResponse(
+    val packId: String,
+    val itemId: String,
+    val title: String,
+    val tags: List<String>,
+    val line: Int,
+    val excerpt: String,
+)
+
+@Serializable
+data class KnowledgeSearchResponse(
+    val workspaceId: String,
+    val query: String,
+    val matches: List<KnowledgeMatchResponse>,
+    val truncated: Boolean,
+)
+
+@Serializable
+data class KnowledgeContentResponse(
+    val packId: String,
+    val itemId: String,
+    val title: String,
+    val text: String,
+    val truncated: Boolean,
+)
+
+/**
+ * Respostas das tools de pack.
+ *
+ * O texto localizado é resolvido aqui, para o idioma que o cliente pediu, com queda para o inglês.
+ * Nada de caminho de arquivo: o cliente endereça conhecimento por `packId` + `itemId`.
+ */
+object PackReports {
+
+    const val MAX_MATCHES = 20
+    const val MAX_KNOWLEDGE_LENGTH = 20_000
+
+    fun list(workspaceId: String, packs: List<PackManifest>, language: String?): PackListResponse =
+        PackListResponse(
+            workspaceId = workspaceId,
+            packs = packs.map { manifest ->
+                PackResponse(
+                    packId = manifest.id,
+                    version = manifest.version,
+                    title = manifest.title.forLanguage(language),
+                    description = manifest.description.forLanguage(language),
+                    author = manifest.author,
+                    capabilities = manifest.capabilities.map { it.name }.sorted(),
+                    knowledgeCount = manifest.knowledge.size,
+                )
+            },
+        )
+
+    fun search(workspaceId: String, query: String, matches: List<KnowledgeMatch>): KnowledgeSearchResponse =
+        KnowledgeSearchResponse(
+            workspaceId = workspaceId,
+            query = query,
+            matches = matches.map {
+                KnowledgeMatchResponse(it.packId, it.itemId, it.title, it.tags, it.line, it.excerpt)
+            },
+            truncated = matches.size >= MAX_MATCHES,
+        )
+
+    fun content(packId: String, itemId: String, title: String, text: String): KnowledgeContentResponse =
+        KnowledgeContentResponse(
+            packId = packId,
+            itemId = itemId,
+            title = title,
+            text = text.take(MAX_KNOWLEDGE_LENGTH),
+            truncated = text.length > MAX_KNOWLEDGE_LENGTH,
+        )
+}
+
+/**
+ * Superfície MCP dos Prumo Packs instalados no workspace corrente.
+ *
+ * Pack é recurso do usuário: as respostas dizem isso explicitamente (`thirdParty`), porque a LLM e o
+ * desenvolvedor precisam saber que aquele conteúdo não tem garantia do produto (seção 8.3).
+ *
+ * A busca é determinística — texto, título e etiquetas. Não há embedding nem ranqueamento por
+ * modelo: a mesma pergunta devolve sempre o mesmo resultado, e quem interpreta é a LLM.
+ */
+class PackToolset : McpToolset {
+
+    @McpTool(name = LIST_TOOL)
+    @McpDescription(
+        "Lists the Prumo Packs installed in the current workspace, with the capabilities each one " +
+            "declared. Packs are user-provided resources, not part of the product.",
+    )
+    suspend fun list(
+        @McpDescription("BCP-47 language tag for the pack titles, for example pt-BR. Defaults to English.")
+        language: String? = null,
+    ): PackListResponse =
+        prumoToolCall(LIST_TOOL, "pack.list", PolicyAction.READ_DOCUMENTATION) { call ->
+            val store = PackStore(PrumoWorkspaceService.getInstance().storage)
+            val packs = withContext(Dispatchers.IO) { store.list(call.context.workspace.id) }
+            PackReports.list(call.context.workspace.id, packs, language)
+        }
+
+    @McpTool(name = SEARCH_KNOWLEDGE_TOOL)
+    @McpDescription(
+        "Searches the knowledge of the installed packs by literal text, title and tags, and returns " +
+            "where each match is. Deterministic: no embedding and no model ranking.",
+    )
+    suspend fun searchKnowledge(
+        @McpDescription("Text to look for.")
+        query: String,
+        @McpDescription("Restrict the search to one pack id.")
+        packId: String? = null,
+    ): KnowledgeSearchResponse =
+        prumoToolCall(SEARCH_KNOWLEDGE_TOOL, "pack.search_knowledge", PolicyAction.READ_DOCUMENTATION) { call ->
+            val store = PackStore(PrumoWorkspaceService.getInstance().storage)
+            val matches = withContext(Dispatchers.IO) {
+                store.searchKnowledge(call.context.workspace.id, query, packId, PackReports.MAX_MATCHES)
+            }
+            call.auditDetails["matches"] = matches.size.toString()
+            PackReports.search(call.context.workspace.id, query, matches)
+        }
+
+    @McpTool(name = GET_KNOWLEDGE_TOOL)
+    @McpDescription(
+        "Returns the full text of one knowledge item of an installed pack, addressed by pack id and " +
+            "item id. File paths are never accepted from the client.",
+    )
+    suspend fun getKnowledge(
+        @McpDescription("Pack id from prumo_pack_list.")
+        packId: String,
+        @McpDescription("Knowledge item id from prumo_pack_search_knowledge.")
+        itemId: String,
+        @McpDescription("BCP-47 language tag for the item title. Defaults to English.")
+        language: String? = null,
+    ): KnowledgeContentResponse =
+        prumoToolCall(GET_KNOWLEDGE_TOOL, "pack.get_knowledge", PolicyAction.READ_DOCUMENTATION) { call ->
+            val store = PackStore(PrumoWorkspaceService.getInstance().storage)
+            val workspaceId = call.context.workspace.id
+            withContext(Dispatchers.IO) {
+                val manifest = store.load(workspaceId, packId)
+                val title = manifest?.knowledge(itemId)?.title?.forLanguage(language).orEmpty()
+                PackReports.content(packId, itemId, title, store.readKnowledge(workspaceId, packId, itemId))
+            }
+        }
+
+    private companion object {
+        const val LIST_TOOL = "prumo_pack_list"
+        const val SEARCH_KNOWLEDGE_TOOL = "prumo_pack_search_knowledge"
+        const val GET_KNOWLEDGE_TOOL = "prumo_pack_get_knowledge"
+    }
+}
