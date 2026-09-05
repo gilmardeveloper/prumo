@@ -143,6 +143,12 @@ Every one of these is a named test in the security suite: `./gradlew test -Psecu
 Recorded, not implemented: other database engines, remote/enterprise MCP, a central workspace
 registry, richer pack tooling. Nothing in this list is half-built in the codebase.
 
+## Trying the whole thing
+
+[docs/demo.md](docs/demo.md) walks the complete cycle end to end — workspace, boundary, database,
+a pack written by an AI client and installed by a human — with what to observe at each step. It is
+the script that decides whether this MVP is done.
+
 ## Contributing
 
 Read [CONTRIBUTING.md](CONTRIBUTING.md). The short version: the flow is investigate → plan →
