@@ -199,12 +199,21 @@ class ToolSurfaceTest {
 
     @Test
     fun `as tools registradas sao exatamente as previstas`() {
-        val registered = listOf(WorkspaceToolset::class.java, RepositoryToolset::class.java, IdeToolset::class.java)
+        val registered = listOf(
+            WorkspaceToolset::class.java,
+            RepositoryToolset::class.java,
+            IdeToolset::class.java,
+            DatabaseToolset::class.java,
+        )
             .flatMap { toolset -> toolset.declaredMethods.mapNotNull { it.getAnnotation(McpTool::class.java)?.name } }
             .sorted()
 
         assertEquals(
             listOf(
+                "prumo_database_describe_table",
+                "prumo_database_get_schema",
+                "prumo_database_list_available",
+                "prumo_database_list_tables",
                 "prumo_ide_get_current_context",
                 "prumo_repository_get_branch",
                 "prumo_repository_get_diff",

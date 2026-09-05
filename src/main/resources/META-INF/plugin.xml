@@ -32,5 +32,6 @@
         <mcpToolset implementation="io.prumo.mcp.toolsets.WorkspaceToolset" />
         <mcpToolset implementation="io.prumo.mcp.toolsets.RepositoryToolset" />
         <mcpToolset implementation="io.prumo.mcp.toolsets.IdeToolset" />
+        <mcpToolset implementation="io.prumo.mcp.toolsets.DatabaseToolset" />
     </extensions>
 </idea-plugin>

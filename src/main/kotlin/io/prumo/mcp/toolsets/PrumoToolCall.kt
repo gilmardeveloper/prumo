@@ -4,6 +4,8 @@ import com.intellij.mcpserver.McpExpectedError
 import com.intellij.openapi.diagnostic.Logger
 import com.intellij.openapi.project.Project
 import io.prumo.mcp.audit.AuditResult
+import io.prumo.mcp.datasource.DataSourceAccessException
+import io.prumo.mcp.datasource.domain.DataSourceProfile
 import io.prumo.mcp.ide.GitReadException
 import io.prumo.mcp.ide.PrumoWorkspaceService
 import io.prumo.mcp.policy.PolicyAction
@@ -22,7 +24,12 @@ internal data class PrumoCall(
     val project: Project,
     val context: WorkspaceContext,
     val repository: RepositoryBinding,
-)
+    val datasource: DataSourceProfile? = null,
+) {
+    /** O datasource já resolvido dentro da fronteira; ausente é erro de programação, não do cliente. */
+    val requiredDatasource: DataSourceProfile
+        get() = requireNotNull(datasource) { "This tool must resolve a data source before running." }
+}
 
 /**
  * Contrato único de execução de toda tool do Prumo.
@@ -37,6 +44,7 @@ internal suspend fun <T> prumoToolCall(
     operation: String,
     action: PolicyAction,
     repository: (WorkspaceContext) -> RepositoryBinding = WorkspaceContext::currentRepository,
+    datasource: ((WorkspaceContext) -> DataSourceProfile)? = null,
     block: suspend (PrumoCall) -> T,
 ): T {
     val project = McpProjectResolver.resolve(coroutineContext)
@@ -52,38 +60,45 @@ internal suspend fun <T> prumoToolCall(
 
     val startedAt = System.nanoTime()
     var target: RepositoryBinding? = null
+    var source: DataSourceProfile? = null
     return try {
         val binding = repository(context).also { target = it }
+        val profile = datasource?.invoke(context)?.also { source = it }
         PolicyEngine.require(
             PolicyRequest(
                 action = action,
                 policies = context.policies,
                 repositoryAccess = binding.accessMode,
+                databaseAccess = profile?.accessMode,
             ),
         )
-        block(PrumoCall(project, context, binding)).also {
-            service.record(context, target, tool, operation, AuditResult.SUCCESS, startedAt)
+        block(PrumoCall(project, context, binding, profile)).also {
+            service.record(context, target, source, tool, operation, AuditResult.SUCCESS, startedAt)
         }
     } catch (failure: PolicyViolationException) {
-        service.record(context, target, tool, operation, AuditResult.DENIED, startedAt)
+        service.record(context, target, source, tool, operation, AuditResult.DENIED, startedAt)
         throw McpExpectedError(failure.decision.reason)
     } catch (failure: PathAccessDeniedException) {
-        service.record(context, target, tool, operation, AuditResult.DENIED, startedAt)
+        service.record(context, target, source, tool, operation, AuditResult.DENIED, startedAt)
         throw McpExpectedError(failure.message ?: PATH_REFUSED)
     } catch (failure: WorkspaceResolutionException) {
         // Repositório pedido pelo cliente que não pertence a este workspace: a fronteira recusa,
         // e o cliente precisa saber que recusou.
-        service.record(context, target, tool, operation, AuditResult.DENIED, startedAt)
+        service.record(context, target, source, tool, operation, AuditResult.DENIED, startedAt)
         throw McpExpectedError(failure.message ?: UNRESOLVED_WORKSPACE)
     } catch (failure: RepositoryReadException) {
         // Arquivo ausente, binário ou grande demais: o cliente corrige o pedido, não é falha do plugin.
-        service.record(context, target, tool, operation, AuditResult.ERROR, startedAt)
+        service.record(context, target, source, tool, operation, AuditResult.ERROR, startedAt)
         throw McpExpectedError(failure.message ?: READ_REFUSED)
     } catch (failure: GitReadException) {
-        service.record(context, target, tool, operation, AuditResult.ERROR, startedAt)
+        service.record(context, target, source, tool, operation, AuditResult.ERROR, startedAt)
+        throw McpExpectedError(failure.message ?: READ_REFUSED)
+    } catch (failure: DataSourceAccessException) {
+        // Credencial ausente ou banco que recusou a conexão: o cliente precisa saber qual dos dois.
+        service.record(context, target, source, tool, operation, AuditResult.ERROR, startedAt)
         throw McpExpectedError(failure.message ?: READ_REFUSED)
     } catch (failure: Exception) {
-        service.record(context, target, tool, operation, AuditResult.ERROR, startedAt)
+        service.record(context, target, source, tool, operation, AuditResult.ERROR, startedAt)
         LOG.warn("Prumo MCP tool '$tool' failed for workspace '${context.workspace.id}'.", failure)
         throw failure
     }
@@ -92,6 +107,7 @@ internal suspend fun <T> prumoToolCall(
 private fun PrumoWorkspaceService.record(
     context: WorkspaceContext,
     repository: RepositoryBinding?,
+    datasource: DataSourceProfile?,
     tool: String,
     operation: String,
     result: AuditResult,
@@ -104,6 +120,7 @@ private fun PrumoWorkspaceService.record(
         result = result,
         durationMillis = (System.nanoTime() - startedAt) / 1_000_000,
         repositoryId = (repository ?: context.currentRepository).id,
+        datasourceId = datasource?.id,
     )
 }
 

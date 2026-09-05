@@ -4,6 +4,8 @@ import com.intellij.openapi.components.Service
 import com.intellij.openapi.components.service
 import com.intellij.openapi.project.Project
 import io.prumo.mcp.audit.AuditLog
+import io.prumo.mcp.credential.CredentialProvider
+import io.prumo.mcp.credential.PasswordSafeCredentialProvider
 import io.prumo.mcp.repository.GitRepositoryProbe
 import io.prumo.mcp.storage.FileSystemStorageProvider
 import io.prumo.mcp.storage.LocalStorageProvider
@@ -26,6 +28,7 @@ class PrumoWorkspaceService {
     val storage: LocalStorageProvider = FileSystemStorageProvider.forCurrentSystem()
     val store: WorkspaceStore = WorkspaceStore(storage)
     val audit: AuditLog = AuditLog(storage)
+    val credentials: CredentialProvider = PasswordSafeCredentialProvider()
     private val contextService = CurrentWorkspaceContextService(store)
 
     fun describe(project: Project): ProjectDescriptor {
