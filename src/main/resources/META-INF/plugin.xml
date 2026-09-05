@@ -28,5 +28,6 @@
 
     <extensions defaultExtensionNs="com.intellij.mcpServer">
         <mcpToolset implementation="io.prumo.mcp.toolsets.PrumoDiagnosticsToolset" />
+        <mcpToolset implementation="io.prumo.mcp.toolsets.WorkspaceToolset" />
     </extensions>
 </idea-plugin>

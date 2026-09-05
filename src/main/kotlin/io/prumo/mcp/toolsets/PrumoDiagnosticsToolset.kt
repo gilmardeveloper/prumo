@@ -3,6 +3,8 @@ package io.prumo.mcp.toolsets
 import com.intellij.mcpserver.McpToolset
 import com.intellij.mcpserver.annotations.McpDescription
 import com.intellij.mcpserver.annotations.McpTool
+import io.prumo.mcp.ide.PrumoWorkspaceService
+import io.prumo.mcp.workspace.application.WorkspaceResolution
 import kotlinx.serialization.Serializable
 import kotlin.coroutines.coroutineContext
 
@@ -20,10 +22,11 @@ class PrumoDiagnosticsToolset : McpToolset {
     )
     suspend fun prumo_diagnostics(): PrumoDiagnostics {
         val project = McpProjectResolver.resolve(coroutineContext)
+        val resolution = PrumoWorkspaceService.getInstance().resolve(project)
         return PrumoDiagnostics(
             pluginVersion = PLUGIN_VERSION,
             projectName = project.name,
-            workspaceConfigured = false,
+            workspaceConfigured = resolution is WorkspaceResolution.Resolved,
         )
     }
 
@@ -36,6 +39,6 @@ class PrumoDiagnosticsToolset : McpToolset {
 data class PrumoDiagnostics(
     val pluginVersion: String,
     val projectName: String,
-    /** Falso enquanto a configuração de workspace não existir; passa a refletir o estado real em W7. */
+    /** Verdadeiro apenas quando o projeto aberto resolve para exatamente um workspace do Prumo. */
     val workspaceConfigured: Boolean,
 )
