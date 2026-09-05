@@ -7,6 +7,9 @@ import io.prumo.mcp.ide.PrumoWorkspaceService
 import io.prumo.mcp.pack.application.KnowledgeMatch
 import io.prumo.mcp.pack.application.PackStore
 import io.prumo.mcp.pack.domain.PackManifest
+import io.prumo.mcp.pack.domain.PackToolKind
+import io.prumo.mcp.pack.execution.PackQueryRunner
+import io.prumo.mcp.pack.execution.PackToolRunner
 import io.prumo.mcp.policy.PolicyAction
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
@@ -47,6 +50,24 @@ data class KnowledgeSearchResponse(
     val query: String,
     val matches: List<KnowledgeMatchResponse>,
     val truncated: Boolean,
+)
+
+@Serializable
+data class PackToolRunResponse(
+    val packId: String,
+    val toolId: String,
+    val kind: String,
+    /** Sempre verdadeiro: quem responde por esta ferramenta é quem a instalou, não o Prumo. */
+    val thirdParty: Boolean = true,
+    val exitCode: Int? = null,
+    val stdout: String? = null,
+    val stderr: String? = null,
+    val timedOut: Boolean = false,
+    val columns: List<QueryColumnResponse> = emptyList(),
+    val rows: List<List<String?>> = emptyList(),
+    val rowCount: Int = 0,
+    val truncated: Boolean = false,
+    val durationMillis: Long = 0,
 )
 
 @Serializable
@@ -174,7 +195,72 @@ class PackToolset : McpToolset {
             }
         }
 
+    @McpTool(name = RUN_TOOL)
+    @McpDescription(
+        "Runs a tool of an installed pack: a saved read-only query or a confined script. The tool " +
+            "was written by a third party and installed by the developer; it obeys the same limits " +
+            "as the native tools — read-only transaction for queries, confinement and timeout for " +
+            "scripts, and the workspace policy above both.",
+    )
+    suspend fun runTool(
+        @McpDescription("Pack id from prumo_pack_list.")
+        packId: String,
+        @McpDescription("Tool id declared by the pack.")
+        toolId: String,
+        @McpDescription("For queries: how many rows to return at most.")
+        maxRows: Int = 100,
+    ): PackToolRunResponse =
+        prumoToolCall(RUN_TOOL, "pack.run_tool", PolicyAction.READ_DOCUMENTATION) { call ->
+            val service = PrumoWorkspaceService.getInstance()
+            val workspace = call.context.workspace
+            val manifest = PackStore(service.storage).load(workspace.id, packId)
+                ?: throw io.prumo.mcp.pack.application.PackAccessException(
+                    "Pack '$packId' is not installed in this workspace.",
+                )
+            val tool = manifest.tool(toolId)
+                ?: throw io.prumo.mcp.pack.application.PackAccessException(
+                    "Pack '$packId' has no tool '$toolId'.",
+                )
+            call.auditDetails["packId"] = packId
+
+            withContext(Dispatchers.IO) {
+                when (tool.kind) {
+                    PackToolKind.QUERY -> {
+                        val outcome = PackQueryRunner(service.storage, service.credentials)
+                            .run(workspace, packId, toolId, maxRows, service.audit)
+                        PackToolRunResponse(
+                            packId = packId,
+                            toolId = toolId,
+                            kind = tool.kind.name,
+                            columns = outcome.columns.map { QueryColumnResponse(it.name, it.type, it.masked) },
+                            rows = outcome.rows,
+                            rowCount = outcome.rowCount,
+                            truncated = outcome.truncated,
+                            durationMillis = outcome.durationMillis,
+                        )
+                    }
+
+                    PackToolKind.SCRIPT -> {
+                        val result = PackToolRunner(service.storage)
+                            .run(workspace.id, workspace.policies, packId, toolId, service.audit)
+                        PackToolRunResponse(
+                            packId = packId,
+                            toolId = toolId,
+                            kind = tool.kind.name,
+                            exitCode = result.exitCode,
+                            stdout = result.stdout,
+                            stderr = result.stderr,
+                            timedOut = result.timedOut,
+                            truncated = result.truncated,
+                            durationMillis = result.durationMillis,
+                        )
+                    }
+                }
+            }
+        }
+
     private companion object {
+        const val RUN_TOOL = "prumo_pack_run_tool"
         const val LIST_TOOL = "prumo_pack_list"
         const val SEARCH_KNOWLEDGE_TOOL = "prumo_pack_search_knowledge"
         const val GET_KNOWLEDGE_TOOL = "prumo_pack_get_knowledge"

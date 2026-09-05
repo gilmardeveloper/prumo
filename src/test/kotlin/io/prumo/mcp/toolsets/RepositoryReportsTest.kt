@@ -223,6 +223,7 @@ class ToolSurfaceTest {
                 "prumo_pack_get_authoring_spec",
                 "prumo_pack_get_knowledge",
                 "prumo_pack_list",
+                "prumo_pack_run_tool",
                 "prumo_pack_search_knowledge",
                 "prumo_pack_submit",
                 "prumo_pack_validate",
