@@ -19,6 +19,7 @@
 
     <depends>com.intellij.modules.platform</depends>
     <depends>com.intellij.mcpServer</depends>
+    <depends>Git4Idea</depends>
 
     <extensions defaultExtensionNs="com.intellij">
         <toolWindow id="Prumo MCP"
@@ -29,5 +30,7 @@
     <extensions defaultExtensionNs="com.intellij.mcpServer">
         <mcpToolset implementation="io.prumo.mcp.toolsets.PrumoDiagnosticsToolset" />
         <mcpToolset implementation="io.prumo.mcp.toolsets.WorkspaceToolset" />
+        <mcpToolset implementation="io.prumo.mcp.toolsets.RepositoryToolset" />
+        <mcpToolset implementation="io.prumo.mcp.toolsets.IdeToolset" />
     </extensions>
 </idea-plugin>

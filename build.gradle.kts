@@ -31,6 +31,10 @@ dependencies {
         // subir um servidor MCP paralelo.
         bundledPlugin("com.intellij.mcpServer")
 
+        // Estado do Git vem do plugin Git bundled (presente em Community e Ultimate), que usa o
+        // executavel de Git ja configurado pelo usuario. Evita assumir `git` no PATH e evita
+        // empacotar uma segunda implementacao de Git dentro do plugin.
+        bundledPlugin("Git4Idea")
     }
 
     // A plataforma IntelliJ ja fornece kotlinx-serialization em runtime. Empacotar uma segunda
