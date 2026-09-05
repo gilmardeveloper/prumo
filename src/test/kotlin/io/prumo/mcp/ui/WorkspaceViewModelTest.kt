@@ -77,6 +77,20 @@ class WorkspaceViewModelTest {
     }
 
     @Test
+    fun `a fila de aprovacao so aparece quando ha proposta esperando`() {
+        val vazio = WorkspaceViewModel.from(
+            WorkspaceResolution.Resolved(WorkspaceContext(workspace, target)),
+        ) as WorkspaceViewModel.Configured
+        val comProposta = WorkspaceViewModel.from(
+            WorkspaceResolution.Resolved(WorkspaceContext(workspace, target)),
+            pendingPacks = 2,
+        ) as WorkspaceViewModel.Configured
+
+        assertEquals(0, vazio.pendingPacks)
+        assertEquals(2, comProposta.pendingPacks)
+    }
+
+    @Test
     fun `projeto nao configurado leva a acao de configuracao`() {
         val model = WorkspaceViewModel.from(WorkspaceResolution.NotConfigured("avulso"))
 

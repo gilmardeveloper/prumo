@@ -31,7 +31,12 @@ class PrumoWorkspacePanel(private val project: Project) {
     val component: JComponent get() = render()
 
     private fun render(): JPanel {
-        val model = WorkspaceViewModel.from(PrumoWorkspaceService.getInstance().resolve(project))
+        val service = PrumoWorkspaceService.getInstance()
+        val resolution = service.resolve(project)
+        val pending = (resolution as? io.prumo.mcp.workspace.application.WorkspaceResolution.Resolved)
+            ?.let { io.prumo.mcp.pack.authoring.SubmissionQueue(service.storage).pending(it.context.workspace.id).size }
+            ?: 0
+        val model = WorkspaceViewModel.from(resolution, pending)
 
         return panel {
             when (model) {
@@ -93,6 +98,18 @@ class PrumoWorkspacePanel(private val project: Project) {
                 row {
                     cell(JBLabel(policy.label))
                     comment(if (policy.allowed) "ALLOW" else "DENY")
+                }
+            }
+        }
+
+        // A fila de aprovacao so aparece quando ha algo esperando decisao: painel que mostra area
+        // vazia todo dia ensina o usuario a ignorar a area.
+        if (model.pendingPacks > 0) {
+            group("Prumo Packs waiting for you (${model.pendingPacks})") {
+                row {
+                    cell(
+                        io.prumo.mcp.ui.pack.ApprovalQueuePanel(project, model.workspaceId).component(),
+                    ).align(com.intellij.ui.dsl.builder.AlignX.FILL)
                 }
             }
         }

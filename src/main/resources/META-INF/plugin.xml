@@ -34,5 +34,6 @@
         <mcpToolset implementation="io.prumo.mcp.toolsets.IdeToolset" />
         <mcpToolset implementation="io.prumo.mcp.toolsets.DatabaseToolset" />
         <mcpToolset implementation="io.prumo.mcp.toolsets.PackToolset" />
+        <mcpToolset implementation="io.prumo.mcp.toolsets.PackAuthoringToolset" />
     </extensions>
 </idea-plugin>
