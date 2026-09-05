@@ -28,4 +28,4 @@ All notable changes to this project are documented here. The format follows
 - Security suite named and separated (`./gradlew test -PsecurityOnly`), and CI running build, tests
   and plugin verification on Windows and Linux.
 
-[Unreleased]: https://github.com/gilmarsilva/prumo/commits/main
+[Unreleased]: https://github.com/gilmardeveloper/prumo/commits/main

@@ -1,162 +1,184 @@
 # Prumo MCP
 
-[![CI](https://github.com/gilmarsilva/prumo/actions/workflows/ci.yml/badge.svg)](https://github.com/gilmarsilva/prumo/actions/workflows/ci.yml)
-[![License](https://img.shields.io/badge/license-Apache--2.0-blue.svg)](LICENSE)
+**Português (Brasil)** · [English](README.en.md)
+
+[![CI](https://github.com/gilmardeveloper/prumo/actions/workflows/ci.yml/badge.svg)](https://github.com/gilmardeveloper/prumo/actions/workflows/ci.yml)
+[![Licença](https://img.shields.io/badge/licen%C3%A7a-Apache--2.0-blue.svg)](LICENSE)
 [![IntelliJ IDEA](https://img.shields.io/badge/IntelliJ%20IDEA-2026.1%2B-000?logo=intellijidea)](https://www.jetbrains.com/idea/)
 
-**Turn your IDE into a standardized, isolated and auditable context source for MCP-capable AI
-clients — Claude, Codex, Gemini and anything else that speaks the Model Context Protocol.**
+**Transforma a sua IDE numa fonte de contexto padronizada, isolada e auditável para clientes de IA
+que falam MCP — Claude, Codex, Gemini e qualquer outro que use o Model Context Protocol.**
 
-Prumo is not an AI. It is the deterministic layer between your IDE, your code, your Git, your
-documentation, your databases, your policies — and the AI client. It defines the boundary the
-assistant may work within, and it enforces that boundary in code, not in a prompt.
+O Prumo não é uma IA. É a camada determinística entre a sua IDE, o seu código, o seu Git, a sua
+documentação, os seus bancos, as suas políticas — e o cliente de IA. Ele define a fronteira dentro
+da qual o assistente pode trabalhar, e impõe essa fronteira em código, não em prompt.
 
 ---
 
-## The problem
+## O problema
 
-An AI client that helps with a real codebase needs context. Today that context is improvised:
+Um assistente de IA que ajuda num sistema real precisa de contexto. Hoje esse contexto é improvisado:
 
-- **The context is ad-hoc.** `CLAUDE.md`, `AGENTS.md`, a folder of notes, a copy-pasted schema. Each
-  developer assembles their own, and none of it survives a machine change or reaches a colleague.
-- **The boundary is a request, not a rule.** "Don't touch the legacy repository" is a sentence in a
-  prompt. Nothing stops a tool from reading it, and nothing tells you afterwards that it did.
-- **The database is the sharp edge.** Giving an assistant a connection string is easy. Giving it
-  read-only access to exactly one database, with masked secrets, capped rows and an audit trail, is
-  work that nobody does twice.
-- **Multi-repository work leaks.** Modernizing a legacy system means reading one repository while
-  writing another. The IDE knows about the project you opened, and nothing else.
+- **O contexto é improvisado.** `CLAUDE.md`, `AGENTS.md`, uma pasta de anotações, um schema colado à
+  mão. Cada pessoa monta o seu, e nada disso sobrevive a uma troca de máquina nem chega ao colega.
+- **A fronteira é um pedido, não uma regra.** "Não mexa no repositório legado" é uma frase num
+  prompt. Nada impede uma ferramenta de ler o legado, e nada avisa depois que ela leu.
+- **O banco é a parte perigosa.** Entregar uma string de conexão a um assistente é fácil. Dar acesso
+  somente-leitura a exatamente um banco, com segredo mascarado, teto de linhas e trilha de
+  auditoria, é trabalho que ninguém faz duas vezes.
+- **Trabalho com vários repositórios vaza.** Modernizar um sistema legado significa ler um
+  repositório enquanto se escreve outro. A IDE conhece o projeto que você abriu, e nada além dele.
 
-## What Prumo does
+## O que o Prumo faz
 
-Prumo introduces the **workspace**: an explicit boundary that says which repositories, which
-documentation and which databases belong together, and what is allowed inside them.
+O Prumo introduz o **espaço de trabalho**: uma fronteira explícita que diz quais repositórios, qual
+documentação e quais bancos pertencem um ao outro, e o que é permitido dentro deles.
 
-- **Isolation by construction.** A workspace never references another. There is no query that,
-  starting from one workspace, reaches the content of another — not a path, not a document, not a
-  data source, not the audit trail.
-- **Read-only that is enforced.** A repository bound as `READ_ONLY` stays read-only for every tool.
-  A database bound as `READ_ONLY` refuses writes in the driver, in the session and in the statement
-  classifier — and the read-only credential you configure remains the real barrier.
-- **Nothing is written inside your repositories.** Every byte Prumo produces lives in an operating
-  system directory, never in your project.
-- **Everything is audited, nothing is copied.** The trail records what happened — tool, workspace,
-  data source, statement type, row count — and never the data itself.
-- **Team knowledge that travels.** A **Prumo Pack** carries documentation, saved queries and scripts
-  between machines and colleagues, installed only after an informed consent screen that shows the
-  capabilities it asks for, the risky patterns found in it and the scripts in full.
+- **Isolamento por construção.** Um espaço de trabalho nunca referencia outro. Não existe consulta
+  que, partindo de um, alcance o conteúdo do outro — nem caminho, nem documento, nem banco, nem
+  trilha de auditoria.
+- **Somente-leitura que é imposta.** Repositório vinculado como `READ_ONLY` continua somente-leitura
+  para toda ferramenta. Banco vinculado como `READ_ONLY` recusa escrita no driver, na sessão e na
+  classificação do statement — e a credencial de leitura que você configura continua sendo a
+  barreira principal.
+- **Nada é escrito dentro dos seus repositórios.** Todo byte que o Prumo produz fica num diretório
+  do sistema operacional, nunca no seu projeto.
+- **Tudo é auditado, nada é copiado.** A trilha registra o que aconteceu — ferramenta, espaço de
+  trabalho, banco, tipo do statement, contagem de linhas — e nunca o dado em si.
+- **Conhecimento de equipe que viaja.** Um **Prumo Pack** leva documentação, consultas salvas e
+  scripts entre máquinas e colegas, e só é instalado depois de uma tela de consentimento que mostra
+  as capacidades que ele pede, os trechos de risco encontrados e os scripts por inteiro.
 
-## Requirements
+## O que você precisa
 
-- IntelliJ IDEA **2026.1 or newer**, Community or Ultimate (the bundled MCP Server plugin, present
-  since 2025.2, must be enabled)
-- JDK 21 or newer to run the IDE; JDK 25 to build the plugin from source
-- Windows or Linux
-- PostgreSQL, optionally, for the database tools
+- IntelliJ IDEA **2026.1 ou mais novo**, Community ou Ultimate, com o plugin **MCP Server** (que já
+  vem junto desde a 2025.2) habilitado
+- JDK 21 ou mais novo para rodar a IDE; JDK 25 para compilar o plugin a partir do código
+- Windows ou Linux
+- PostgreSQL, se você for usar as ferramentas de banco
 
-## Install
+## Instalação
 
-**From a build:**
+Ainda não há publicação no JetBrains Marketplace. A instalação é a partir do código:
 
 ```bash
-git clone https://github.com/gilmarsilva/prumo.git
+git clone https://github.com/gilmardeveloper/prumo.git
 cd prumo
 ./gradlew buildPlugin
 ```
 
-The plugin lands in `build/distributions/`. In the IDE: **Settings → Plugins → ⚙ → Install Plugin
-from Disk…**, pick the ZIP, restart.
+O pacote aparece em `build/distributions/` como um arquivo `.zip`.
 
-**Enable the MCP server** in **Settings → Tools → MCP Server**, and point your AI client at it. The
-IDE exposes the server over SSE; Prumo contributes its tools to that same server instead of running
-one of its own.
+Na IDE:
 
-## Your first workspace
+1. **Settings → Plugins → ⚙ → Install Plugin from Disk…**
+2. escolha o `.zip` que acabou de ser gerado;
+3. reinicie a IDE quando ela pedir.
 
-1. Open a project. In the right-hand tool bar, open **Prumo MCP**.
-2. Click **Configure Workspace**, give it a name and a type. The open project is bound as the
-   primary repository.
-3. Click **Edit Workspace** to add what belongs together:
-   - another repository as `LEGACY_REFERENCE` in `READ_ONLY`;
-   - documentation — a folder of Markdown, a specification, a glossary;
-   - a PostgreSQL data source, with the password going to the IDE password safe and **Test
-     Connection** telling you what is wrong before your AI client finds out;
-   - the policies, all denied by default.
-4. Ask your AI client to call `prumo_workspace_get_context`. It gets the current workspace, and only
-   the current workspace.
+> Se o `./gradlew` falhar dizendo que a versão do Java não serve, aponte o `JAVA_HOME` para um JDK
+> 25 antes de compilar.
 
-The tool window shows the workspace, its repositories with role and access mode, and the policies —
-so the boundary is visible while you work, not buried in a settings file.
+### Ligar o servidor MCP
 
-## The MCP surface
+O Prumo não sobe servidor próprio: ele contribui as ferramentas dele para o servidor MCP da própria
+IDE.
 
-Twenty-five tools, documented one by one in [docs/mcp-tools.md](docs/mcp-tools.md):
+1. **Settings → Tools → MCP Server**, marque a opção de habilitar e anote a porta.
+2. Aponte o seu cliente de IA para esse endereço. A IDE publica o servidor por SSE.
+3. Peça ao cliente a lista de ferramentas: as que começam com `prumo_` são as deste plugin.
 
-| Group | What it answers |
+## O seu primeiro espaço de trabalho
+
+1. Abra um projeto. Na barra da direita, abra **Prumo MCP**.
+2. Clique em **Configurar workspace**, dê um nome e escolha o tipo. O projeto aberto entra como
+   repositório principal.
+3. Clique em **Editar workspace** para acrescentar o que pertence ao conjunto:
+   - outro repositório como `LEGACY_REFERENCE` em `READ_ONLY`;
+   - documentação — uma pasta de Markdown, uma especificação, um glossário;
+   - um banco PostgreSQL, com a senha indo para o cofre da IDE e o **Testar conexão** avisando o que
+     está errado antes que o seu cliente de IA descubra;
+   - as políticas, todas negadas por padrão.
+4. Peça ao seu cliente de IA para chamar `prumo_workspace_get_context`. Ele recebe o espaço de
+   trabalho atual, e apenas ele.
+
+O painel mostra o espaço de trabalho, os repositórios com papel e modo de acesso, e as políticas —
+de modo que a fronteira fica à vista enquanto você trabalha, e não escondida num arquivo de
+configuração.
+
+### Idioma da interface
+
+As telas acompanham o idioma da IDE. Para deixar o Prumo em português com a IDE em inglês, use
+**Settings → Tools → Prumo MCP**. Nome de ferramenta, descrição e mensagem devolvida ao cliente de
+IA seguem sempre em inglês: são contrato lido por uma máquina, não texto de tela.
+
+## As ferramentas MCP
+
+Vinte e cinco ferramentas, documentadas uma a uma em [docs/mcp-tools.md](docs/mcp-tools.md) (em
+inglês):
+
+| Grupo | O que responde |
 |---|---|
-| `prumo_workspace_*` | What is the current workspace, what does it allow, what belongs to it, is it ready |
-| `prumo_repository_*` | Git status, branch and diff; read a file, search text, list structure — **including repositories that are bound but not open in the IDE** |
-| `prumo_ide_get_current_context` | Where the developer is right now: file, caret, selection, enclosing symbols, module |
-| `prumo_database_*` | Which databases, their schemas and tables, and one read-only statement at a time |
-| `prumo_pack_*` | Installed packs, their knowledge, and the authoring cycle an AI client uses to propose new ones |
+| `prumo_workspace_*` | Qual é o espaço de trabalho atual, o que ele permite, o que pertence a ele, se está pronto |
+| `prumo_repository_*` | Estado do Git, branch e diff; ler arquivo, buscar texto, listar estrutura — **inclusive de repositórios vinculados que não estão abertos na IDE** |
+| `prumo_ide_get_current_context` | Onde a pessoa está agora: arquivo, cursor, seleção, símbolos que a contêm, módulo |
+| `prumo_database_*` | Quais bancos existem, seus schemas e tabelas, e um statement de leitura por vez |
+| `prumo_pack_*` | Packs instalados, o conhecimento deles, e o ciclo de autoria que um cliente de IA usa para propor novos |
 
-Prumo does not duplicate what the IDE's own MCP server already does — symbol search, inspections,
-build, tests, refactoring, debugger. It adds what the native tools cannot: the workspace boundary,
-repositories that are not the open project, Git state, isolated databases and portable team
-knowledge.
+O Prumo não repete o que o servidor MCP da IDE já faz — busca de símbolo, inspeções, build, testes,
+refatoração, depurador. Ele acrescenta o que as ferramentas nativas não fazem: a fronteira do espaço
+de trabalho, repositórios que não são o projeto aberto, estado do Git, bancos isolados e
+conhecimento de equipe portátil.
 
-## Security
+## Segurança
 
-The design assumptions are written down in [docs/security.md](docs/security.md), including what
-Prumo does **not** protect against. In short:
+As premissas estão escritas em [docs/security.md](docs/security.md), inclusive o que o Prumo **não**
+protege. Em resumo:
 
-- credentials live in the IDE password safe, never in a file, a log, an audit entry or an error
-  message;
-- every path from a client is `repositoryId` + relative path, canonicalized and validated against
-  the repository root — absolute paths and `..` are refused;
-- SQL is classified against an allow-list over the parsed statement, and runs inside a read-only
-  transaction that is rolled back;
-- columns whose name announces a secret come back masked, with no configuration required;
-- pack scripts run with a confined working directory, a mandatory timeout, a minimal environment
-  that does not inherit the IDE's variables, and limited output;
-- a pack proposed by an AI client is never active until a human accepts it on the consent screen.
+- as credenciais ficam no cofre da IDE, nunca num arquivo, num log, numa entrada de auditoria ou
+  numa mensagem de erro;
+- todo caminho vindo de um cliente é `repositoryId` mais caminho relativo, normalizado e conferido
+  contra a raiz do repositório — caminho absoluto e `..` são recusados;
+- o SQL é classificado por lista de permissão sobre o statement analisado, e roda dentro de uma
+  transação somente-leitura que termina em rollback;
+- coluna cujo nome anuncia segredo volta mascarada, sem precisar configurar nada;
+- script de pack roda com diretório de trabalho confinado, tempo máximo obrigatório, ambiente mínimo
+  que não herda as variáveis da IDE, e saída limitada;
+- pack proposto por um cliente de IA nunca fica ativo antes de uma pessoa aceitar na tela de
+  consentimento.
 
-Every one of these is a named test in the security suite: `./gradlew test -PsecurityOnly`.
+Cada um desses pontos é um teste nomeado na bateria de segurança: `./gradlew test -PsecurityOnly`.
 
-## Honest limitations of this MVP
+## Limitações honestas deste MVP
 
-- **PostgreSQL only.** The architecture accepts other engines without a rewrite; the MVP ships one.
-- **Static analysis is signal detection, not proof.** The risk classifier finds known destructive
-  patterns. A script written to hide what it does can pass. The real barriers are the granted
-  capabilities, the confinement and your own reading of the consent screen.
-- **Script confinement is not an OS sandbox.** The working directory and the environment are
-  controlled; the process still runs as your user. A command with an absolute path reaches the disk.
-- **PDF is catalogued, not extracted.** Prumo tells the client the document exists and does not
-  pretend to read it.
-- **Validated on Windows first.** Linux parity is a design requirement and is covered by tests and
-  by CI, but the end-to-end script was run on Windows.
-- **Interface in English and Brazilian Portuguese.** It follows the IDE language, and
-  *Settings · Tools · Prumo MCP* overrides it when you want Prumo in a language the IDE is not
-  using. The MCP surface stays in English by design: tool names and descriptions are a contract
-  read by an AI, not interface text.
+- **Só PostgreSQL.** A arquitetura aceita outros bancos sem reescrita; o MVP entrega um.
+- **Análise estática é detecção de sinal, não prova.** O classificador de risco encontra padrões
+  destrutivos conhecidos. Um script escrito para esconder o que faz passa. As barreiras reais são as
+  capacidades concedidas, o confinamento e a sua leitura da tela de consentimento.
+- **Confinamento de script não é sandbox do sistema operacional.** O diretório de trabalho e o
+  ambiente são controlados; o processo ainda roda com o seu usuário. Um comando com caminho absoluto
+  alcança o disco inteiro.
+- **PDF é catalogado, não extraído.** O Prumo avisa ao cliente que o documento existe e não finge
+  lê-lo.
+- **Validado primeiro em Windows.** A paridade com Linux é requisito de projeto, coberta por testes
+  e pela integração contínua, mas o roteiro de ponta a ponta foi executado em Windows.
+- **Interface em português e inglês.** A superfície MCP fica em inglês de propósito: nome e
+  descrição de ferramenta são contrato lido por uma IA, não texto de interface.
 
-## Roadmap
+## Próximos passos
 
-Recorded, not implemented: other database engines, remote/enterprise MCP, a central workspace
-registry, richer pack tooling. Nothing in this list is half-built in the codebase.
+Registrados, não implementados: outros bancos, MCP remoto/corporativo, um registro central de
+espaços de trabalho, ferramental mais rico para packs. Nada disso está pela metade no código.
 
-## Trying the whole thing
+## Experimentar o ciclo inteiro
 
-[docs/demo.md](docs/demo.md) walks the complete cycle end to end — workspace, boundary, database,
-a pack written by an AI client and installed by a human — with what to observe at each step. It is
-the script that decides whether this MVP is done.
+[docs/demo.md](docs/demo.md) percorre o ciclo completo — espaço de trabalho, fronteira, banco, um
+pack escrito por um cliente de IA e instalado por uma pessoa — dizendo o que observar em cada passo.
 
-## Contributing
+## Contribuir
 
-Read [CONTRIBUTING.md](CONTRIBUTING.md). The short version: the flow is investigate → plan →
-implement → review, the security suite blocks delivery, and a test that fails is never marked as a
-pending item.
+Leia [CONTRIBUTING.md](CONTRIBUTING.md). Em resumo: o fluxo é investigar → planejar → implementar →
+revisar, a bateria de segurança bloqueia a entrega, e teste que falha nunca vira item pendente.
 
-## License
+## Licença
 
 [Apache License 2.0](LICENSE).
