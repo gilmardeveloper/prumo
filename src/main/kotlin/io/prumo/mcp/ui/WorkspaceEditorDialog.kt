@@ -12,6 +12,7 @@ import com.intellij.ui.dsl.builder.bindText
 import com.intellij.ui.dsl.builder.columns
 import com.intellij.ui.dsl.builder.panel
 import com.intellij.util.ui.JBUI
+import io.prumo.mcp.i18n.PrumoBundle
 import io.prumo.mcp.credential.PasswordSafeCredentialProvider
 import io.prumo.mcp.datasource.domain.DataSourceProfile
 import io.prumo.mcp.documentation.DocumentAuthority
@@ -63,63 +64,57 @@ class WorkspaceEditorDialog(
     private var gitWrite = original.policies.gitWrite
 
     init {
-        title = "Prumo Workspace"
-        setOKButtonText("Save")
+        title = PrumoBundle.message("workspace.dialog.title")
+        setOKButtonText(PrumoBundle.message("workspace.dialog.save"))
         init()
     }
 
     override fun createCenterPanel(): JComponent = panel {
-        row("Name:") {
+        row(PrumoBundle.message("workspace.field.name")) {
             textField().bindText(::workspaceName).columns(34).focused()
         }
-        row("Type:") {
+        row(PrumoBundle.message("workspace.field.type")) {
             comboBox(WorkspaceType.entries).bindItem(
                 { workspaceType },
                 { workspaceType = it ?: WorkspaceType.STANDALONE },
             )
         }
 
-        group("Repositories") {
+        group(PrumoBundle.message("workspace.section.repositories")) {
             row {
                 cell(repositoryList()).align(com.intellij.ui.dsl.builder.AlignX.FILL)
             }
             row {
-                comment(
-                    "A repository bound as READ_ONLY stays read-only for every tool, no matter what " +
-                        "the AI client asks for.",
-                )
+                comment(PrumoBundle.message("workspace.section.repositories.hint"))
             }
         }
 
-        group("Documentation") {
+        group(PrumoBundle.message("workspace.section.documentation")) {
             row {
                 cell(documentationList()).align(com.intellij.ui.dsl.builder.AlignX.FILL)
             }
             row {
-                comment("Markdown, TXT, JSON and YAML are read as text. PDF is catalogued only in this version.")
+                comment(PrumoBundle.message("workspace.section.documentation.hint"))
             }
         }
 
-        group("Data sources") {
+        group(PrumoBundle.message("workspace.section.datasources")) {
             row {
                 cell(datasourceList()).align(com.intellij.ui.dsl.builder.AlignX.FILL)
             }
             row {
-                comment(
-                    "PostgreSQL in this version. The password goes to the IDE password safe; the " +
-                        "workspace file keeps only how to reach the database.",
-                )
+                comment(PrumoBundle.message("workspace.section.datasources.hint"))
             }
         }
 
-        group("Policies") {
-            row { checkBox("Allow writes to reference repositories").bindSelected(::referenceWrite) }
-            row { checkBox("Allow database writes").bindSelected(::databaseWrite) }
-            row { checkBox("Allow access to paths outside bound repositories").bindSelected(::externalPathAccess) }
-            row { checkBox("Allow process execution from user resources").bindSelected(::processExecution) }
-            row { checkBox("Allow Git write operations").bindSelected(::gitWrite) }
+        group(PrumoBundle.message("workspace.section.policies")) {
+            row { checkBox(PrumoBundle.message("workspace.policy.referenceWrite")).bindSelected(::referenceWrite) }
+            row { checkBox(PrumoBundle.message("workspace.policy.databaseWrite")).bindSelected(::databaseWrite) }
+            row { checkBox(PrumoBundle.message("workspace.policy.externalPathAccess")).bindSelected(::externalPathAccess) }
+            row { checkBox(PrumoBundle.message("workspace.policy.processExecution")).bindSelected(::processExecution) }
+            row { checkBox(PrumoBundle.message("workspace.policy.gitWrite")).bindSelected(::gitWrite) }
             row {
-                comment("Everything is denied by default. Each of these is a deliberate decision.")
+                comment(PrumoBundle.message("workspace.section.policies.hint"))
             }
         }
     }.apply { border = JBUI.Borders.empty(8) }
@@ -193,7 +188,7 @@ class WorkspaceEditorDialog(
 
     private fun addRepository() {
         val descriptor = FileChooserDescriptor(false, true, false, false, false, false)
-            .withTitle("Select Repository Directory")
+            .withTitle(PrumoBundle.message("workspace.chooser.repository"))
         val chosen = FileChooser.chooseFile(descriptor, project, null) ?: return
         val path = Path.of(chosen.path)
         val id = ConfigureWorkspaceAction.slug(path.fileName?.toString() ?: chosen.name)
@@ -229,7 +224,7 @@ class WorkspaceEditorDialog(
 
     private fun addDocumentation() {
         val descriptor = FileChooserDescriptor(true, true, false, false, false, false)
-            .withTitle("Select Documentation File or Folder")
+            .withTitle(PrumoBundle.message("workspace.chooser.documentation"))
         val chosen = FileChooser.chooseFile(descriptor, project, null) ?: return
         val path = Path.of(chosen.path)
         val id = ConfigureWorkspaceAction.slug(path.fileName?.toString() ?: chosen.name)
@@ -288,23 +283,23 @@ class RepositoryBindingDialog(
     private var branchPolicy: String = existing?.branchPolicy.orEmpty()
 
     init {
-        title = "Repository Binding"
+        title = PrumoBundle.message("workspace.repository.dialog.title")
         init()
     }
 
     override fun createCenterPanel(): JComponent = panel {
-        row("Repository:") { label(path.fileName?.toString() ?: id) }
-        row("Role:") {
+        row(PrumoBundle.message("workspace.repository.field.repository")) { label(path.fileName?.toString() ?: id) }
+        row(PrumoBundle.message("workspace.repository.field.role")) {
             comboBox(RepositoryRole.entries).bindItem({ role }, { role = it ?: RepositoryRole.REFERENCE })
         }
-        row("Access:") {
+        row(PrumoBundle.message("workspace.repository.field.access")) {
             comboBox(AccessMode.entries).bindItem({ accessMode }, { accessMode = it ?: AccessMode.READ_ONLY })
         }
-        row("Branch policy:") {
+        row(PrumoBundle.message("workspace.repository.field.branchPolicy")) {
             textField().bindText(::branchPolicy).columns(24)
         }
         row {
-            comment("New bindings default to READ_ONLY. Granting write access is an explicit choice.")
+            comment(PrumoBundle.message("workspace.repository.hint"))
         }
     }
 

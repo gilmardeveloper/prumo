@@ -7,6 +7,7 @@ import com.intellij.ui.dsl.builder.bindItem
 import com.intellij.ui.dsl.builder.bindText
 import com.intellij.ui.dsl.builder.columns
 import com.intellij.ui.dsl.builder.panel
+import io.prumo.mcp.i18n.PrumoBundle
 import io.prumo.mcp.ide.PrumoWorkspaceService
 import io.prumo.mcp.repository.RepositoryFingerprint
 import io.prumo.mcp.workspace.domain.AccessMode
@@ -33,7 +34,7 @@ object ConfigureWorkspaceAction {
         if (basePath == null) {
             Messages.showErrorDialog(
                 project,
-                "Prumo could not determine this project's directory, so it cannot bind a repository.",
+                PrumoBundle.message("workspace.error.noDirectory"),
                 "Prumo MCP",
             )
             return
@@ -48,7 +49,7 @@ object ConfigureWorkspaceAction {
         if (service.store.load(id) != null) {
             Messages.showErrorDialog(
                 project,
-                "A workspace named “${dialog.workspaceName}” already exists.",
+                PrumoBundle.message("workspace.error.duplicate", dialog.workspaceName),
                 "Prumo MCP",
             )
             return
@@ -85,7 +86,7 @@ object ConfigureWorkspaceAction {
     fun edit(project: Project) {
         val service = PrumoWorkspaceService.getInstance()
         val context = runCatching { service.require(project) }.getOrElse { failure ->
-            Messages.showErrorDialog(project, failure.message ?: "Unresolved workspace.", "Prumo MCP")
+            Messages.showErrorDialog(project, failure.message ?: PrumoBundle.message("workspace.error.unresolved"), "Prumo MCP")
             return
         }
 
@@ -116,28 +117,25 @@ class ConfigureWorkspaceDialog(
     var workspaceType: WorkspaceType = WorkspaceType.STANDALONE
 
     init {
-        title = "Configure Prumo Workspace"
+        title = PrumoBundle.message("workspace.create.title")
         init()
     }
 
     override fun createCenterPanel(): JComponent = panel {
-        row("Workspace name:") {
+        row(PrumoBundle.message("workspace.create.name")) {
             textField()
                 .bindText(::workspaceName)
                 .columns(30)
                 .focused()
         }
-        row("Type:") {
+        row(PrumoBundle.message("workspace.field.type")) {
             comboBox(WorkspaceType.entries).bindItem(
                 { workspaceType },
                 { workspaceType = it ?: WorkspaceType.STANDALONE },
             )
         }
         row {
-            comment(
-                "The open project is bound as the primary repository. Related repositories, " +
-                    "documentation and databases are added afterwards.",
-            )
+            comment(PrumoBundle.message("workspace.create.hint"))
         }
     }
 }

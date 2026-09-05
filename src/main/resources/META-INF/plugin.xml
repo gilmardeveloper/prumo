@@ -21,8 +21,12 @@
     <depends>com.intellij.mcpServer</depends>
     <depends>Git4Idea</depends>
 
+    <!-- Textos que a propria plataforma resolve (nome de acao, titulo da tool window). -->
+    <resource-bundle>messages.PrumoBundle</resource-bundle>
+
     <extensions defaultExtensionNs="com.intellij">
         <toolWindow id="Prumo MCP"
+                    key="toolwindow.title"
                     anchor="right"
                     factoryClass="io.prumo.mcp.ui.PrumoToolWindowFactory" />
     </extensions>

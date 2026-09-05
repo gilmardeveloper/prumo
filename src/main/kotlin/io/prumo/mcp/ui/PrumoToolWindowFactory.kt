@@ -7,6 +7,7 @@ import com.intellij.ui.components.JBLabel
 import com.intellij.ui.content.ContentFactory
 import com.intellij.ui.dsl.builder.panel
 import com.intellij.util.ui.JBUI
+import io.prumo.mcp.i18n.PrumoBundle
 import io.prumo.mcp.ide.PrumoWorkspaceService
 import javax.swing.JComponent
 import javax.swing.JPanel
@@ -51,28 +52,22 @@ class PrumoWorkspacePanel(private val project: Project) {
 
     private fun com.intellij.ui.dsl.builder.Panel.notConfigured(model: WorkspaceViewModel.NotConfigured) {
         row {
-            label("The project “${model.projectName}” is not part of a Prumo workspace yet.")
+            label(PrumoBundle.message("toolwindow.notConfigured.project", model.projectName))
         }
         row {
-            comment(
-                "A workspace is the boundary your AI client is allowed to work within: which " +
-                    "repositories, which documentation, which databases — and what stays off limits.",
-            )
+            comment(PrumoBundle.message("toolwindow.notConfigured.explanation"))
         }
         row {
-            button("Configure Workspace") { ConfigureWorkspaceAction.run(project) }
+            button(PrumoBundle.message("toolwindow.notConfigured.action")) { ConfigureWorkspaceAction.run(project) }
         }
     }
 
     private fun com.intellij.ui.dsl.builder.Panel.ambiguous(model: WorkspaceViewModel.Ambiguous) {
         row {
-            label("“${model.projectName}” is bound to ${model.workspaceCount} workspaces.")
+            label(PrumoBundle.message("toolwindow.ambiguous.project", model.projectName, model.workspaceCount))
         }
         row {
-            comment(
-                "Prumo will not pick one on your behalf, because the wrong choice would expose the " +
-                    "wrong content. Remove the duplicate binding to continue.",
-            )
+            comment(PrumoBundle.message("toolwindow.ambiguous.explanation", model.workspaceCount))
         }
     }
 
@@ -80,10 +75,10 @@ class PrumoWorkspacePanel(private val project: Project) {
         row { label(model.workspaceName).bold() }
         row { comment(model.workspaceType) }
         row {
-            button("Edit Workspace") { ConfigureWorkspaceAction.edit(project) }
+            button(PrumoBundle.message("toolwindow.edit")) { ConfigureWorkspaceAction.edit(project) }
         }
 
-        group("Repositories") {
+        group(PrumoBundle.message("toolwindow.repositories")) {
             model.repositories.forEach { repository ->
                 row {
                     val marker = if (repository.current) "▸ " else ""
@@ -93,11 +88,11 @@ class PrumoWorkspacePanel(private val project: Project) {
             }
         }
 
-        group("Policies") {
+        group(PrumoBundle.message("toolwindow.policies")) {
             model.policies.forEach { policy ->
                 row {
-                    cell(JBLabel(policy.label))
-                    comment(if (policy.allowed) "ALLOW" else "DENY")
+                    cell(JBLabel(PrumoBundle.message(policy.labelKey)))
+                    comment(PrumoBundle.message(if (policy.allowed) "policy.allow" else "policy.deny"))
                 }
             }
         }
@@ -105,7 +100,7 @@ class PrumoWorkspacePanel(private val project: Project) {
         // A fila de aprovacao so aparece quando ha algo esperando decisao: painel que mostra area
         // vazia todo dia ensina o usuario a ignorar a area.
         if (model.pendingPacks > 0) {
-            group("Prumo Packs waiting for you (${model.pendingPacks})") {
+            group(PrumoBundle.message("toolwindow.packs.waiting", model.pendingPacks)) {
                 row {
                     cell(
                         io.prumo.mcp.ui.pack.ApprovalQueuePanel(project, model.workspaceId).component(),

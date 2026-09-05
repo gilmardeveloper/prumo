@@ -5,6 +5,7 @@ import com.intellij.ui.components.JBLabel
 import com.intellij.ui.components.JBList
 import com.intellij.ui.dsl.builder.AlignX
 import com.intellij.ui.dsl.builder.panel
+import io.prumo.mcp.i18n.PrumoBundle
 import io.prumo.mcp.ide.PrumoWorkspaceService
 import io.prumo.mcp.pack.application.PackStore
 import io.prumo.mcp.pack.authoring.PackSubmission
@@ -32,20 +33,17 @@ class ApprovalQueuePanel(
     fun component(): JComponent {
         refresh()
         return panel {
-            row { label("Packs waiting for your decision") }
+            row { label(PrumoBundle.message("pack.queue.title")) }
             row {
                 cell(JBList(submissions).apply { cellRenderer = renderer() }).align(AlignX.FILL)
             }
             row {
-                button("Review and install") { review() }
-                button("Discard") { discard() }
+                button(PrumoBundle.message("pack.queue.review")) { review() }
+                button(PrumoBundle.message("pack.queue.discard")) { discard() }
                 cell(status)
             }
             row {
-                comment(
-                    "A pack proposed by an AI client is never active until you accept it here. " +
-                        "Reviewing shows what it does, the exact scripts and the capabilities it asks for.",
-                )
+                comment(PrumoBundle.message("pack.queue.hint"))
             }
         }
     }
@@ -63,13 +61,13 @@ class ApprovalQueuePanel(
      */
     private fun review() {
         val submission = selected() ?: run {
-            status.text = "Nothing to review."
+            status.text = PrumoBundle.message("pack.queue.empty")
             return
         }
         val preview = PackImporter.preview(submission.draft)
         val dialog = PackConsentDialog(project, preview)
         if (!dialog.showAndGet()) {
-            status.text = "Not installed."
+            status.text = PrumoBundle.message("pack.queue.notInstalled")
             return
         }
 
@@ -96,14 +94,14 @@ class ApprovalQueuePanel(
         )
         SubmissionQueue(service.storage).discard(workspaceId, submission.submissionId)
         refresh()
-        status.text = "Installed."
+        status.text = PrumoBundle.message("pack.queue.installed")
     }
 
     private fun discard() {
         val submission = selected() ?: return
         SubmissionQueue(PrumoWorkspaceService.getInstance().storage).discard(workspaceId, submission.submissionId)
         refresh()
-        status.text = "Discarded."
+        status.text = PrumoBundle.message("pack.queue.discarded")
     }
 
     private fun renderer() = ListCellRenderer<PackSubmission> { _, value, _, _, _ ->

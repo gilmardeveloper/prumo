@@ -53,6 +53,10 @@ class WorkspaceViewModelTest {
         assertEquals(listOf(true, false), model.repositories.map { it.current })
         assertEquals("READ_ONLY", model.repositories.last().accessMode)
         assertTrue(model.policies.none { it.allowed })
+        assertTrue(
+            model.policies.all { it.labelKey.startsWith("policy.") },
+            "o modelo da tela carrega chave, nao frase pronta",
+        )
     }
 
     @Test

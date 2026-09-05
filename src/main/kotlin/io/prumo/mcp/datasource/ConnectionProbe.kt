@@ -47,6 +47,23 @@ val ConnectionTestOutcome.hint: String
     }
 
 /**
+ * Chave do texto que a interface mostra para cada desfecho.
+ *
+ * O [hint] continua em inglês porque também vai para o cliente MCP; a tela usa esta chave e fala a
+ * língua da IDE. São dois públicos diferentes para o mesmo fato.
+ */
+val ConnectionTestOutcome.messageKey: String
+    get() = when (this) {
+        ConnectionTestOutcome.SUCCESS -> "datasource.outcome.success"
+        ConnectionTestOutcome.AUTHENTICATION_FAILED -> "datasource.outcome.authenticationFailed"
+        ConnectionTestOutcome.NETWORK_UNREACHABLE -> "datasource.outcome.networkUnreachable"
+        ConnectionTestOutcome.TIMEOUT -> "datasource.outcome.timeout"
+        ConnectionTestOutcome.DATABASE_NOT_FOUND -> "datasource.outcome.databaseNotFound"
+        ConnectionTestOutcome.SSL_ERROR -> "datasource.outcome.sslError"
+        ConnectionTestOutcome.UNEXPECTED_ERROR -> "datasource.outcome.unexpected"
+    }
+
+/**
  * Traduz a falha do driver em desfecho, sem repassar o texto.
  *
  * Decide por `SQLState` — que é padrão e estável — e recorre à mensagem apenas onde o PostgreSQL

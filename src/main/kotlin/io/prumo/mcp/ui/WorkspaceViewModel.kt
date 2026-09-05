@@ -32,7 +32,13 @@ sealed interface WorkspaceViewModel {
         val current: Boolean,
     )
 
-    data class PolicyRow(val label: String, val allowed: Boolean)
+    /**
+     * A política é identificada por **chave**, não por frase pronta.
+     *
+     * O modelo da tela é dado puro e testável sem a IDE; se ele carregasse texto traduzido, o
+     * idioma da interface entraria no núcleo e o teste passaria a depender de locale.
+     */
+    data class PolicyRow(val labelKey: String, val allowed: Boolean)
 
     companion object {
 
@@ -63,11 +69,11 @@ sealed interface WorkspaceViewModel {
                     },
                     pendingPacks = pendingPacks,
                     policies = listOf(
-                        PolicyRow("Reference writes", context.policies.referenceWrite),
-                        PolicyRow("Database writes", context.policies.databaseWrite),
-                        PolicyRow("External path access", context.policies.externalPathAccess),
-                        PolicyRow("Process execution", context.policies.processExecution),
-                        PolicyRow("Git writes", context.policies.gitWrite),
+                        PolicyRow("policy.referenceWrite", context.policies.referenceWrite),
+                        PolicyRow("policy.databaseWrite", context.policies.databaseWrite),
+                        PolicyRow("policy.externalPathAccess", context.policies.externalPathAccess),
+                        PolicyRow("policy.processExecution", context.policies.processExecution),
+                        PolicyRow("policy.gitWrite", context.policies.gitWrite),
                     ),
                 )
             }

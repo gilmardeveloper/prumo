@@ -7,6 +7,7 @@ import com.intellij.ui.components.JBScrollPane
 import com.intellij.ui.dsl.builder.AlignX
 import com.intellij.ui.dsl.builder.panel
 import com.intellij.util.ui.JBUI
+import io.prumo.mcp.i18n.PrumoBundle
 import io.prumo.mcp.pack.domain.RiskLevel
 import io.prumo.mcp.pack.exchange.PackAcceptance
 import io.prumo.mcp.pack.exchange.PackImportPreview
@@ -34,14 +35,11 @@ class PackConsentDialog(
         .filter { it.level == RiskLevel.DESTRUCTIVE }
         .map { finding -> finding to JBCheckBox(finding.explanation, false) }
 
-    private val responsibility = JBCheckBox(
-        "I understand that this pack was written by someone else and that I am responsible for what it does.",
-        false,
-    )
+    private val responsibility = JBCheckBox(PrumoBundle.message("pack.consent.responsibility"), false)
 
     init {
-        title = "Install Prumo Pack"
-        setOKButtonText("Install")
+        title = PrumoBundle.message("pack.consent.title")
+        setOKButtonText(PrumoBundle.message("pack.consent.install"))
         init()
         updateOkButton()
         acknowledgements.forEach { (_, box) -> box.addActionListener { updateOkButton() } }
@@ -51,17 +49,17 @@ class PackConsentDialog(
     override fun createCenterPanel(): JComponent = panel {
         row { label("${preview.manifest.title.default}  ·  ${preview.manifest.version}") }
         row { comment(preview.manifest.description.default) }
-        preview.manifest.author?.let { author -> row("Author:") { label(author) } }
-        row("Checksum:") { label(preview.checksum.removePrefix("sha256:").take(CHECKSUM_DIGITS)) }
+        preview.manifest.author?.let { author -> row(PrumoBundle.message("pack.consent.author")) { label(author) } }
+        row(PrumoBundle.message("pack.consent.checksum")) { label(preview.checksum.removePrefix("sha256:").take(CHECKSUM_DIGITS)) }
         if (!preview.checksumMatches) {
             row {
-                comment("<b>This file changed after it was packaged.</b> Ask the author for a fresh export.")
+                comment(PrumoBundle.message("pack.consent.changed"))
             }
         }
 
-        group("What it will be able to do") {
+        group(PrumoBundle.message("pack.consent.capabilities")) {
             if (preview.manifest.capabilities.isEmpty()) {
-                row { comment("Nothing beyond reading its own knowledge.") }
+                row { comment(PrumoBundle.message("pack.consent.capabilities.none")) }
             }
             preview.manifest.capabilities.forEach { capability ->
                 row { label("• " + capabilityText(capability.name)) }
@@ -69,22 +67,19 @@ class PackConsentDialog(
         }
 
         if (preview.assessment.findings.isNotEmpty()) {
-            group("What Prumo found in it") {
+            group(PrumoBundle.message("pack.consent.findings")) {
                 preview.assessment.findings.forEach { finding ->
                     row { label("[${finding.level}] ${finding.explanation}") }
                     row { comment("<code>${finding.evidence}</code> — ${finding.location}") }
                 }
                 row {
-                    comment(
-                        "This is static analysis: it detects known signals, it does not prove the pack is safe. " +
-                            "A script written to hide what it does can pass.",
-                    )
+                    comment(PrumoBundle.message("pack.consent.findings.limits"))
                 }
             }
         }
 
         if (preview.scripts.isNotEmpty()) {
-            group("Scripts, in full") {
+            group(PrumoBundle.message("pack.consent.scripts")) {
                 preview.scripts.forEach { (location, command) ->
                     row { label(location) }
                     row {
@@ -96,16 +91,13 @@ class PackConsentDialog(
         }
 
         if (preview.blocked) {
-            group("Refused") {
+            group(PrumoBundle.message("pack.consent.refused")) {
                 row {
-                    comment(
-                        "Prumo will not install this pack. What it does cannot be reviewed or is out of bounds, " +
-                            "so there is no way to accept it here.",
-                    )
+                    comment(PrumoBundle.message("pack.consent.refused.explanation"))
                 }
             }
         } else {
-            group("Your decision") {
+            group(PrumoBundle.message("pack.consent.decision")) {
                 acknowledgements.forEach { (_, box) -> row { cell(box) } }
                 row { cell(responsibility) }
             }
@@ -134,10 +126,10 @@ class PackConsentDialog(
     )
 
     private fun capabilityText(capability: String): String = when (capability) {
-        "REPOSITORY_READ" -> "Read files from the repositories bound to this workspace"
-        "DATASOURCE_QUERY" -> "Run read-only queries on the databases of this workspace"
-        "DOCUMENTATION_READ" -> "Read the documentation attached to this workspace"
-        "PROCESS_EXECUTE" -> "Run a command on this machine, confined to the pack directory"
+        "REPOSITORY_READ" -> PrumoBundle.message("pack.capability.repositoryRead")
+        "DATASOURCE_QUERY" -> PrumoBundle.message("pack.capability.datasourceQuery")
+        "DOCUMENTATION_READ" -> PrumoBundle.message("pack.capability.documentationRead")
+        "PROCESS_EXECUTE" -> PrumoBundle.message("pack.capability.processExecute")
         else -> capability
     }
 
