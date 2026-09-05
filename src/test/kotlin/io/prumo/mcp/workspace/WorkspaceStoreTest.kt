@@ -1,6 +1,10 @@
 package io.prumo.mcp.workspace
 
+import io.prumo.mcp.documentation.DocumentAuthority
+import io.prumo.mcp.documentation.DocumentationKind
+import io.prumo.mcp.documentation.DocumentationSource
 import io.prumo.mcp.platform.PrumoDirectories
+import io.prumo.mcp.policy.WorkspacePolicies
 import io.prumo.mcp.storage.FileSystemStorageProvider
 import io.prumo.mcp.workspace.domain.AccessMode
 import io.prumo.mcp.workspace.domain.RepositoryBinding
@@ -146,5 +150,40 @@ class WorkspaceStoreTest {
     fun `somente leitura nao e gravavel`() {
         assertTrue(!binding("legado", RepositoryRole.LEGACY_REFERENCE, AccessMode.READ_ONLY).writable)
         assertTrue(binding("alvo", RepositoryRole.TARGET, AccessMode.READ_WRITE).writable)
+    }
+}
+
+class WorkspaceDocumentationPersistenceTest {
+
+    @Test
+    fun `documentacao e politicas sobrevivem ao ciclo de gravacao`(@TempDir root: Path) {
+        val storage = FileSystemStorageProvider(
+            PrumoDirectories(root.resolve("config"), root.resolve("data"), root.resolve("cache")),
+        )
+        val store = WorkspaceStore(storage)
+        val original = Workspace(
+            id = "folha",
+            name = "Folha",
+            type = WorkspaceType.MODERNIZATION,
+            repositories = listOf(
+                RepositoryBinding(
+                    id = "app",
+                    name = "app",
+                    localPath = "/repos/app",
+                    role = RepositoryRole.PRIMARY,
+                    accessMode = AccessMode.READ_WRITE,
+                ),
+            ),
+            documentation = listOf(
+                DocumentationSource("regras", "Regras de Folha", DocumentationKind.FILE, "/docs/regras.md", DocumentAuthority.OFFICIAL),
+            ),
+            policies = WorkspacePolicies(databaseWrite = true, processExecution = true),
+            createdAt = "2026-09-04T00:00:00Z",
+            updatedAt = "2026-09-04T00:00:00Z",
+        )
+
+        store.save(original)
+
+        assertEquals(original, store.load("folha"))
     }
 }

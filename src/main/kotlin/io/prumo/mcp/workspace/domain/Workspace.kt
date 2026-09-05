@@ -1,5 +1,6 @@
 package io.prumo.mcp.workspace.domain
 
+import io.prumo.mcp.documentation.DocumentationSource
 import io.prumo.mcp.policy.WorkspacePolicies
 import kotlinx.serialization.Serializable
 
@@ -72,6 +73,7 @@ data class Workspace(
     val name: String,
     val type: WorkspaceType,
     val repositories: List<RepositoryBinding> = emptyList(),
+    val documentation: List<DocumentationSource> = emptyList(),
     val policies: WorkspacePolicies = WorkspacePolicies.DENY_ALL,
     val createdAt: String,
     val updatedAt: String,
@@ -81,6 +83,8 @@ data class Workspace(
         require(name.isNotBlank()) { "Workspace name must not be blank." }
         val duplicated = repositories.groupBy { it.id }.filterValues { it.size > 1 }.keys
         require(duplicated.isEmpty()) { "Duplicated repository ids in workspace '$id': $duplicated." }
+        val duplicatedDocs = documentation.groupBy { it.id }.filterValues { it.size > 1 }.keys
+        require(duplicatedDocs.isEmpty()) { "Duplicated documentation ids in workspace '$id': $duplicatedDocs." }
     }
 
     fun repository(repositoryId: String): RepositoryBinding? =

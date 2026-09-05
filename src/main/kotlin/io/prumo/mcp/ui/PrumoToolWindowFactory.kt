@@ -74,6 +74,9 @@ class PrumoWorkspacePanel(private val project: Project) {
     private fun com.intellij.ui.dsl.builder.Panel.configured(model: WorkspaceViewModel.Configured) {
         row { label(model.workspaceName).bold() }
         row { comment(model.workspaceType) }
+        row {
+            button("Edit Workspace") { ConfigureWorkspaceAction.edit(project) }
+        }
 
         group("Repositories") {
             model.repositories.forEach { repository ->

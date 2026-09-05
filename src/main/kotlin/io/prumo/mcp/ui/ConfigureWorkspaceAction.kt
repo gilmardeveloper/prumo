@@ -77,6 +77,24 @@ object ConfigureWorkspaceAction {
         )
     }
 
+    /**
+     * Abre o editor do workspace já vinculado ao projeto aberto.
+     *
+     * Só edita o workspace corrente: não existe caminho por aqui para alcançar outro.
+     */
+    fun edit(project: Project) {
+        val service = PrumoWorkspaceService.getInstance()
+        val context = runCatching { service.require(project) }.getOrElse { failure ->
+            Messages.showErrorDialog(project, failure.message ?: "Unresolved workspace.", "Prumo MCP")
+            return
+        }
+
+        val dialog = WorkspaceEditorDialog(project, context.workspace, context.currentRepository.id)
+        if (dialog.showAndGet()) {
+            service.store.save(dialog.toWorkspace(Instant.now().toString()))
+        }
+    }
+
     /** O identificador vira nome de diretório, então precisa ser restrito antes de tocar o disco. */
     internal fun slug(name: String): String {
         val normalized = java.text.Normalizer.normalize(name, java.text.Normalizer.Form.NFD)

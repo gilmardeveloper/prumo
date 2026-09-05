@@ -1,5 +1,6 @@
 package io.prumo.mcp.workspace.infrastructure
 
+import io.prumo.mcp.documentation.DocumentationSource
 import io.prumo.mcp.policy.WorkspacePolicies
 import io.prumo.mcp.storage.JsonStore
 import io.prumo.mcp.storage.LocalStorageProvider
@@ -31,6 +32,9 @@ class WorkspaceStore(
         val repositories = json.read(root.resolve(REPOSITORIES_FILE), serializer<RepositoryList>())
             ?.repositories
             .orEmpty()
+        val documentation = json.read(root.resolve(DOCUMENTATION_FILE), serializer<DocumentationList>())
+            ?.documentation
+            .orEmpty()
         val policies = json.read(root.resolve(POLICIES_FILE), serializer<WorkspacePolicies>())
             ?: WorkspacePolicies.DENY_ALL
 
@@ -39,6 +43,7 @@ class WorkspaceStore(
             name = descriptor.name,
             type = descriptor.type,
             repositories = repositories,
+            documentation = documentation,
             policies = policies,
             createdAt = descriptor.createdAt,
             updatedAt = descriptor.updatedAt,
@@ -62,6 +67,11 @@ class WorkspaceStore(
             root.resolve(REPOSITORIES_FILE),
             serializer<RepositoryList>(),
             RepositoryList(workspace.repositories),
+        )
+        json.write(
+            root.resolve(DOCUMENTATION_FILE),
+            serializer<DocumentationList>(),
+            DocumentationList(workspace.documentation),
         )
         json.write(root.resolve(POLICIES_FILE), serializer<WorkspacePolicies>(), workspace.policies)
     }
@@ -106,6 +116,7 @@ class WorkspaceStore(
         const val WORKSPACE_FILE = "workspace.json"
         const val REPOSITORIES_FILE = "repositories.json"
         const val POLICIES_FILE = "policies.json"
+        const val DOCUMENTATION_FILE = "documentation.json"
     }
 }
 
@@ -127,4 +138,9 @@ private data class WorkspaceDescriptor(
 @Serializable
 private data class RepositoryList(
     val repositories: List<RepositoryBinding> = emptyList(),
+)
+
+@Serializable
+private data class DocumentationList(
+    val documentation: List<DocumentationSource> = emptyList(),
 )
