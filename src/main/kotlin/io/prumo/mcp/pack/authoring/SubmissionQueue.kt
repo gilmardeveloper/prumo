@@ -23,9 +23,7 @@ data class PackSubmission(
 /**
  * Fila de packs propostos, aguardando decisão do desenvolvedor.
  *
- * Submeter **não** instala, não ativa e não executa nada: deixa o pack aqui, visível na Tool
- * Window, que é o único ponto em que um recurso é ativado (P11). A fila existe justamente para que
- * exista um lugar onde o pack fica parado esperando um humano.
+ * Submeter não instala, não ativa e não executa nada: deixa o pack aqui, visível na Tool Window.
  */
 class SubmissionQueue(
     private val storage: LocalStorageProvider,

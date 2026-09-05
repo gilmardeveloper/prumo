@@ -39,9 +39,9 @@ import java.nio.file.Path
 /**
  * A ferramenta de um pack instalado, invocada de verdade.
  *
- * O que se prova aqui é que um recurso de terceiro **não ganha caminho mais curto** do que o
- * produto se dá: mesma classificação de statement, mesma transação somente-leitura, mesmo
- * mascaramento — e nenhum alcance a banco que não esteja vinculado a este workspace.
+ * Verifica que a consulta do pack passa pela mesma classificação de statement, pela mesma
+ * transação somente-leitura e pelo mesmo mascaramento, e que não alcança banco não vinculado a
+ * este workspace.
  */
 @Tag("security")
 class PackQueryRunnerTest {
@@ -119,7 +119,6 @@ class PackQueryRunnerTest {
             .run(workspace(listOf(datasource())), "folha-tools", "servidores")
 
         assertEquals(listOf("Ana", "Bruno"), outcome.rows.map { it[0] })
-        // O mascaramento do produto vale igual para consulta de pack.
         assertTrue(outcome.rows.all { it[1] == "[masked]" }, outcome.rows.toString())
     }
 

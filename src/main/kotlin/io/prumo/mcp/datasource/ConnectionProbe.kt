@@ -9,8 +9,7 @@ import java.util.Properties
 /**
  * Resultado do teste de conexão.
  *
- * O usuário recebe o desfecho, nunca a mensagem crua do driver: mensagem de exceção de banco cita
- * host, usuário e, em alguns casos, a URL inteira — e é exatamente o que P5 manda não vazar.
+ * O chamador recebe o desfecho classificado, nunca a mensagem do driver.
  */
 enum class ConnectionTestOutcome {
     SUCCESS,
@@ -20,20 +19,14 @@ enum class ConnectionTestOutcome {
     DATABASE_NOT_FOUND,
     SSL_ERROR,
 
-    /**
-     * Falha que não se encaixa nas anteriores.
-     *
-     * Existe para não vestir de "rede inacessível" um erro que ninguém classificou: um desfecho
-     * errado manda o usuário depurar o lugar errado.
-     */
+    /** Falha que não se encaixa nas anteriores. */
     UNEXPECTED_ERROR,
 }
 
 /**
- * O que dizer ao usuário sobre cada desfecho.
+ * Frase fixa para cada desfecho.
  *
- * A frase é fixa e fala do que fazer, não do que o driver disse: nenhuma delas cita host, usuário,
- * banco ou qualquer parte da conexão.
+ * Fica em inglês porque também é devolvida ao cliente MCP, e não cita host, usuário nem banco.
  */
 val ConnectionTestOutcome.hint: String
     get() = when (this) {
@@ -46,12 +39,7 @@ val ConnectionTestOutcome.hint: String
         ConnectionTestOutcome.UNEXPECTED_ERROR -> "The connection failed for a reason Prumo does not recognise. See the IDE log."
     }
 
-/**
- * Chave do texto que a interface mostra para cada desfecho.
- *
- * O [hint] continua em inglês porque também vai para o cliente MCP; a tela usa esta chave e fala a
- * língua da IDE. São dois públicos diferentes para o mesmo fato.
- */
+/** Chave do bundle para cada desfecho, usada pela interface. */
 val ConnectionTestOutcome.messageKey: String
     get() = when (this) {
         ConnectionTestOutcome.SUCCESS -> "datasource.outcome.success"
@@ -95,8 +83,7 @@ object ConnectionFailureClassifier {
             state == UNDEFINED_DATABASE -> ConnectionTestOutcome.DATABASE_NOT_FOUND
             state == QUERY_CANCELED -> ConnectionTestOutcome.TIMEOUT
 
-            // TLS antes de rede: o PostgreSQL reporta falha de TLS com o mesmo estado 08006 de
-            // conexão interrompida, e só a mensagem separa os dois casos.
+            // O PostgreSQL reporta falha de TLS com o mesmo SQLState 08006 da rede; só a mensagem separa.
             SSL_MARKERS.any { text.contains(it) } -> ConnectionTestOutcome.SSL_ERROR
             TIMEOUT_MARKERS.any { text.contains(it) } -> ConnectionTestOutcome.TIMEOUT
 
@@ -111,8 +98,7 @@ object ConnectionFailureClassifier {
 /**
  * Abre uma conexão de teste e a fecha em seguida.
  *
- * Nada é consultado: o teste responde se dá para conectar, não o que existe lá dentro. O driver é o
- * do próprio plugin, sem depender do Database Tools, que só existe no Ultimate (F-007).
+ * Nada é consultado: o teste responde se dá para conectar. O driver é o do próprio plugin.
  */
 class PostgresConnectionProbe(
     private val timeoutSeconds: Int = DEFAULT_TIMEOUT_SECONDS,
@@ -131,16 +117,12 @@ class PostgresConnectionProbe(
         } catch (failure: SQLException) {
             ConnectionFailureClassifier.classify(failure.sqlState, failure.message)
         } finally {
-            // O mapa fica sem a senha assim que a conexão termina; a String exigida pela API do
-            // driver some com ela.
             properties.clear()
         }
     }
 
     private fun connectionProperties(profile: DataSourceProfile, password: CharArray?) = Properties().apply {
         setProperty("user", profile.user)
-        // A API do JDBC só aceita String aqui. É o único ponto em que o segredo vira String, ele
-        // não sai desta função e o mapa é limpo no `finally`.
         password?.let { setProperty("password", String(it)) }
         setProperty("connectTimeout", timeoutSeconds.toString())
         setProperty("loginTimeout", timeoutSeconds.toString())

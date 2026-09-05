@@ -9,7 +9,7 @@ import net.sf.jsqlparser.statement.select.PlainSelect
 import net.sf.jsqlparser.statement.select.Select
 import net.sf.jsqlparser.statement.select.SetOperationList
 
-/** O que o Prumo entendeu do statement. Vai para a auditoria; o SQL em si, nunca. */
+/** Classificação do statement. Vai para a auditoria; o SQL em si, nunca. */
 enum class SqlStatementType {
     SELECT,
     EXPLAIN,
@@ -31,19 +31,10 @@ sealed interface SqlClassification {
 }
 
 /**
- * Camada 3 da defesa em profundidade da seção 9: decide se um statement é de leitura.
+ * Decide se um statement SQL é de leitura, por lista de permissão sobre a árvore sintática.
  *
- * A decisão é por **lista de permissão sobre a árvore sintática**, não por reconhecimento de texto.
- * Só `SELECT`, `WITH … SELECT` e `EXPLAIN` sem `ANALYZE` passam; qualquer outra forma é recusada,
- * inclusive a que o parser não entendeu. Recusar o que não se entendeu é o ponto: uma sintaxe
- * desconhecida pode ser um `DELETE` de um dialeto que a biblioteca não cobre.
- *
- * A análise usa JSqlParser porque escrever o próprio reconhecedor de SQL é como a maioria dos
- * bypass de segurança acontece — um `;` dentro de literal, um comentário aninhado, um caractere
- * unicode equivalente, e a expressão regular que parecia certa deixa passar uma escrita.
- *
- * Esta camada **não** é a barreira principal: a credencial somente-leitura no banco é. Ela existe
- * para recusar cedo, com mensagem clara, o que o banco recusaria depois com erro obscuro.
+ * Aceita `SELECT`, `WITH … SELECT` e `EXPLAIN` sem `ANALYZE`. Qualquer outra forma é recusada,
+ * inclusive a que o parser não reconhece.
  */
 object SqlStatementClassifier {
 
@@ -52,11 +43,9 @@ object SqlStatementClassifier {
             return SqlClassification.Denied(SqlStatementType.UNPARSEABLE, "The statement is empty.")
         }
 
-        // `Statements` e uma `List<Statement>`; `getStatements()` esta deprecado na 5.3.
         val statements: List<Statement> = try {
             CCJSqlParserUtil.parseStatements(sql)
         } catch (failure: Exception) {
-            // Inclui erro de sintaxe e timeout interno do parser. Falha fechada, sempre.
             return SqlClassification.Denied(
                 SqlStatementType.UNPARSEABLE,
                 "Prumo could not parse this statement, so it will not run it. " +
@@ -99,7 +88,6 @@ object SqlStatementClassifier {
             else -> null
         }
 
-        // `SELECT … INTO` cria tabela. É escrita com forma de leitura, e é o caso que mais engana.
         if (plain != null && (!plain.intoTables.isNullOrEmpty() || plain.intoTempTable != null)) {
             return SqlClassification.Denied(
                 SqlStatementType.WRITE,
@@ -120,10 +108,7 @@ object SqlStatementClassifier {
         return SqlClassification.Allowed(SqlStatementType.SELECT)
     }
 
-    /**
-     * `WITH x AS (DELETE FROM t RETURNING *) SELECT * FROM x` escreve no banco e termina em
-     * `SELECT`. Cada item do `WITH` precisa ser, ele próprio, uma consulta.
-     */
+    /** Recusa o `WITH` cujo item não seja, ele próprio, uma consulta. */
     private fun writingWithItem(select: Select): SqlClassification.Denied? {
         val items = select.withItemsList ?: return null
         items.forEach { item ->
@@ -141,7 +126,6 @@ object SqlStatementClassifier {
     private fun classifyExplain(explain: ExplainStatement): SqlClassification {
         val analyze = explain.options?.keys?.any { it == ExplainStatement.OptionType.ANALYZE } ?: false
         if (analyze) {
-            // EXPLAIN ANALYZE executa o comando de verdade: em um INSERT, escreve.
             return SqlClassification.Denied(
                 SqlStatementType.WRITE,
                 "EXPLAIN ANALYZE runs the statement for real. Use EXPLAIN without ANALYZE.",

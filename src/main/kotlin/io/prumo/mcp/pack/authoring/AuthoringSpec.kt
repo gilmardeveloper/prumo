@@ -43,13 +43,10 @@ data class AuthoringSpec(
 )
 
 /**
- * O que o Prumo ensina a uma LLM antes de ela escrever um pack.
+ * O que o Prumo informa a uma LLM antes de ela escrever um pack.
  *
- * A LLM não adivinha o formato — ela consulta. E a especificação diz também **o que faz um pack ser
- * recusado**, porque um motivo de recusa antecipado é o que faz o modelo convergir em vez de tentar
- * contornar (seção 8.4).
- *
- * A mesma especificação vale para quem escreve à mão: não existe caminho exclusivo da IA.
+ * Descreve o formato, os limites e o que faz um pack ser recusado. A mesma especificação vale
+ * para quem escreve o pack à mão.
  */
 object PackAuthoringSpec {
 

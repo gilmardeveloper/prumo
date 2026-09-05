@@ -12,7 +12,7 @@ import java.sql.ResultSet
 import java.sql.SQLException
 import java.sql.Types
 
-/** Recusa de uma consulta antes de ela chegar ao banco. Carrega o motivo, nunca o SQL. */
+/** Consulta recusada antes de chegar ao banco. Carrega o motivo, nunca o SQL. */
 class QueryRefusedException(
     val statementType: SqlStatementType,
     message: String,
@@ -34,19 +34,11 @@ data class QueryOutcome(
 )
 
 /**
- * Executa consulta de leitura com as camadas da seção 9 que cabem ao plugin.
+ * Executa uma consulta de leitura.
  *
- * 1. A credencial somente-leitura no banco é a barreira principal — e é do usuário, não daqui.
- * 2. A transação é aberta como `READ ONLY` **sempre**, mesmo quando o datasource está marcado como
- *    `READ_WRITE`: esta operação é de leitura por definição, e é o servidor que passa a recusar
- *    qualquer escrita, inclusive `SELECT … FOR UPDATE`, que trava linha.
- * 3. O statement é classificado antes de sair daqui.
- * 4. O número de linhas tem teto, e a resposta diz quando cortou.
- * 5. Há timeout de consulta.
- * 6. A auditoria fica com quem chama, e registra tipo e contagem — nunca os dados.
- *
- * Nada é commitado: a transação termina em `rollback`, então nem um efeito colateral acidental
- * sobrevive à chamada.
+ * O statement é classificado antes de sair daqui, a transação é aberta como `READ ONLY` mesmo em
+ * datasource `READ_WRITE` e termina em `rollback`, o número de linhas tem teto e a consulta tem
+ * timeout. A auditoria fica a cargo de quem chama.
  */
 class ReadOnlyQueryExecutor(
     private val connections: PostgresConnectionFactory,
@@ -82,10 +74,10 @@ class ReadOnlyQueryExecutor(
     }
 
     /**
-     * A transação nasce somente-leitura e morre em `rollback`.
+     * Executa o bloco numa transação somente-leitura, encerrada em `rollback`.
      *
-     * `SET TRANSACTION READ ONLY` precisa ser o primeiro comando da transação; por isso o
-     * `autoCommit` é desligado logo antes.
+     * `SET TRANSACTION READ ONLY` precisa ser o primeiro comando da transação, então `autoCommit` é
+     * desligado logo antes.
      */
     private fun <T> Connection.inReadOnlyTransaction(block: () -> T): T {
         val previousAutoCommit = autoCommit
@@ -143,8 +135,7 @@ class ReadOnlyQueryExecutor(
     /**
      * Valor de uma célula como texto.
      *
-     * Conteúdo binário vira rótulo em vez de virar base64 gigante no meio da resposta, e texto
-     * longo é cortado com marca — o objetivo é o cliente entender o dado, não recebê-lo inteiro.
+     * Conteúdo binário vira rótulo; texto acima de [MAX_CELL_LENGTH] é cortado com reticências.
      */
     private fun cellOf(rows: ResultSet, index: Int, sqlType: Int): String? = when (sqlType) {
         Types.BINARY, Types.VARBINARY, Types.LONGVARBINARY, Types.BLOB ->

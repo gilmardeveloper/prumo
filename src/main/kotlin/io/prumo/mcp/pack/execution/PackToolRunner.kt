@@ -36,13 +36,11 @@ data class ScriptResult(
 /**
  * Executa a ferramenta de script de um pack.
  *
- * A ordem importa e é sempre a mesma: a política do workspace decide se execução de processo é
- * permitida, a capacidade declarada pelo pack é conferida, o comando do sistema operacional
- * corrente é escolhido, e só então o processo roda — confinado ao diretório de trabalho do pack,
- * sem herdar o ambiente da IDE.
+ * A política do workspace decide se execução de processo é permitida, a capacidade declarada pelo
+ * pack é conferida, o comando do sistema corrente é escolhido, e então o processo roda confinado ao
+ * diretório de trabalho do pack.
  *
- * Toda invocação é auditada com o pack de origem (regra 7 da seção 8.3). A saída **não** entra na
- * trilha: ela pode conter qualquer coisa que o script tenha lido.
+ * A invocação é auditada com o pack de origem. A saída do script não entra na trilha.
  */
 class PackToolRunner(
     private val storage: LocalStorageProvider,
@@ -101,10 +99,7 @@ class PackToolRunner(
         )
     }
 
-    /**
-     * Duas permissões, não uma: o workspace precisa permitir execução de processo **e** o pack
-     * precisa ter declarado a capacidade. Uma sozinha não basta.
-     */
+    /** Exige as duas permissões: a política do workspace e a capacidade declarada pelo pack. */
     private fun assertAllowed(manifest: PackManifest, tool: PackTool, policies: WorkspacePolicies) {
         PolicyEngine.require(
             PolicyRequest(
@@ -134,12 +129,7 @@ class PackToolRunner(
             )
     }
 
-    /**
-     * Diretório de trabalho do pack, criado sob o próprio pack.
-     *
-     * Fica dentro de `workspaces/<id>/packs/<pack>/work`, e nunca dentro do repositório do usuário
-     * (P8): script de pack não suja o projeto.
-     */
+    /** Diretório de trabalho do pack, em `workspaces/<id>/packs/<pack>/work`. */
     private fun workingDirectory(workspaceId: String, packId: String): Path {
         val directory = storage.workspaceRoot(workspaceId)
             .resolve("packs")
@@ -149,7 +139,7 @@ class PackToolRunner(
         return directory
     }
 
-    /** Só o desfecho. A saída do script pode conter qualquer coisa que ele tenha lido (P7). */
+    /** Só o desfecho: a saída do script pode conter qualquer coisa que ele tenha lido. */
     private fun auditDetails(outcome: ProcessOutcome): Map<String, String> = mapOf(
         "exitCode" to (outcome.exitCode?.toString() ?: "killed"),
         "timedOut" to outcome.timedOut.toString(),

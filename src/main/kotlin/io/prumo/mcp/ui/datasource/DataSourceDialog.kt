@@ -30,11 +30,10 @@ import javax.swing.JComponent
 /**
  * Cadastro de um banco do workspace corrente.
  *
- * A senha digitada aqui não vai para o objeto que é gravado em disco: ela segue direto para o cofre
- * da IDE quando o formulário é aceito, e o perfil guarda só como chegar ao banco (P5).
+ * A senha digitada não vai para o objeto gravado em disco: segue para o cofre da IDE quando o
+ * formulário é aceito.
  *
- * O teste de conexão existe para o erro aparecer na configuração, e não na primeira consulta da
- * LLM. Ele informa o desfecho — nunca a mensagem do driver, que costuma citar host e usuário.
+ * O teste de conexão informa o desfecho, nunca a mensagem do driver.
  */
 class DataSourceDialog(
     private val project: Project,
@@ -94,10 +93,7 @@ class DataSourceDialog(
         else -> null
     }
 
-    /**
-     * Conecta fora da thread da interface: a IDE não pode congelar enquanto o banco decide se
-     * responde, e o tempo de espera pode chegar ao limite configurado no probe.
-     */
+    /** Conecta fora da thread da interface, para a IDE não congelar enquanto o banco responde. */
     private fun testConnection() {
         val profile = buildProfile() ?: run {
             testResult.text = PrumoBundle.message("datasource.test.incomplete")

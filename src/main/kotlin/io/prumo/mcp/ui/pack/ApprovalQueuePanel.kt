@@ -18,9 +18,7 @@ import javax.swing.ListCellRenderer
 /**
  * Fila de packs propostos por um cliente MCP, esperando o desenvolvedor.
  *
- * É o **único ponto do produto que ativa um recurso de usuário**. Uma LLM pode redigir, validar e
- * submeter; quem instala é quem está na frente da tela, depois de ler o termo de consentimento
- * (P11, seção 8.4).
+ * É o único ponto do produto que ativa um recurso de usuário.
  */
 class ApprovalQueuePanel(
     private val project: Project,

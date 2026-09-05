@@ -4,12 +4,7 @@ import kotlinx.serialization.Serializable
 import java.nio.file.Path
 import java.util.Locale
 
-/**
- * Peso que a documentação tem como fonte de verdade.
- *
- * A distinção existe porque material gerado por uma LLM não pode ser tratado como regra de negócio
- * oficial só por estar no mesmo lugar.
- */
+/** Peso que a documentação tem como fonte de verdade. */
 @Serializable
 enum class DocumentAuthority {
     OFFICIAL,
@@ -44,11 +39,9 @@ data class DocumentationSource(
 }
 
 /**
- * Formatos que o Prumo lê como texto no MVP.
+ * Formatos que o Prumo lê como texto.
  *
- * PDF entra na lista de formatos aceitos para registro, mas o conteúdo não é extraído nesta versão:
- * o documento fica catalogado e o cliente sabe que ele existe. Prometer extração parcial seria pior
- * do que declarar a limitação.
+ * PDF é aceito para registro, mas o conteúdo não é extraído: o documento fica catalogado.
  */
 object SupportedDocumentFormats {
 

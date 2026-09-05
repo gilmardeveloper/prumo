@@ -175,8 +175,7 @@ class ConnectionFailureClassifierTest {
 
     @Test
     fun `consulta cancelada por tempo e timeout, ainda que a mensagem nao diga isso`() {
-        // O PostgreSQL responde 57014 com "canceling statement due to user request": sem estado e
-        // sem marcador, o desfecho cairia em erro desconhecido. Descoberto contra servidor real.
+        // O PostgreSQL responde 57014 com "canceling statement due to user request", sem citar tempo.
         assertEquals(
             ConnectionTestOutcome.TIMEOUT,
             ConnectionFailureClassifier.classify("57014", "ERROR: canceling statement due to user request"),

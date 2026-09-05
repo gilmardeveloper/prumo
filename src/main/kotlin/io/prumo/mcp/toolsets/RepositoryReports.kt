@@ -113,8 +113,7 @@ data class RepositoryStructureResponse(
  * Onde o desenvolvedor está agora, do ponto de vista do workspace.
  *
  * `insideWorkspace` falso significa que o arquivo aberto não pertence a repositório algum deste
- * workspace: nesse caso nada além disso é dito, porque descrever um arquivo de fora seria vazar o
- * que está fora da fronteira.
+ * workspace, e nesse caso nada além disso é informado.
  */
 @Serializable
 data class IdeContextResponse(
@@ -134,9 +133,8 @@ data class IdeContextResponse(
 /**
  * Respostas das tools de repositório, projeto e IDE.
  *
- * Como em `WorkspaceReports`, nada aqui depende da IDE: o que decide o que é dito ao cliente
- * continua verificável sobre dado puro. Caminho absoluto não sai — todo caminho é relativo à raiz
- * do repositório que o cliente já endereçou por identificador.
+ * Caminho absoluto não sai: todo caminho é relativo à raiz do repositório que o cliente endereçou
+ * por identificador.
  */
 object RepositoryReports {
 
@@ -220,8 +218,7 @@ object RepositoryReports {
     /**
      * O que o cliente pode saber sobre a posição do editor.
      *
-     * Arquivo fora de todo repositório vinculado devolve apenas `insideWorkspace = false`: dizer
-     * qual arquivo está aberto seria contar o que está fora da fronteira.
+     * Arquivo fora de todo repositório vinculado devolve apenas `insideWorkspace = false`.
      */
     fun ideContext(context: WorkspaceContext, snapshot: EditorSnapshot?): IdeContextResponse {
         val located = snapshot?.let { locate(context, it.absolutePath) }
@@ -245,9 +242,8 @@ object RepositoryReports {
     /**
      * Descobre a qual repositório do workspace um caminho absoluto pertence.
      *
-     * É a tradução da posição do editor para o vocabulário do cliente: identificador do repositório
-     * e caminho relativo. Fora de todo repositório vinculado, a resposta é nula — e o cliente ouve
-     * que está fora da fronteira, não onde ele está.
+     * Devolve o identificador do repositório e o caminho relativo, ou nulo fora de todo repositório
+     * vinculado.
      */
     fun locate(context: WorkspaceContext, absolutePath: String): Pair<RepositoryBinding, String>? {
         val target = pathOrNull(absolutePath)?.toAbsolutePath()?.normalize() ?: return null
@@ -260,8 +256,7 @@ object RepositoryReports {
                     null
                 }
             }
-            // O vínculo mais específico ganha: repositório dentro de repositório é caso real de
-            // monorepo com submódulo, e a raiz mais profunda produz o caminho relativo mais curto.
+            // O vínculo mais específico ganha: a raiz mais profunda produz o caminho relativo mais curto.
             .minByOrNull { (_, relative) -> relative.count { it == '/' } }
     }
 

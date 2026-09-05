@@ -12,13 +12,10 @@ enum class MaskingRule {
 /**
  * O que sai de uma coluna consultada.
  *
- * Existe uma regra que **não depende de configuração**: coluna cujo nome anuncia segredo — senha,
- * token, chave, hash de credencial — volta mascarada, ainda que ninguém tenha configurado nada. O
- * usuário pode marcar outras colunas como sensíveis; não pode desmarcar essas, porque o valor
- * padrão errado aqui é o que vaza credencial de produção para dentro de um contexto de LLM.
+ * Coluna cujo nome anuncia segredo volta mascarada mesmo sem configuração alguma. O usuário pode
+ * marcar outras colunas como sensíveis, e não pode desmarcar essas.
  *
- * `DENY` (recusar a consulta inteira quando toca a coluna) fica para depois do MVP; o que existe
- * agora é `ALLOW` e `MASK`.
+ * Os valores possíveis são `ALLOW` e `MASK`.
  */
 @Serializable
 data class DataMaskingPolicy(

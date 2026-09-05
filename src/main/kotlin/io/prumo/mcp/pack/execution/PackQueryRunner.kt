@@ -21,13 +21,11 @@ import io.prumo.mcp.workspace.domain.Workspace
 /**
  * Executa a consulta salva de um pack.
  *
- * O `datasourceRef` do pack é um identificador lógico, resolvido **no workspace de destino**: um
- * pack que viajou de outra máquina não carrega conexão nem credencial, e não alcança banco que não
- * esteja vinculado aqui (regra 4 da seção 8.3).
+ * O `datasourceRef` é um identificador lógico resolvido no workspace de destino: o pack não carrega
+ * conexão nem credencial.
  *
- * A consulta passa exatamente pelas mesmas camadas do Core Toolkit — classificação de statement,
- * transação somente-leitura, teto de linhas, timeout e mascaramento. Um recurso de terceiro não
- * ganha caminho mais curto do que o produto se dá.
+ * A consulta passa pelas mesmas camadas do Core Toolkit — classificação de statement, transação
+ * somente-leitura, teto de linhas, timeout e mascaramento.
  */
 class PackQueryRunner(
     storage: LocalStorageProvider,

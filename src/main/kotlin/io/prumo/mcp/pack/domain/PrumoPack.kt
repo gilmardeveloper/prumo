@@ -20,12 +20,10 @@ import java.util.Locale
 /**
  * Texto que o pack mostra a quem o instala, opcionalmente em mais de um idioma.
  *
- * O inglês é obrigatório e é a base: um pack circula entre equipes e entre países, e um formato que
- * admite só uma língua obriga migração depois. Traduções são acréscimo, nunca substituição — falta
- * de tradução cai no inglês em vez de mostrar chave crua.
+ * O inglês é obrigatório e serve de base: falta de tradução cai nele em vez de mostrar a chave.
  *
- * No arquivo do pack aceita as duas formas, para que escrever um pack à mão continue simples:
- * `"title": "Payroll rules"` ou `"title": {"default": "Payroll rules", "pt-BR": "Regras da folha"}`.
+ * No arquivo do pack aceita as duas formas: `"title": "Payroll rules"` ou
+ * `"title": {"default": "Payroll rules", "pt-BR": "Regras da folha"}`.
  */
 @Serializable(with = LocalizedTextSerializer::class)
 data class LocalizedText(
@@ -97,8 +95,7 @@ internal object LocalizedTextSerializer : KSerializer<LocalizedText> {
 /**
  * Um documento, nota ou dado de apoio que o pack carrega.
  *
- * `file` é sempre relativo à raiz do pack: caminho de máquina não viaja entre colegas, e é a
- * regra 5 da seção 8.3 do prompt mestre.
+ * `file` é sempre relativo à raiz do pack.
  */
 @Serializable
 data class KnowledgeItem(
@@ -116,10 +113,10 @@ data class KnowledgeItem(
 /** Como a ferramenta do pack é executada. */
 @Serializable
 enum class PackToolKind {
-    /** Consulta salva: o Prumo executa com o motor nativo, sob as mesmas camadas da seção 9. */
+    /** Consulta salva, executada pelo motor de consulta do produto. */
     QUERY,
 
-    /** Script do usuário: executado confinado, e só com a capacidade `PROCESS_EXECUTE` concedida. */
+    /** Script do usuário, executado confinado e só com a capacidade `PROCESS_EXECUTE` concedida. */
     SCRIPT,
 }
 
@@ -127,8 +124,7 @@ enum class PackToolKind {
  * Uma ferramenta que o pack acrescenta ao workspace.
  *
  * Aparece ao cliente MCP sob o namespace `user.`, marcada como recurso de terceiro. O datasource é
- * referenciado por identificador lógico e resolvido no workspace de destino: caminho de máquina e
- * credencial não viajam dentro de um pack (regras 4 e 5 da seção 8.3).
+ * referenciado por identificador lógico e resolvido no workspace de destino.
  */
 @Serializable
 data class PackTool(
@@ -161,10 +157,8 @@ data class PackTool(
 /**
  * O que um Prumo Pack declara sobre si.
  *
- * O manifesto é o que o usuário lê antes de instalar: o que o pack é, de onde veio e o que ele
- * precisa poder fazer. Capacidade não declarada não funciona — e é a mesma `Capability` que o
- * `PolicyEngine` avalia, para que não existam duas listas de permissões contando histórias
- * diferentes.
+ * É o que o usuário lê antes de instalar. Capacidade não declarada não funciona, e é a mesma
+ * `Capability` que o `PolicyEngine` avalia.
  */
 @Serializable
 data class PackManifest(

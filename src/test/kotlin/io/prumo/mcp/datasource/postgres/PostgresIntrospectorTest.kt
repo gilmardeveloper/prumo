@@ -24,8 +24,8 @@ import java.sql.SQLException
 /**
  * Introspecção contra um PostgreSQL real.
  *
- * O que se prova aqui é o que só um servidor de verdade responde: o catálogo devolve o que o
- * Prumo espera, e um nome de tabela com SQL dentro é comparado como texto em vez de executado.
+ * Verifica que o catálogo devolve o que o Prumo espera e que um nome de tabela com SQL dentro é
+ * comparado como texto em vez de executado.
  */
 @Tag("security")
 class PostgresIntrospectorTest {
@@ -92,8 +92,8 @@ class PostgresIntrospectorTest {
     }
 
     /**
-     * Segunda camada de defesa da seção 9: mesmo com credencial de escrita no banco, a conexão de
-     * um datasource `READ_ONLY` recusa qualquer statement que escreva.
+     * Com credencial de escrita no banco, a conexão de um datasource `READ_ONLY` recusa qualquer
+     * statement que escreva.
      */
     @Test
     fun `conexao de datasource somente leitura recusa escrita`() {

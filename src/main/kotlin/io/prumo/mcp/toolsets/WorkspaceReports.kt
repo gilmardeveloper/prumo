@@ -23,7 +23,7 @@ data class RepositoryResponse(
     val accessMode: String,
     val writable: Boolean,
     val current: Boolean,
-    /** Remote normalizado (`host/org/nome`), nulo quando o vínculo não tem Git. Nunca a URL crua. */
+    /** Remote normalizado (`host/org/nome`), nulo quando o vínculo não tem Git. */
     val remoteIdentity: String? = null,
 )
 
@@ -98,10 +98,8 @@ data class WorkspacePreparationResponse(
 /**
  * Respostas das tools de workspace.
  *
- * Construídas fora do adaptador MCP e sem tipo algum da IDE, porque a garantia que importa aqui é
- * verificável apenas sobre dado: nenhuma resposta carrega caminho absoluto, credencial ou vestígio
- * de outro workspace. O caminho local de um repositório existe para o plugin resolver arquivos e
- * termina no plugin — o cliente recebe identificadores.
+ * Nenhuma resposta carrega caminho absoluto, credencial ou vestígio de outro workspace: o cliente
+ * recebe identificadores.
  */
 object WorkspaceReports {
 
@@ -116,11 +114,9 @@ object WorkspaceReports {
         )
 
     /**
-     * As decisões vêm do `PolicyEngine`, não de uma cópia das flags do workspace: uma segunda
-     * leitura das mesmas regras acabaria divergindo daquela que de fato barra a operação.
+     * As decisões vêm do `PolicyEngine`, não de uma cópia das flags do workspace.
      *
-     * As ações de banco são avaliadas sem datasource resolvido, porque a pergunta é sobre o
-     * workspace e não sobre uma conexão específica.
+     * As ações de banco são avaliadas sem datasource resolvido, porque a pergunta é sobre o workspace.
      */
     fun policy(context: WorkspaceContext): WorkspacePolicyResponse =
         WorkspacePolicyResponse(
@@ -175,8 +171,7 @@ object WorkspaceReports {
         accessMode = accessMode.name,
         writable = writable,
         current = current,
-        // O remote cru pode carregar usuário e token embutidos na URL; a forma normalizada
-        // identifica o repositório e descarta a credencial.
+        // O remote cru pode carregar usuário e token na URL; a forma normalizada descarta a credencial.
         remoteIdentity = gitRemote?.let(RepositoryFingerprint.Companion::normalizeRemote),
     )
 }

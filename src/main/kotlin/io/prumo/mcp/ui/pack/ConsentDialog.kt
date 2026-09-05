@@ -18,13 +18,11 @@ import javax.swing.JTextArea
 /**
  * Termo de consentimento do import de pack.
  *
- * Consentimento sem informação não é consentimento: a tela mostra origem, versão, checksum, o que
- * cada capacidade permite em linguagem simples, cada achado do classificador **com o trecho exato**
- * e o script na íntegra. Nada é ativado antes do aceite.
+ * Mostra origem, versão, checksum, o que cada capacidade permite, cada achado do classificador com
+ * o trecho exato, e o script na íntegra. Nada é ativado antes do aceite.
  *
- * Achado destrutivo exige marcação item a item, e nada vem pré-marcado — a caixa já marcada é o
- * truque clássico para transformar consentimento em formalidade. Pack `BLOCKED` não tem botão de
- * aceitar (P9).
+ * Achado destrutivo exige marcação item a item, sem nada pré-marcado. Pack `BLOCKED` não tem botão
+ * de aceitar.
  */
 class PackConsentDialog(
     project: Project,
@@ -106,10 +104,7 @@ class PackConsentDialog(
 
     override fun doValidate() = null
 
-    /**
-     * O botão de instalar só existe quando há caminho legítimo até ele: pack bloqueado nunca o
-     * habilita, e destrutivo exige cada item marcado.
-     */
+    /** O botão de instalar só habilita sem bloqueio e com todos os achados destrutivos marcados. */
     private fun updateOkButton() {
         isOKActionEnabled = !preview.blocked &&
             responsibility.isSelected &&

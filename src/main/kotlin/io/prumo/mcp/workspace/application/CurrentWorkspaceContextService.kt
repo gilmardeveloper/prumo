@@ -7,12 +7,7 @@ import io.prumo.mcp.workspace.domain.Workspace
 import io.prumo.mcp.workspace.infrastructure.WorkspaceStore
 import java.nio.file.Path
 
-/**
- * O projeto aberto na IDE, reduzido ao que o Prumo precisa para resolver o workspace.
- *
- * Existe para manter o serviço de contexto livre de tipos da IDE — o que permite testar toda a
- * regra de isolamento sem subir o ambiente.
- */
+/** O projeto aberto na IDE, reduzido ao que o Prumo precisa para resolver o workspace. */
 data class ProjectDescriptor(
     val name: String,
     val basePath: Path?,
@@ -50,13 +45,10 @@ sealed interface WorkspaceResolution {
 }
 
 /**
- * Resolvedor único de contexto.
+ * Resolvedor único de contexto, por onde passa toda ferramenta do Prumo.
  *
- * Toda ferramenta do Prumo passa por aqui. Concentrar a resolução em um só lugar é o que torna o
- * isolamento verificável: não existe caminho alternativo que alcance um workspace sem esta decisão.
- *
- * A resolução falha fechada. Projeto sem workspace configurado é erro; projeto vinculado a mais de
- * um workspace também é — escolher um deles por conveniência exporia o conteúdo errado.
+ * Falha fechada: projeto sem workspace configurado é erro, e projeto vinculado a mais de um
+ * workspace também.
  */
 class CurrentWorkspaceContextService(
     private val store: WorkspaceStore,

@@ -6,13 +6,9 @@ import java.nio.file.Files
 import java.nio.file.Path
 
 /**
- * Descobre a raiz de um repositório Git e o seu remote, lendo o próprio `.git`.
+ * Descobre a raiz de um repositório Git e o remote dele, lendo o próprio `.git`.
  *
- * A leitura é feita sobre o arquivo de configuração em vez de uma API da IDE por duas razões: vale
- * igual em Windows e Linux, e mantém a identificação de repositório testável fora do ambiente —
- * é justamente o que sustenta a fronteira do workspace.
- *
- * Nada é escrito. O Prumo apenas lê o que o Git já mantém.
+ * Nada é escrito: o Prumo apenas lê o que o Git já mantém.
  */
 object GitRepositoryProbe {
 

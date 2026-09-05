@@ -13,12 +13,7 @@ enum class RiskLevel {
     BLOCKED,
 }
 
-/**
- * Um sinal encontrado no pack.
- *
- * Carrega o **trecho exato** que o originou: o usuário precisa ver o que gerou o alerta, e não uma
- * afirmação genérica que ele não tem como conferir.
- */
+/** Um sinal encontrado no pack, com o trecho exato que o originou. */
 data class RiskFinding(
     val level: RiskLevel,
     val rule: String,
@@ -39,13 +34,8 @@ data class RiskAssessment(
 /**
  * Análise estática do que o pack é capaz de fazer.
  *
- * **Isto é detecção de sinal, não prova.** Script ofuscado ou criativo passa por aqui. A garantia
- * real vem das capacidades concedidas, do confinamento da execução e do consentimento informado —
- * o classificador existe para o usuário ver o que normalmente não olharia, e para que o que é
- * obviamente destrutivo não passe despercebido. Vender isso como garantia seria pior do que não
- * ter, porque produziria confiança injustificada (seção 8.5).
- *
- * As regras são explícitas e determinísticas (P10): mesmo pack, mesmo veredito, sempre.
+ * Detecção de sinal, não prova: script ofuscado passa. As regras são explícitas e determinísticas —
+ * mesmo pack, mesmo veredito.
  */
 object RiskClassifier {
 
@@ -64,7 +54,7 @@ object RiskClassifier {
         return RiskAssessment(level, findings.sortedByDescending { it.level.ordinal })
     }
 
-    /** Capacidade não declarada é recusa, não alerta: o pack faz o que não pediu (regra 1). */
+    /** Capacidade não declarada é recusa, não alerta. */
     private fun undeclaredCapabilities(manifest: PackManifest, tool: PackTool): List<RiskFinding> {
         val required = buildSet {
             if (!tool.sql.isNullOrBlank()) add(Capability.DATASOURCE_QUERY)
@@ -142,10 +132,9 @@ object RiskClassifier {
         Regex("""\|\s*(sh|bash|zsh|ksh|iex|invoke-expression|python[0-9.]*|perl|ruby|node)\b""")
 
     /**
-     * Corpus de sinais, por plataforma (resolve L-007).
+     * Corpus de sinais, por plataforma.
      *
-     * Cada regra descreve algo que já causou estrago em máquina de desenvolvedor, e cada uma cita o
-     * comando concreto — regra vaga produz alerta que o usuário aprende a ignorar.
+     * Cada regra cita o comando concreto que a dispara.
      */
     private val RULES = listOf(
         Rule(

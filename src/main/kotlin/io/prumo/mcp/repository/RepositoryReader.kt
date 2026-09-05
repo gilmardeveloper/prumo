@@ -8,7 +8,7 @@ import kotlin.io.path.isDirectory
 import kotlin.io.path.isRegularFile
 import kotlin.io.path.name
 
-/** Falha esperada de leitura: arquivo ausente, binário ou grande demais. O cliente pode corrigir. */
+/** Falha de leitura: arquivo ausente, binário ou grande demais. */
 class RepositoryReadException(message: String) : IllegalArgumentException(message)
 
 data class FileSlice(
@@ -48,11 +48,9 @@ data class DirectoryListing(
  * Leitura de arquivos dentro de um repositório vinculado ao workspace.
  *
  * Todo acesso entra por [PathSecurityValidator]: o cliente informa o identificador do repositório e
- * um caminho relativo, e nada fora da raiz é alcançável — nem por `..`, nem por caminho absoluto,
- * nem por link que aponte para fora.
+ * um caminho relativo, e nada fora da raiz é alcançável.
  *
- * Os limites de tamanho não são detalhe de desempenho: uma resposta sem teto encheria a janela do
- * cliente e transformaria uma leitura em perda de contexto. Toda resposta diz quando foi cortada.
+ * As respostas têm teto de tamanho e declaram quando foram cortadas.
  */
 object RepositoryReader {
 
@@ -199,7 +197,7 @@ object RepositoryReader {
             }
         }
 
-    /** O diretório interno do Git é dado do Git, não do projeto: nunca entra em leitura nem em busca. */
+    /** O diretório interno do Git nunca entra em leitura nem em busca. */
     private fun isInsideGitDirectory(root: Path, candidate: Path): Boolean {
         val relative = root.toAbsolutePath().normalize()
             .relativize(candidate.toAbsolutePath().normalize())

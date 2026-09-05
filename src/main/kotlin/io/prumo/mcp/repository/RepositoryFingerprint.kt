@@ -7,14 +7,8 @@ import java.util.Locale
 /**
  * Identidade estável de um repositório, independente de onde ele esteja no disco.
  *
- * O caminho local muda: o desenvolvedor move a pasta, troca de máquina, migra de `C:\repos` para
- * `D:\workspace`, de `/home/dev/repos` para `/workspaces`. Um vínculo de workspace ancorado apenas
- * no caminho se perderia em todos esses casos.
- *
- * A identidade preferencial vem do remote Git normalizado, que é o mesmo em qualquer máquina.
- * Sem Git, resta o nome do diretório — o que reconhece a pasta movida, mas não a pasta renomeada.
- * Essa limitação é deliberada: gravar um marcador dentro do repositório resolveria o caso e violaria
- * a regra de não escrever nada no projeto do usuário.
+ * A identidade preferencial vem do remote Git normalizado, igual em qualquer máquina. Sem Git,
+ * resta o nome do diretório, o que reconhece a pasta movida mas não a pasta renomeada.
  */
 data class RepositoryFingerprint(
     val value: String,

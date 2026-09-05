@@ -5,8 +5,7 @@ import java.nio.file.Path
 /**
  * Diretórios em que o Prumo guarda tudo o que produz.
  *
- * Nenhum deles fica dentro de repositório do usuário: a configuração do Prumo vive em área do
- * sistema operacional, e o repositório da aplicação permanece limpo.
+ * Nenhum deles fica dentro de repositório do usuário.
  */
 data class PrumoDirectories(
     val config: Path,
@@ -61,19 +60,14 @@ data class PrumoDirectories(
             variable: String,
             fallback: Path,
         ): Path {
-            // A especificação XDG manda ignorar valor relativo, e não interpretá-lo contra o
-            // diretório corrente: um caminho relativo aqui poderia cair dentro do projeto aberto.
+            // A especificação XDG manda ignorar valor relativo em vez de resolvê-lo.
             val configured = environment.variable(variable)
                 ?.takeIf { looksAbsolute(it) }
                 ?.let { runCatching { Path.of(it) }.getOrNull() }
             return (configured ?: fallback).resolve(UNIX_DIRECTORY)
         }
 
-        /**
-         * `Path.isAbsolute` responde segundo o sistema operacional em que o processo roda, então um
-         * caminho Unix seria classificado como relativo em Windows e vice-versa. A decisão precisa
-         * ser a mesma em qualquer máquina, inclusive na que executa os testes.
-         */
+        /** Reconhece caminho absoluto de Windows e de Unix, independente do sistema em que roda. */
         private fun looksAbsolute(value: String): Boolean =
             value.startsWith("/") ||
                 value.startsWith("\\\\") ||

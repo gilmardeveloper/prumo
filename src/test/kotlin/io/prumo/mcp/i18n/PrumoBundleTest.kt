@@ -13,12 +13,7 @@ import java.util.Locale
 import java.util.Properties
 import kotlin.io.path.extension
 
-/**
- * O que sustenta a interface bilíngue.
- *
- * Uma tradução que some sem ninguém notar é o modo clássico de a interface ficar meio traduzida:
- * por isso a paridade de chaves é teste, não revisão.
- */
+/** Paridade entre os dois arquivos de mensagem e resolução por locale explícito. */
 @Tag("security")
 class PrumoBundleTest {
 
@@ -65,11 +60,7 @@ class PrumoBundleTest {
         assertTrue(ausentes.isEmpty(), "chave usada no código e ausente do bundle: $ausentes")
     }
 
-    /**
-     * A fronteira que separa interface de contrato: nome de tool, descrição e erro devolvido ao
-     * cliente MCP **não** são traduzidos. Se mudassem com o idioma da máquina, a mesma tool
-     * responderia diferente em cada lugar.
-     */
+    /** Nome de tool, descrição e erro devolvido ao cliente MCP não passam pelo bundle. */
     @Test
     fun `a superficie MCP nao passa pelo bundle`() {
         val toolsets = Files.walk(Path.of("src/main/kotlin/io/prumo/mcp/toolsets")).use { paths ->

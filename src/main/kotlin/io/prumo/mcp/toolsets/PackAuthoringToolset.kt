@@ -27,10 +27,7 @@ data class PackSubmissionResponse(
 /**
  * O que uma LLM precisa para escrever, conferir e propor um pack.
  *
- * O fluxo termina sempre no humano: `submit` **não instala**. Ele deixa o pack na fila de aprovação
- * da Tool Window, que é o único lugar do produto onde um recurso de usuário é ativado (P11). Não
- * existe parâmetro que faça esta classe instalar coisa alguma — e um teste falha se alguém
- * acrescentar um.
+ * `submit` não instala: deixa o pack na fila de aprovação da Tool Window, onde um humano decide.
  */
 class PackAuthoringToolset : McpToolset {
 

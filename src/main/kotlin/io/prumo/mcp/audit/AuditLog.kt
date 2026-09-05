@@ -14,8 +14,7 @@ enum class AuditResult { SUCCESS, DENIED, ERROR }
  * Um evento da trilha de auditoria.
  *
  * Registra o que aconteceu, não o que foi lido: nem conteúdo de arquivo, nem linhas de resultado,
- * nem valor de parâmetro. Auditoria que copia o dado transforma o log em uma segunda cópia daquilo
- * que se pretendia proteger.
+ * nem valor de parâmetro.
  */
 @Serializable
 data class AuditEntry(
@@ -32,10 +31,10 @@ data class AuditEntry(
 )
 
 /**
- * Remove do registro qualquer coisa que possa ser segredo.
+ * Remove do registro o que possa ser segredo.
  *
- * A defesa é por lista de bloqueio de chaves conhecidas somada a um teto de tamanho: um valor longo
- * demais para ser um rótulo provavelmente é conteúdo, e conteúdo não entra na auditoria.
+ * Redige por nome de chave conhecida e por padrão de valor, e corta o que passa de
+ * [MAX_VALUE_LENGTH] caracteres.
  */
 object AuditSanitizer {
 
@@ -72,12 +71,7 @@ object AuditSanitizer {
     }
 }
 
-/**
- * Trilha de auditoria local, um arquivo por workspace, em linhas JSON.
- *
- * Fica sob o diretório do workspace: a auditoria de um workspace é tão isolada quanto o resto do
- * conteúdo dele.
- */
+/** Trilha de auditoria local, um arquivo de linhas JSON por workspace. */
 class AuditLog(
     private val storage: LocalStorageProvider,
     private val clock: () -> Instant = Instant::now,

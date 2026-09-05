@@ -14,15 +14,9 @@ import java.util.Properties
 class DataSourceAccessException(message: String) : IllegalStateException(message)
 
 /**
- * Abre conexões para os bancos do workspace corrente.
+ * Abre conexões para os bancos do workspace corrente, uma por operação e sem pool.
  *
- * **Sem pool, de propósito.** Um pool manteria conexões autenticadas vivas entre chamadas, o que
- * significa segredo em memória por mais tempo e estado de sessão sobrevivendo de uma consulta para
- * a outra — os dois contrariam o desenho. Introspecção e consulta são operações sob demanda; abrir
- * e fechar por chamada custa uma ida ao banco e devolve isolamento.
- *
- * Conexão de datasource `READ_ONLY` nasce marcada como somente-leitura no próprio driver: é a
- * segunda camada da defesa da seção 9, independente da credencial de leitura, que é a primeira.
+ * Conexão de datasource `READ_ONLY` nasce marcada como somente-leitura no driver e na sessão.
  */
 class PostgresConnectionFactory(
     private val credentials: CredentialProvider,
@@ -43,7 +37,6 @@ class PostgresConnectionFactory(
             connection.applyAccessMode(profile.accessMode)
             connection
         } catch (failure: SQLException) {
-            // A mensagem do driver cita host e usuário: o cliente recebe o desfecho classificado.
             throw DataSourceAccessException(
                 "Prumo could not connect to data source '${profile.name}': " +
                     ConnectionFailureClassifier.classify(failure.sqlState, failure.message).hint,
@@ -54,10 +47,7 @@ class PostgresConnectionFactory(
         }
     }
 
-    /**
-     * Empresta uma conexão pelo tempo de uma operação e a fecha em seguida, aconteça o que
-     * acontecer — conexão vazada é sessão aberta no banco do usuário.
-     */
+    /** Empresta uma conexão pelo tempo de uma operação e a fecha em seguida. */
     fun <T> withConnection(workspaceId: String, profile: DataSourceProfile, block: (Connection) -> T): T =
         open(workspaceId, profile).use { connection ->
             try {
@@ -79,8 +69,6 @@ class PostgresConnectionFactory(
 
     private fun properties(profile: DataSourceProfile, password: CharArray) = Properties().apply {
         setProperty("user", profile.user)
-        // Único ponto em que o segredo vira String, exigência da API do JDBC. Não sai daqui e o
-        // mapa é limpo no `finally`.
         setProperty("password", String(password))
         setProperty("connectTimeout", timeoutSeconds.toString())
         setProperty("loginTimeout", timeoutSeconds.toString())
@@ -89,8 +77,6 @@ class PostgresConnectionFactory(
         setProperty("ApplicationName", APPLICATION_NAME)
         profile.defaultSchema?.let { setProperty("currentSchema", it) }
         if (profile.accessMode == AccessMode.READ_ONLY) {
-            // Terceira camada: mesmo que a credencial tenha permissão de escrita e o driver seja
-            // contornado, a sessão inteira recusa qualquer statement que escreva.
             setProperty("readOnly", "true")
             setProperty("readOnlyMode", "always")
         }

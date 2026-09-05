@@ -8,12 +8,8 @@ import io.prumo.mcp.policy.PolicyAction
 /**
  * Superfície MCP do workspace corrente.
  *
- * O adaptador é fino de propósito: o contrato comum vive em [prumoToolCall] e a regra que decide o
- * que pode ser visto vive no núcleo, onde é testável sem a IDE.
- *
- * Os nomes registrados no MCP usam `_` porque é o formato aceito pelos clientes e o mesmo das tools
- * nativas da plataforma; o nome canônico com ponto (`workspace.get_context`) permanece na trilha de
- * auditoria.
+ * Os nomes registrados no MCP usam `_`, que é o formato aceito pelos clientes; o nome canônico com
+ * ponto (`workspace.get_context`) permanece na trilha de auditoria.
  */
 class WorkspaceToolset : McpToolset {
 

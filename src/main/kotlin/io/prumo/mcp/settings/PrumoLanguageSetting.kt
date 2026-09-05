@@ -10,16 +10,11 @@ import java.io.IOException
 import java.nio.file.Path
 import java.util.Locale
 
-/**
- * Idioma em que o Prumo fala com o humano.
- *
- * Existe porque o idioma da IDE e o idioma preferido nem sempre coincidem: quem trabalha com a
- * IDE em inglês por hábito ainda pode querer ler as telas do Prumo em português.
- */
+/** Idioma em que o Prumo fala com o humano. */
 @Serializable
 enum class PrumoLanguage(val labelKey: String) {
 
-    /** Acompanha a IDE. É o padrão: um plugin não decide o idioma do usuário por conta própria. */
+    /** Acompanha a IDE. É o padrão. */
     SYSTEM("settings.language.system"),
     ENGLISH("settings.language.english"),
     BRAZILIAN_PORTUGUESE("settings.language.brazilianPortuguese"),
@@ -38,11 +33,10 @@ enum class PrumoLanguage(val labelKey: String) {
 }
 
 /**
- * Preferência de idioma do Prumo, guardada junto das demais configurações do produto.
+ * Preferência de idioma do Prumo, guardada com as demais configurações do produto.
  *
- * Fica na área do sistema operacional, como todo o resto: preferência de interface não entra em
- * repositório do usuário. O valor é lido a cada texto de tela, então é mantido em memória e só
- * volta ao disco quando alguém o altera.
+ * Fica na área do sistema operacional. O valor é mantido em memória e só volta ao disco quando
+ * alguém o altera.
  */
 class PrumoLanguageSetting(
     private val storage: LocalStorageProvider,
@@ -60,8 +54,9 @@ class PrumoLanguageSetting(
     }
 
     /**
-     * Configuração ilegível não pode derrubar a interface: o produto continua no idioma da IDE e
-     * registra o motivo, em vez de deixar o usuário sem tela por causa de um arquivo corrompido.
+     * Lê a preferência do disco.
+     *
+     * Configuração ilegível registra o motivo e devolve [PrumoLanguage.SYSTEM].
      */
     private fun read(): PrumoLanguage =
         try {

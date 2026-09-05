@@ -49,14 +49,10 @@ data class TableDetail(
 )
 
 /**
- * Lê a estrutura de um banco PostgreSQL.
+ * Lê a estrutura de um banco PostgreSQL: schema, tabela, coluna, tipo, restrição e índice.
  *
- * Só estrutura: nome de schema, tabela, coluna, tipo, restrição e índice. Nenhuma linha de dado é
- * consultada aqui — descrever o banco não é o mesmo que ler o que há dentro dele.
- *
- * Todo nome vindo do cliente entra como **parâmetro** de `PreparedStatement`, nunca concatenado no
- * SQL. Um identificador com aspas ou ponto e vírgula é comparado como texto e simplesmente não
- * encontra tabela alguma.
+ * Nenhuma linha de dado é consultada. Todo nome vindo do cliente entra como parâmetro de
+ * `PreparedStatement`, nunca concatenado no SQL.
  */
 class PostgresIntrospector(
     private val queryTimeoutSeconds: Int = DEFAULT_QUERY_TIMEOUT_SECONDS,

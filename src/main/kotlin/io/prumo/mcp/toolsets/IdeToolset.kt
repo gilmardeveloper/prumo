@@ -9,9 +9,7 @@ import io.prumo.mcp.policy.PolicyAction
 /**
  * O que a IDE sabe sobre onde o desenvolvedor está.
  *
- * Complementa o MCP nativo em vez de repetir: a plataforma informa quais arquivos estão abertos,
- * mas não o cursor, a seleção nem o símbolo que os contém — e nada na plataforma limita a resposta
- * à fronteira do workspace.
+ * Informa o cursor, a seleção e o símbolo que os contém, sempre dentro da fronteira do workspace.
  */
 class IdeToolset : McpToolset {
 

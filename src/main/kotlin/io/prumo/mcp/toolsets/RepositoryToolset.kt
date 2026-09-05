@@ -17,12 +17,10 @@ import java.nio.file.Path
 /**
  * Superfície MCP dos repositórios vinculados ao workspace.
  *
- * Existe pelo que o MCP nativo **não** faz: as tools da plataforma leem o projeto aberto e não
- * conhecem workspace, então não alcançam o repositório de referência que está vinculado mas não
- * aberto na IDE, e não impõem fronteira alguma. Nada aqui duplica busca de símbolo, inspeção,
- * build, teste ou refatoração — para isso o cliente usa as tools nativas.
+ * Alcança também o repositório vinculado que não está aberto na IDE, e impõe a fronteira do
+ * workspace. Não duplica busca de símbolo, inspeção, build, teste nem refatoração.
  *
- * Toda tool é de leitura. O conteúdo vem do disco: alteração ainda não salva no editor não aparece.
+ * Toda tool é de leitura, e o conteúdo vem do disco: alteração não salva no editor não aparece.
  */
 class RepositoryToolset : McpToolset {
 

@@ -2,12 +2,7 @@ package io.prumo.mcp.ui
 
 import io.prumo.mcp.workspace.application.WorkspaceResolution
 
-/**
- * O que o painel do Prumo mostra.
- *
- * Modelado como dado puro, sem Swing, para que a garantia mais importante da tela seja testável:
- * o painel do workspace corrente jamais exibe informação de outro workspace, nem a existência dele.
- */
+/** O que o painel do Prumo mostra, como dado puro e sem Swing. */
 sealed interface WorkspaceViewModel {
 
     data class NotConfigured(val projectName: String) : WorkspaceViewModel
@@ -45,8 +40,6 @@ sealed interface WorkspaceViewModel {
         fun from(resolution: WorkspaceResolution, pendingPacks: Int = 0): WorkspaceViewModel = when (resolution) {
             is WorkspaceResolution.NotConfigured -> NotConfigured(resolution.projectName)
 
-            // A tela diz que há ambiguidade e quantos vínculos existem, mas não quais: nomear os
-            // outros workspaces já seria contar sobre eles.
             is WorkspaceResolution.Ambiguous -> Ambiguous(
                 resolution.projectName,
                 resolution.workspaceIds.size,

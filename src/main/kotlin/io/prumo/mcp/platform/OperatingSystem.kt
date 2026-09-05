@@ -3,9 +3,7 @@ package io.prumo.mcp.platform
 /**
  * Famílias de sistema operacional que o Prumo distingue.
  *
- * As diferenças de plataforma ficam concentradas aqui e em [PrumoDirectories]. Espalhar condicional
- * de sistema operacional pelo resto do código é o que torna um produto multiplataforma impossível
- * de manter.
+ * As diferenças de plataforma ficam concentradas aqui e em [PrumoDirectories].
  */
 enum class OperatingSystemFamily {
     WINDOWS,

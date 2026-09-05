@@ -6,15 +6,15 @@ import java.nio.file.Files
 import java.nio.file.Path
 import java.util.concurrent.TimeUnit
 
-/** Falha esperada ao executar um comando de pack. A mensagem não carrega caminho de máquina. */
+/** Falha ao executar um comando de pack. A mensagem não carrega caminho de máquina. */
 class ProcessExecutionException(message: String) : IllegalStateException(message)
 
 data class ProcessRequest(
-    /** Comando já quebrado em argumentos. Nunca uma linha de shell: não existe interpretador no meio. */
+    /** Comando já quebrado em argumentos: não passa por interpretador de shell. */
     val command: List<String>,
     val workingDirectory: Path,
     val timeoutSeconds: Int,
-    /** Variáveis extras do pack. O ambiente do processo da IDE **não** é herdado. */
+    /** Variáveis extras do pack. O ambiente do processo da IDE não é herdado. */
     val environment: Map<String, String> = emptyMap(),
     val maxOutputBytes: Int = DEFAULT_MAX_OUTPUT_BYTES,
 ) {
@@ -45,21 +45,13 @@ data class ProcessOutcome(
 /**
  * Executa um comando com confinamento.
  *
- * O que o confinamento garante:
- * - o comando é uma lista de argumentos, nunca uma linha de shell — não há interpretador para
- *   emendar `; rm -rf` no meio;
- * - o diretório de trabalho é o que o chamador determinou;
- * - o ambiente **não** é herdado do processo da IDE: nada de token de nuvem, chave de API ou
- *   variável de sessão vaza para o script. Só entra o mínimo para um programa achar o sistema, mais
- *   o que o pack declarou;
- * - a entrada padrão é fechada, para o processo não travar esperando digitação;
- * - saída tem teto e a resposta diz quando cortou;
- * - tempo tem teto, e o estouro mata o processo e os filhos dele.
+ * O comando é uma lista de argumentos, sem shell; o diretório de trabalho é o que o chamador
+ * determinou; o ambiente não é herdado da IDE, apenas o mínimo do sistema mais o que o pack
+ * declarou; a entrada padrão é fechada; saída e tempo têm teto, e o estouro mata o processo e os
+ * descendentes.
  *
- * O que ele **não** garante, e precisa estar dito: o processo roda com o mesmo usuário e as mesmas
- * permissões da IDE. Um comando com caminho absoluto alcança o disco inteiro. Confinamento real de
- * sistema de arquivos exigiria sandbox do sistema operacional, que não existe de forma portátil —
- * por isso a barreira anterior é o consentimento informado sobre o comando exato (seção 8.5).
+ * O processo roda com o mesmo usuário e as mesmas permissões da IDE: um comando com caminho
+ * absoluto alcança o disco inteiro. Isto não é uma sandbox de sistema operacional.
  */
 class ProcessExecutor(
     private val environmentProbe: EnvironmentProbe = SystemEnvironmentProbe,
@@ -87,7 +79,6 @@ class ProcessExecutor(
             )
         }
 
-        // Sem entrada: um comando que pergunte algo termina em vez de ficar preso até o timeout.
         runCatching { process.outputStream.close() }
 
         val stdout = StringBuilder()
@@ -138,7 +129,7 @@ class ProcessExecutor(
             start()
         }
 
-    /** Matar só o processo deixaria filhos rodando — é como um script de build sobrevive ao timeout. */
+    /** Mata o processo e os descendentes dele. */
     private fun destroyTree(process: Process) {
         process.descendants().forEach { it.destroyForcibly() }
         process.destroyForcibly()
@@ -151,11 +142,9 @@ class ProcessExecutor(
         private const val KILL_GRACE_SECONDS = 5L
 
         /**
-         * O mínimo para um programa encontrar o sistema — e nada além disso.
+         * O mínimo para um programa encontrar o sistema.
          *
-         * `PATH` entra com os diretórios padrão do sistema operacional, não com o `PATH` da IDE:
-         * um `PATH` herdado traz binários de ferramentas de desenvolvimento e ambientes virtuais que
-         * o pack não deveria alcançar sem pedir.
+         * O `PATH` traz os diretórios padrão do sistema operacional, não o `PATH` da IDE.
          */
         fun minimalEnvironment(probe: EnvironmentProbe): Map<String, String> = buildMap {
             when (probe.operatingSystem) {

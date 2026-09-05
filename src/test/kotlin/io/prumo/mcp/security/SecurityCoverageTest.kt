@@ -8,13 +8,10 @@ import java.nio.file.Path
 import kotlin.io.path.extension
 
 /**
- * Mapa entre os princípios invioláveis e os testes que os sustentam.
+ * Mapa entre as garantias de segurança e os testes que as sustentam.
  *
- * Cada item da seção 11 do prompt mestre precisa existir como teste **nomeado** e marcado com
- * `@Tag("security")`. Este teste lê a própria suíte e falha quando um deles some — é o que impede
- * que uma garantia de segurança seja apagada em silêncio junto com o código que ela protegia.
- *
- * Ele não substitui os testes: aponta para eles.
+ * Cada garantia precisa existir como teste nomeado e marcado com `@Tag("security")`. Este teste lê
+ * a própria suíte e falha quando um deles some.
  */
 @Tag("security")
 class SecurityCoverageTest {

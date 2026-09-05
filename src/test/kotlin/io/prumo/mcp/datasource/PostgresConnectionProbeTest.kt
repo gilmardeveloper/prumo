@@ -13,11 +13,8 @@ import org.testcontainers.containers.PostgreSQLContainer
 /**
  * Teste do probe contra um PostgreSQL real.
  *
- * A classificação de falha é verificada linha a linha em `ConnectionFailureClassifierTest`; aqui o
- * que se prova é outra coisa — que o banco de verdade produz os estados que a classificação espera.
- * Regra de porcelana muda de versão para versão, e só um servidor real desmente uma suposição.
- *
- * Sem Docker na máquina, o teste se declara pulado: o resto da suíte continua valendo.
+ * Verifica que o servidor produz os SQLState que a classificação espera. Sem Docker na máquina,
+ * o teste se declara pulado.
  */
 class PostgresConnectionProbeTest {
 

@@ -12,12 +12,7 @@ import com.intellij.psi.PsiNameIdentifierOwner
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 
-/**
- * Onde o desenvolvedor está no editor, em vocabulário neutro.
- *
- * Sem tipo da IDE, para que a decisão sobre o que dizer ao cliente — e sobre o que fica de fora da
- * fronteira do workspace — continue testável sem subir o ambiente.
- */
+/** Onde o desenvolvedor está no editor, em vocabulário neutro e sem tipos da IDE. */
 data class EditorSnapshot(
     val absolutePath: String,
     val line: Int,
@@ -33,8 +28,7 @@ data class EditorSnapshot(
 /**
  * Leitura do estado do editor.
  *
- * Modelo pull: a LLM pergunta e o plugin responde. Nada é empurrado para o cliente, e nada é
- * observado continuamente — o estado é lido no instante da chamada e devolvido uma vez.
+ * O estado é lido no instante da chamada e devolvido uma vez. Nada é observado continuamente.
  */
 object IdeContextService {
 
@@ -60,8 +54,7 @@ object IdeContextService {
         val editor = FileEditorManager.getInstance(project).selectedTextEditor ?: return null
         val document = editor.document
         val file = FileDocumentManager.getInstance().getFile(document) ?: return null
-        // Arquivo dentro de jar, de sistema remoto ou de scratch não tem caminho em disco, e um
-        // caminho inventado não pertence a repositório algum.
+        // Arquivo dentro de jar, de sistema remoto ou de scratch não tem caminho em disco.
         val path = runCatching { file.toNioPath().toString() }.getOrNull() ?: return null
 
         val caret = editor.caretModel.primaryCaret
@@ -82,8 +75,7 @@ object IdeContextService {
     /**
      * Nomes que contêm o cursor, do mais externo ao mais interno.
      *
-     * A travessia usa `PsiNameIdentifierOwner`, que existe em qualquer linguagem com PSI, em vez do
-     * PSI de Java: o Prumo não deve funcionar melhor em uma linguagem só porque foi escrito nela.
+     * A travessia usa `PsiNameIdentifierOwner`, comum a qualquer linguagem com PSI.
      */
     private fun readSymbols(project: Project, position: CaretPosition): Pair<List<String>, String?> {
         val psiFile = PsiManager.getInstance(project).findFile(position.file) ?: return emptyList<String>() to null

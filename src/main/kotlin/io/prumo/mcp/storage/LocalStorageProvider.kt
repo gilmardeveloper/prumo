@@ -6,10 +6,7 @@ import io.prumo.mcp.platform.SystemEnvironmentProbe
 import java.nio.file.Files
 import java.nio.file.Path
 
-/**
- * Localiza os diretórios do Prumo. Toda escrita do produto passa por aqui, o que torna verificável
- * a garantia de que nada é gravado dentro dos repositórios do usuário.
- */
+/** Localiza os diretórios do Prumo. Toda escrita do produto passa por aqui. */
 interface LocalStorageProvider {
 
     fun workspacesRoot(): Path
@@ -59,7 +56,7 @@ class FileSystemStorageProvider(
         private const val CLIENTS = "clients"
         private const val RUNTIME = "runtime"
 
-        /** Um id de workspace vira nome de diretório: separador ou `..` aqui seria escape de path. */
+        /** O id vira nome de diretório, então não pode conter separador nem `..`. */
         private val SAFE_ID = Regex("^[A-Za-z0-9_-]{1,64}$")
 
         fun forCurrentSystem(environment: EnvironmentProbe = SystemEnvironmentProbe): FileSystemStorageProvider =

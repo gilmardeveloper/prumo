@@ -5,12 +5,7 @@ import io.prumo.mcp.documentation.DocumentationSource
 import io.prumo.mcp.policy.WorkspacePolicies
 import kotlinx.serialization.Serializable
 
-/**
- * Tipo do workspace.
- *
- * Serve a configuração, apresentação e políticas padrão. Não existe comportamento que diverge só
- * porque o tipo é um ou outro: regra artificial por tipo é defeito de projeto, não recurso.
- */
+/** Tipo do workspace, usado na configuração, na apresentação e nas políticas padrão. */
 @Serializable
 enum class WorkspaceType {
     STANDALONE,
@@ -40,8 +35,7 @@ enum class AccessMode {
 /**
  * Vínculo entre um workspace e um repositório local.
  *
- * `localPath` existe para o plugin resolver arquivos; jamais é entregue a um cliente MCP quando um
- * identificador resolve o mesmo problema.
+ * `localPath` existe para o plugin resolver arquivos e não é entregue a um cliente MCP.
  */
 @Serializable
 data class RepositoryBinding(
@@ -66,7 +60,7 @@ data class RepositoryBinding(
 /**
  * Fronteira lógica e de segurança dentro da qual um cliente de IA pode trabalhar.
  *
- * Um workspace nunca referencia outro: a ausência dessa relação é o que sustenta o isolamento.
+ * Um workspace nunca referencia outro.
  */
 @Serializable
 data class Workspace(

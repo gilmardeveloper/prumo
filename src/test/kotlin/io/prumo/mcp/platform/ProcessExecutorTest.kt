@@ -11,10 +11,9 @@ import org.junit.jupiter.api.io.TempDir
 import java.nio.file.Path
 
 /**
- * Confinamento verificado contra o sistema operacional de verdade.
+ * Confinamento verificado contra o sistema operacional corrente.
  *
- * Os comandos são escolhidos pelo SO corrente para que a suíte prove o mesmo em Windows e em Linux,
- * que é onde o produto promete rodar.
+ * Os comandos são escolhidos pelo SO em execução, para a suíte provar o mesmo em Windows e Linux.
  */
 @Tag("security")
 class ProcessExecutorTest {

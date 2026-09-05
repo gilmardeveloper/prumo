@@ -183,9 +183,9 @@ class SubmissionQueueTest {
 }
 
 /**
- * A regra mais importante do fluxo de autoria: **nenhum caminho vindo do cliente MCP instala pack**.
- * O teste lê o próprio código do toolset — se alguém acrescentar uma chamada de instalação ali,
- * a suíte quebra antes de a revisão começar.
+ * Nenhum caminho vindo do cliente MCP instala pack.
+ *
+ * O teste lê o próprio código do toolset e quebra se alguém acrescentar uma chamada de instalação.
  */
 @Tag("security")
 class AuthoringHasNoInstallPathTest {

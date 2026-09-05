@@ -25,11 +25,7 @@ data class ValidationReport(
 /**
  * Confere um rascunho de pack sem instalar nada.
  *
- * É de graça e sem efeito colateral, de propósito: existe para a LLM iterar até o pack ficar
- * conforme, sem incomodar o desenvolvedor com rascunho quebrado (seção 8.4).
- *
- * A recusa é **didática**: cada problema diz onde está e qual é a forma correta. Erro que só diz
- * "inválido" faz o modelo tentar contornar; erro que ensina faz ele convergir.
+ * Cada problema apontado diz onde está e qual é a forma correta.
  */
 object PackValidator {
 

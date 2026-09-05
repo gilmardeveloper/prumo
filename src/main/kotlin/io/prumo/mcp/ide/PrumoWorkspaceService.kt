@@ -18,9 +18,7 @@ import java.nio.file.Path
 /**
  * Ponte entre a IDE e o núcleo do Prumo.
  *
- * É o único ponto em que um `Project` da plataforma vira o descritor neutro que o núcleo entende.
- * Manter essa conversão isolada é o que permite que toda a regra de isolamento seja testada sem a
- * IDE, e o que limita o estrago quando a API da plataforma muda entre versões.
+ * Único ponto em que um `Project` da plataforma vira o descritor neutro que o núcleo entende.
  */
 @Service(Service.Level.APP)
 class PrumoWorkspaceService {

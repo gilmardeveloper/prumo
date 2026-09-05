@@ -11,10 +11,10 @@ import java.nio.file.Files
 import java.nio.file.Path
 import kotlin.io.path.name
 
-/** Falha esperada ao alcançar um pack ou o conteúdo dele. */
+/** Falha ao alcançar um pack ou o conteúdo dele. */
 class PackAccessException(message: String) : IllegalArgumentException(message)
 
-/** Um trecho de conhecimento que casou com a busca, com o suficiente para a LLM decidir se serve. */
+/** Trecho de conhecimento que casou com a busca. */
 data class KnowledgeMatch(
     val packId: String,
     val itemId: String,
@@ -26,11 +26,10 @@ data class KnowledgeMatch(
 )
 
 /**
- * Persistência dos Prumo Packs, sempre **dentro do diretório do workspace** e nunca dentro do
- * repositório do usuário (P8).
+ * Persistência dos Prumo Packs, sempre dentro do diretório do workspace.
  *
- * O endereçamento é por `workspaceId` + `packId`, como o resto do produto: não existe consulta que,
- * partindo de um workspace, alcance o pack de outro. O isolamento nasce do formato de acesso.
+ * O endereçamento é por `workspaceId` mais `packId`: não existe consulta que, partindo de um
+ * workspace, alcance o pack de outro.
  */
 class PackStore(
     private val storage: LocalStorageProvider,
@@ -62,7 +61,7 @@ class PackStore(
         )
     }
 
-    /** Grava um arquivo de conhecimento dentro do pack. O caminho vem do manifesto, nunca do cliente. */
+    /** Grava um arquivo de conhecimento dentro do pack. O caminho vem do manifesto. */
     fun writeKnowledge(workspaceId: String, packId: String, item: KnowledgeItem, content: String) {
         val file = knowledgeFile(workspaceId, packId, item)
         Files.createDirectories(file.parent)
@@ -92,12 +91,10 @@ class PackStore(
     }
 
     /**
-     * Busca determinística: texto, título e etiquetas.
+     * Busca por texto literal no título, nas etiquetas e no corpo dos itens de conhecimento.
      *
-     * Não há embedding, vector store nem ranqueamento por modelo — a mesma pergunta devolve sempre
-     * o mesmo resultado, e quem interpreta é a LLM. A pontuação é explicável: título vale mais que
-     * etiqueta, que vale mais que corpo, e empate se desfaz por identificador para a ordem não
-     * depender do sistema de arquivos.
+     * A pontuação é fixa — título vale mais que etiqueta, que vale mais que corpo — e o empate se
+     * desfaz por identificador, de modo que a mesma pergunta devolve sempre o mesmo resultado.
      */
     fun searchKnowledge(
         workspaceId: String,
@@ -154,12 +151,7 @@ class PackStore(
         )
     }
 
-    /**
-     * O arquivo de um item, resolvido contra a raiz do pack.
-     *
-     * Passa pelo mesmo validador das leituras de repositório: um manifesto que traga `..` ou um
-     * caminho absoluto não alcança nada fora do próprio pack.
-     */
+    /** O arquivo de um item, resolvido contra a raiz do pack pelo validador de caminho. */
     private fun knowledgeFile(workspaceId: String, packId: String, item: KnowledgeItem): Path =
         PathSecurityValidator.resolve(packRoot(workspaceId, packId), item.file)
 

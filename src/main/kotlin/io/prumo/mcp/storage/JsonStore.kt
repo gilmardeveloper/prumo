@@ -12,8 +12,7 @@ import java.nio.file.StandardCopyOption
  * Persistência em JSON dos documentos do Prumo.
  *
  * A escrita é atômica: o conteúdo vai para um arquivo temporário vizinho e só então substitui o
- * destino. Uma IDE encerrada no meio de uma gravação não pode deixar a configuração de um workspace
- * pela metade.
+ * destino.
  */
 class JsonStore(
     private val json: Json = DEFAULT_JSON,

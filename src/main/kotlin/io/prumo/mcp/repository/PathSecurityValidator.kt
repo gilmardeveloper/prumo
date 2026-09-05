@@ -6,10 +6,7 @@ import java.nio.file.InvalidPathException
 import java.nio.file.LinkOption
 import java.nio.file.Path
 
-/**
- * Motivo pelo qual um caminho foi recusado. A recusa é sempre explícita: um caminho fora da
- * fronteira nunca vira "melhor esforço" nem cai em um diretório vizinho.
- */
+/** Motivo pelo qual um caminho foi recusado. */
 enum class PathRejection {
     ABSOLUTE_PATH,
     PARENT_TRAVERSAL,
@@ -26,12 +23,13 @@ class PathAccessDeniedException(
 )
 
 /**
- * Resolve caminhos relativos contra a raiz de um repositório.
+ * Resolve um caminho relativo contra a raiz de um repositório.
  *
- * Um cliente MCP nunca informa caminho absoluto: informa o identificador do repositório e um
- * caminho relativo, e a resolução acontece aqui. A verificação é feita duas vezes — sobre o caminho
- * normalizado e, quando o alvo existe, sobre o caminho real do sistema de arquivos — porque
- * normalização sozinha não enxerga link simbólico, junction nem ponto de montagem.
+ * Verifica duas vezes: sobre o caminho normalizado e, quando o alvo existe, sobre o caminho real do
+ * sistema de arquivos, já que a normalização sozinha não enxerga link simbólico nem junction.
+ *
+ * Lança [PathAccessDeniedException] para caminho vazio, absoluto, com `..` ou que resolva fora da
+ * raiz.
  */
 object PathSecurityValidator {
 
@@ -39,8 +37,6 @@ object PathSecurityValidator {
         if (relativePath.isBlank()) {
             throw PathAccessDeniedException(PathRejection.EMPTY_PATH, relativePath)
         }
-        // Nome de arquivo com espaco e legitimo; caractere de controle e NUL nao sao, e alguns
-        // sistemas de arquivos os truncam em silencio.
         if (relativePath.any { it.isISOControl() }) {
             throw PathAccessDeniedException(PathRejection.INVALID_SYNTAX, relativePath)
         }
@@ -69,8 +65,10 @@ object PathSecurityValidator {
     }
 
     /**
-     * Confere o caminho já resolvido pelo sistema de arquivos. Só é possível quando o alvo existe;
-     * para criação futura, a checagem recai sobre o diretório-pai mais próximo que exista.
+     * Confere o caminho resolvido pelo sistema de arquivos.
+     *
+     * Quando o alvo ainda não existe, a checagem recai sobre o diretório-pai mais próximo que
+     * exista.
      */
     private fun assertRealPathStaysInside(root: Path, resolved: Path, relativePath: String) {
         val realRoot = try {
@@ -97,10 +95,7 @@ object PathSecurityValidator {
         }
     }
 
-    /**
-     * `Path.isAbsolute` decide segundo o sistema operacional corrente, então um caminho Windows
-     * passaria despercebido em Linux e vice-versa. Um cliente MCP pode rodar em qualquer lugar.
-     */
+    /** Reconhece caminho absoluto de Windows e de Unix, independente do sistema em que roda. */
     private fun looksAbsolute(value: String): Boolean =
         value.startsWith("/") ||
             value.startsWith("\\") ||

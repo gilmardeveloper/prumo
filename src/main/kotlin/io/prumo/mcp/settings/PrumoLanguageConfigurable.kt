@@ -14,9 +14,8 @@ import javax.swing.JComponent
 /**
  * *Settings · Tools · Prumo MCP* — onde o idioma da interface é escolhido.
  *
- * O nome exibido é resolvido em código, e não pelo `<resource-bundle>` do `plugin.xml`: aquele
- * segue o idioma da IDE, e uma entrada de menu numa língua abrindo uma tela em outra é exatamente
- * a tela mista que a preferência existe para evitar.
+ * O nome exibido é resolvido em código, e não pelo `<resource-bundle>` do `plugin.xml`, que segue
+ * sempre o idioma da IDE.
  */
 class PrumoLanguageConfigurable : Configurable {
 
@@ -44,7 +43,6 @@ class PrumoLanguageConfigurable : Configurable {
         try {
             PrumoLanguageSetting.shared.update(selected)
         } catch (cause: IOException) {
-            // Sem isto a IDE mostraria um relatório de erro interno em vez de dizer o que falhou.
             throw ConfigurationException(
                 PrumoBundle.message("settings.language.error.notSaved", cause.message.orEmpty()),
             )

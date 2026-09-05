@@ -7,9 +7,7 @@ import io.prumo.mcp.datasource.domain.DataSourceProfile
 /**
  * Registro do teste de conexão na trilha de auditoria.
  *
- * Guarda **o desfecho e nada mais**: sem host, sem usuário, sem banco, sem mensagem do driver. Quem
- * lê a trilha precisa saber que houve um teste e como ele terminou; reproduzir os dados de conexão
- * transformaria a auditoria em uma segunda cópia daquilo que se pretendia proteger (P5, P7).
+ * Guarda o desfecho e nada mais: sem host, usuário, banco ou mensagem do driver.
  */
 object DataSourceAudit {
 

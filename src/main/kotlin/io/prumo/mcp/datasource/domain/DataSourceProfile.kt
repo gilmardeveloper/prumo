@@ -19,12 +19,8 @@ enum class SslMode {
 /**
  * Um banco que o workspace corrente pode consultar.
  *
- * **Não existe campo de senha aqui, e nunca deve existir.** Este objeto é serializado em disco; o
- * segredo mora apenas no cofre da IDE, endereçado pela chave do workspace mais a do datasource
- * (P5). Um teste falha se aparecer propriedade com cara de segredo.
- *
- * O modo de acesso nasce `READ_ONLY` e é apenas a primeira das camadas de proteção: a barreira real
- * é a credencial de leitura no próprio banco (seção 9 do prompt mestre).
+ * Não tem campo de senha: este objeto é serializado em disco, e o segredo mora no cofre da IDE,
+ * endereçado pela chave do workspace mais a do datasource.
  */
 @Serializable
 data class DataSourceProfile(
@@ -49,10 +45,7 @@ data class DataSourceProfile(
 
     val writable: Boolean get() = accessMode == AccessMode.READ_WRITE
 
-    /**
-     * URL de conexão sem usuário e sem senha: as credenciais viajam em `Properties`, nunca na URL.
-     * URL com segredo acaba em log, em mensagem de exceção e em captura de tela.
-     */
+    /** URL de conexão sem usuário e sem senha: as credenciais viajam em `Properties`. */
     fun jdbcUrl(): String = "jdbc:postgresql://$host:$port/$database"
 
     companion object {

@@ -13,14 +13,11 @@ private const val BUNDLE = "messages.PrumoBundle"
  * Todo texto que um humano lê na interface do Prumo.
  *
  * O inglês é a base (`PrumoBundle.properties`) e o português vem ao lado
- * (`PrumoBundle_pt_BR.properties`). Por padrão quem escolhe é a IDE: o `DynamicBundle` segue o
- * idioma configurado em *Appearance & Behavior · System Settings · Language & Region*, e sem
- * tradução disponível cai no inglês. Quem preferir divergir da IDE ajusta a preferência do Prumo,
- * e então o locale passa a ser resolvido aqui, explicitamente.
+ * (`PrumoBundle_pt_BR.properties`). Por padrão o idioma é o da IDE; havendo preferência do Prumo,
+ * o locale é resolvido aqui.
  *
- * **A superfície MCP não passa por aqui.** Nome de tool, descrição e erro devolvido ao cliente são
- * contrato lido por uma IA: se mudassem com o idioma da máquina, a mesma tool responderia diferente
- * em cada lugar. Um teste falha se alguma classe de `toolsets/` referenciar este bundle.
+ * A superfície MCP não passa por aqui: nome de tool, descrição e erro devolvido ao cliente ficam
+ * sempre em inglês.
  */
 object PrumoBundle : DynamicBundle(PrumoBundle::class.java, BUNDLE) {
 
@@ -33,10 +30,8 @@ object PrumoBundle : DynamicBundle(PrumoBundle::class.java, BUNDLE) {
     /**
      * Carrega o bundle de um idioma específico, ignorando o idioma da IDE.
      *
-     * Não passa pela plataforma de propósito: `getResourceBundleLocalized` faria exatamente isto,
-     * mas é `@ApiStatus.Internal` e reprova na verificação do plugin, e a sobrecarga pública de
-     * `getResourceBundle` resolve pelo idioma da IDE, não pelo locale pedido. O `ResourceBundle` do
-     * JDK basta porque as traduções são arquivos que o próprio Prumo embarca.
+     * Usa o `ResourceBundle` do JDK: as sobrecargas da plataforma ou são API interna ou resolvem pelo
+     * idioma da IDE em vez do locale pedido.
      */
     internal fun localized(locale: Locale): ResourceBundle =
         ResourceBundle.getBundle(BUNDLE, locale, PrumoBundle::class.java.classLoader, EXPLICIT_LOCALE)

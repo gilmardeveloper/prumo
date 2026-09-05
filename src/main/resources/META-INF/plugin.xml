@@ -1,7 +1,7 @@
 <idea-plugin>
     <id>io.prumo.mcp</id>
     <name>Prumo MCP</name>
-    <vendor email="gilmarsilva.developer@gmail.com" url="https://github.com/gilmarsilva">Gilmar Silva</vendor>
+    <vendor email="gilmarsilva.developer@gmail.com" url="https://github.com/gilmardeveloper">Gilmar Silva</vendor>
 
     <description><![CDATA[
         <p><b>Prumo MCP</b> turns your IDE into a standardized, isolated and auditable context source

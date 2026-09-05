@@ -30,13 +30,7 @@ import java.nio.file.Path
 import javax.swing.DefaultListModel
 import javax.swing.JComponent
 
-/**
- * Edição completa de um workspace: identidade, repositórios vinculados, documentação e políticas.
- *
- * É um formulário com seções, e não um assistente de vários passos, porque o desenvolvedor volta
- * aqui com frequência para ajustar um vínculo — e reabrir seis telas para trocar um `accessMode`
- * seria hostil. A ordem das seções segue a ordem em que as decisões acontecem.
- */
+/** Edição completa de um workspace: identidade, repositórios vinculados, documentação e políticas. */
 class WorkspaceEditorDialog(
     private val project: Project,
     private val original: Workspace,
@@ -176,10 +170,7 @@ class WorkspaceEditorDialog(
         datasources.set(index, dialog.toProfile())
     }
 
-    /**
-     * Remover o perfil apaga também a senha: deixar a credencial órfã no cofre seria guardar um
-     * segredo que ninguém mais sabe explicar.
-     */
+    /** Remove o perfil e a senha correspondente no cofre. */
     private fun removeDatasource(index: Int) {
         val profile = datasources.get(index)
         credentials.remove(io.prumo.mcp.credential.CredentialKey(original.id, profile.id), profile.user)
@@ -215,8 +206,6 @@ class WorkspaceEditorDialog(
     private fun removeRepository(index: Int) {
         val binding = repositories.get(index)
         if (binding.id == primaryRepositoryId) {
-            // O repositório do projeto aberto é o que amarra o workspace ao que está na tela;
-            // removê-lo deixaria a configuração sem âncora.
             return
         }
         repositories.remove(index)

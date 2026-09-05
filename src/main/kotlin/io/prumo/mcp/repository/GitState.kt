@@ -12,8 +12,7 @@ enum class GitChangeKind {
 /**
  * Uma mudança, sempre por caminho relativo à raiz do repositório.
  *
- * Os códigos de índice e de árvore de trabalho são preservados como o Git os reporta: reduzi-los a
- * um rótulo só perderia informação que o cliente pode precisar.
+ * Os códigos de índice e de árvore de trabalho são preservados como o Git os reporta.
  */
 data class GitChange(
     val path: String,
@@ -44,12 +43,7 @@ data class GitFileDelta(
     val binary: Boolean,
 )
 
-/**
- * Leitura do estado do Git a partir da saída dos comandos de porcelana estável.
- *
- * A análise é separada da execução porque é onde mora o risco de interpretar errado o estado do
- * repositório — e, separada, ela é verificável linha a linha sem Git instalado e sem IDE.
- */
+/** Interpreta a saída dos comandos de porcelana estável do Git. */
 object GitStateParser {
 
     private const val UNCHANGED = "."

@@ -24,12 +24,7 @@ enum class Capability {
     PROCESS_EXECUTE,
 }
 
-/**
- * Políticas de um workspace.
- *
- * Todas negam por padrão. Ligar qualquer uma é decisão consciente do usuário, registrada na
- * configuração do workspace.
- */
+/** Políticas de um workspace. Todas negam por padrão. */
 @Serializable
 data class WorkspacePolicies(
     val referenceWrite: Boolean = false,
@@ -68,10 +63,7 @@ class PolicyViolationException(val decision: PolicyDecision.Denied) : SecurityEx
 /**
  * Ponto único de decisão sobre o que é permitido.
  *
- * Nenhuma ferramenta decide permissão por conta própria, e nenhuma instrução textual dada à LLM
- * substitui esta avaliação: o limite é imposto pelo plugin, não pedido ao cliente.
- *
- * A resposta padrão é a negação. Ausência de regra que autorize é negação, não brecha.
+ * A resposta padrão é a negação: ausência de regra que autorize equivale a negar.
  */
 object PolicyEngine {
 

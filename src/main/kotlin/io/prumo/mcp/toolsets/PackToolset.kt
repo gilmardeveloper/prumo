@@ -24,7 +24,7 @@ data class PackResponse(
     val author: String? = null,
     val capabilities: List<String>,
     val knowledgeCount: Int,
-    /** Sempre verdadeiro: um pack é recurso do usuário, não do produto (seção 8.3). */
+    /** Sempre verdadeiro: um pack é recurso do usuário, não do produto. */
     val thirdParty: Boolean = true,
 )
 
@@ -82,8 +82,8 @@ data class KnowledgeContentResponse(
 /**
  * Respostas das tools de pack.
  *
- * O texto localizado é resolvido aqui, para o idioma que o cliente pediu, com queda para o inglês.
- * Nada de caminho de arquivo: o cliente endereça conhecimento por `packId` + `itemId`.
+ * O texto localizado é resolvido para o idioma que o cliente pediu, com queda para o inglês. O
+ * cliente endereça conhecimento por `packId` e `itemId`, nunca por caminho de arquivo.
  */
 object PackReports {
 
@@ -129,11 +129,8 @@ object PackReports {
 /**
  * Superfície MCP dos Prumo Packs instalados no workspace corrente.
  *
- * Pack é recurso do usuário: as respostas dizem isso explicitamente (`thirdParty`), porque a LLM e o
- * desenvolvedor precisam saber que aquele conteúdo não tem garantia do produto (seção 8.3).
- *
- * A busca é determinística — texto, título e etiquetas. Não há embedding nem ranqueamento por
- * modelo: a mesma pergunta devolve sempre o mesmo resultado, e quem interpreta é a LLM.
+ * As respostas marcam `thirdParty`. A busca é literal — texto, título e etiquetas — sem embedding
+ * nem ranqueamento por modelo.
  */
 class PackToolset : McpToolset {
 

@@ -12,13 +12,8 @@ class GitReadException(message: String) : IllegalStateException(message)
 /**
  * Leitura do estado do Git pelo plugin Git da IDE.
  *
- * Usar o Git da própria IDE evita duas coisas ruins: supor que `git` esteja no PATH do processo e
- * empacotar uma segunda implementação de Git dentro do plugin. O executável é o que o usuário já
- * configurou, em Windows e em Linux.
- *
- * A classe só sabe **ler**. Não existe aqui método que faça `pull`, `checkout`, `reset` ou commit —
- * a ausência é a garantia: uma onda futura teria de acrescentar o método para poder escrever, e
- * isso aparece em revisão.
+ * Usa o executável que o usuário já configurou. Só lê: não existe aqui método que faça `pull`,
+ * `checkout`, `reset` ou commit.
  */
 class GitCommandExecutor(private val project: Project) {
 
@@ -62,7 +57,7 @@ class GitCommandExecutor(private val project: Project) {
         return result.output
     }
 
-    /** A saída de erro do Git cita o diretório do repositório; o cliente recebe o papel, não o caminho. */
+    /** A saída de erro do Git cita o diretório; o cliente recebe o papel do repositório. */
     private fun sanitize(message: String, root: Path): String {
         val normalized = message.ifBlank { "the command finished with an error." }
         return listOf(root.toString(), root.toString().replace('\\', '/'))

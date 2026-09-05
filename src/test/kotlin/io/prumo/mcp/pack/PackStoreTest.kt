@@ -102,7 +102,7 @@ class PackStoreTest {
         assertEquals(1, porCorpo.size)
         assertEquals(2, porCorpo.single().line)
         assertTrue(porCorpo.single().excerpt.contains("vencimento base"))
-        // Titulo (3) + etiqueta (2) + corpo (1): a pontuacao e explicavel, nao um numero opaco.
+        // Titulo (3) + etiqueta (2) + corpo (1).
         assertEquals(6, porEtiqueta.single().score)
         assertEquals(porEtiqueta, store.searchKnowledge("folha-2026", "rubrica"), "busca determinística")
     }

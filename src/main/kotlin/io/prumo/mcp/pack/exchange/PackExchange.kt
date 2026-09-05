@@ -15,10 +15,9 @@ import java.util.Locale
 class PackExchangeException(message: String) : IllegalArgumentException(message)
 
 /**
- * Formato de troca: arquivo único, legível e versionado por schema (seção 8.6).
+ * Formato de troca: arquivo único, legível e versionado por schema.
  *
- * O conteúdo de conhecimento viaja junto, em texto: quem recebe consegue ler o pack inteiro em um
- * editor antes de instalar, que é a condição para o consentimento ser informado.
+ * O conteúdo de conhecimento viaja junto, em texto.
  */
 @Serializable
 data class PackEnvelope(
@@ -33,10 +32,9 @@ data class PackEnvelope(
 }
 
 /**
- * O que o usuário vê antes de decidir.
+ * O que o usuário vê antes de decidir: a leitura do arquivo mais a análise de risco.
  *
- * Não instala nada: é a leitura do arquivo mais a análise de risco. A instalação é um segundo ato,
- * e só acontece com aceite explícito.
+ * Não instala nada.
  */
 data class PackImportPreview(
     val envelope: PackEnvelope,
@@ -71,8 +69,7 @@ private val JSON = Json {
 /**
  * Escreve o pack em um arquivo de troca.
  *
- * Recusa exportar o que não pode viajar: segredo dentro do manifesto e caminho de máquina em
- * comando. Export com segredo dentro é defeito de segurança, não inconveniência (regra 4).
+ * Recusa exportar manifesto que carregue campo com nome de segredo.
  */
 object PackExporter {
 
@@ -107,8 +104,7 @@ object PackExporter {
 /**
  * Lê um arquivo de troca e prepara a decisão do usuário.
  *
- * A leitura nunca instala. `BLOCKED` não tem caminho de aceitação — não existe parâmetro, opção ou
- * confirmação que faça [PackImporter.install] aceitar um pack bloqueado (P9).
+ * A leitura nunca instala, e `BLOCKED` não tem caminho de aceitação.
  */
 object PackImporter {
 
@@ -142,8 +138,7 @@ object PackImporter {
     /**
      * Instala o pack revisado.
      *
-     * Exige o aceite; recusa `BLOCKED` sempre; e recusa quando o checksum não confere, porque um
-     * arquivo alterado depois de assinado não é o que o usuário revisou.
+     * Exige o aceite, recusa `BLOCKED` e recusa quando o checksum não confere.
      */
     fun install(
         store: PackStore,

@@ -156,7 +156,7 @@ private data class DocumentationList(
     val documentation: List<DocumentationSource> = emptyList(),
 )
 
-/** Sem senha: o arquivo guarda como chegar ao banco, nunca o segredo para entrar nele (P5). */
+/** Sem senha: o arquivo guarda como chegar ao banco, não o segredo para entrar nele. */
 @Serializable
 private data class DataSourceList(
     val datasources: List<DataSourceProfile> = emptyList(),

@@ -121,9 +121,8 @@ data class TableDetailResponse(
 /**
  * Respostas das tools de banco.
  *
- * O cliente endereça o banco por identificador e nunca recebe host, porta, usuário ou nome do
- * banco: com o identificador ele consegue tudo o que precisa, e o que sobraria seria material para
- * tentar a conexão por fora do Prumo.
+ * O cliente endereça o banco por identificador e não recebe host, porta, usuário nem o nome do
+ * banco.
  */
 object DatabaseReports {
 
@@ -183,11 +182,7 @@ object DatabaseReports {
 /**
  * Superfície MCP dos bancos vinculados ao workspace corrente.
  *
- * Estrutura, não conteúdo: estas tools descrevem o banco. Consultar dados é `execute_readonly`, que
- * chega em W14 com as camadas de proteção da seção 9.
- *
- * O MCP nativo tem tools de banco no Ultimate, pelo Database Tools, mas elas não conhecem workspace
- * e não existem no Community (F-007) — é o vão que estas ocupam.
+ * Estrutura, não conteúdo: estas tools descrevem o banco. Consultar dados é `execute_readonly`.
  */
 class DatabaseToolset : McpToolset {
 
@@ -281,8 +276,6 @@ class DatabaseToolset : McpToolset {
                     profile = call.requiredDatasource,
                     sql = sql,
                     maxRows = maxRows,
-                    // Regras por coluna chegam com a configuração de masking; o padrão já mascara
-                    // toda coluna cujo nome anuncia segredo.
                     masking = DataMaskingPolicy.NONE,
                 )
             }
@@ -330,8 +323,7 @@ class DatabaseToolset : McpToolset {
 /**
  * Datasource do workspace corrente, ou recusa explícita.
  *
- * Mesma regra dos repositórios: um identificador que não pertence a este workspace não é procurado
- * em outro lugar — a fronteira responde que ele não existe aqui (P3, P9).
+ * Um identificador que não pertence a este workspace não é procurado em outro lugar.
  */
 internal fun WorkspaceContext.datasource(datasourceId: String): DataSourceProfile =
     workspace.datasource(datasourceId)

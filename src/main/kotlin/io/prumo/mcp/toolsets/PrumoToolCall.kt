@@ -20,20 +20,20 @@ import io.prumo.mcp.workspace.application.WorkspaceResolutionException
 import io.prumo.mcp.workspace.domain.RepositoryBinding
 import kotlin.coroutines.coroutineContext
 
-/** Tudo o que uma tool do Prumo recebe depois que a fronteira já foi resolvida e autorizada. */
+/** O que uma tool do Prumo recebe depois que a fronteira foi resolvida e autorizada. */
 internal data class PrumoCall(
     val project: Project,
     val context: WorkspaceContext,
     val repository: RepositoryBinding,
     val datasource: DataSourceProfile? = null,
 ) {
-    /** O datasource já resolvido dentro da fronteira; ausente é erro de programação, não do cliente. */
+    /** O datasource resolvido dentro da fronteira. Ausente significa erro de programação. */
     val requiredDatasource: DataSourceProfile
         get() = requireNotNull(datasource) { "This tool must resolve a data source before running." }
 
     /**
-     * O que a tool quer que fique na trilha de auditoria além do desfecho — tipo de statement,
-     * contagem de linhas, e nada que reproduza conteúdo. Passa pelo saneador antes de ser gravado.
+     * Dados adicionais para a trilha de auditoria, como tipo de statement e contagem de linhas.
+     * Passam pelo saneador antes de serem gravados.
      */
     val auditDetails: MutableMap<String, String> = mutableMapOf()
 }
@@ -41,10 +41,9 @@ internal data class PrumoCall(
 /**
  * Contrato único de execução de toda tool do Prumo.
  *
- * Existe para que o contrato não seja repetido — e, portanto, não seja esquecido pela metade em
- * uma tool futura: contexto resolvido em um só lugar, repositório resolvido dentro da fronteira do
- * workspace, política consultada antes de agir, auditoria com o desfecho real e erro explícito no
- * lugar de resultado silencioso.
+ * Resolve o contexto do workspace, resolve o repositório e o datasource dentro da fronteira,
+ * consulta a política antes de agir, executa o bloco e registra o desfecho na auditoria. Falha
+ * sempre com erro explícito.
  */
 internal suspend fun <T> prumoToolCall(
     tool: String,
@@ -59,8 +58,6 @@ internal suspend fun <T> prumoToolCall(
     val context = try {
         service.require(project)
     } catch (failure: WorkspaceResolutionException) {
-        // Sem workspace resolvido não há trilha a que atribuir o evento: registrar em outro lugar
-        // significaria inventar um dono para a chamada.
         LOG.info("Prumo MCP tool '$tool' was called from a project without a resolved workspace.")
         throw McpExpectedError(failure.message ?: UNRESOLVED_WORKSPACE)
     }
@@ -89,25 +86,19 @@ internal suspend fun <T> prumoToolCall(
         service.record(context, call, tool, operation, AuditResult.DENIED, startedAt)
         throw McpExpectedError(failure.message ?: PATH_REFUSED)
     } catch (failure: WorkspaceResolutionException) {
-        // Repositório pedido pelo cliente que não pertence a este workspace: a fronteira recusa,
-        // e o cliente precisa saber que recusou.
         service.record(context, call, tool, operation, AuditResult.DENIED, startedAt)
         throw McpExpectedError(failure.message ?: UNRESOLVED_WORKSPACE)
     } catch (failure: RepositoryReadException) {
-        // Arquivo ausente, binário ou grande demais: o cliente corrige o pedido, não é falha do plugin.
         service.record(context, call, tool, operation, AuditResult.ERROR, startedAt)
         throw McpExpectedError(failure.message ?: READ_REFUSED)
     } catch (failure: GitReadException) {
         service.record(context, call, tool, operation, AuditResult.ERROR, startedAt)
         throw McpExpectedError(failure.message ?: READ_REFUSED)
     } catch (failure: QueryRefusedException) {
-        // Escrita ou statement irreconhecível barrado antes de chegar ao banco: é recusa, e a
-        // trilha precisa dizer de que tipo era o statement — sem guardar o SQL.
         call?.auditDetails?.put("statementType", failure.statementType.name)
         service.record(context, call, tool, operation, AuditResult.DENIED, startedAt)
         throw McpExpectedError(failure.message ?: QUERY_REFUSED)
     } catch (failure: DataSourceAccessException) {
-        // Credencial ausente ou banco que recusou a conexão: o cliente precisa saber qual dos dois.
         service.record(context, call, tool, operation, AuditResult.ERROR, startedAt)
         throw McpExpectedError(failure.message ?: READ_REFUSED)
     } catch (failure: Exception) {

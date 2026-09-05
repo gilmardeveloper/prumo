@@ -129,8 +129,6 @@ class PrumoWorkspacePanel(private val project: Project) {
             }
         }
 
-        // A fila de aprovacao so aparece quando ha algo esperando decisao: painel que mostra area
-        // vazia todo dia ensina o usuario a ignorar a area.
         if (model.pendingPacks > 0) {
             group(PrumoBundle.message("toolwindow.packs.waiting", model.pendingPacks)) {
                 row {
