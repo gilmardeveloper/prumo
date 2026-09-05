@@ -6,11 +6,42 @@ build/
 # IntelliJ
 .intellijPlatform/
 .idea/
+.kotlin/
 *.iml
 *.ipr
 *.iws
 out/
 
+# Contexto de IA — planejamento, investigação e instruções de assistente.
+# Nada disso é o produto: fica na máquina de quem desenvolve.
+.claude/
+.cursor/
+.aider*
+CLAUDE.md
+AGENTS.md
+GEMINI.md
+.github/copilot-instructions.md
+
+# Segredos e configuração local. Versione apenas o modelo .example.
+.env
+.env.*
+!.env.example
+*.local.properties
+local.properties
+secrets.json
+*secret*.json
+*credentials*.json
+*.pem
+*.key
+*.p12
+*.jks
+*.keystore
+!*.example
+!*.example.*
+
 # Sistema operacional
 .DS_Store
 Thumbs.db
+
+# Registros
+*.log
