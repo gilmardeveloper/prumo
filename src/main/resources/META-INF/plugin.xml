@@ -1,0 +1,24 @@
+<idea-plugin>
+    <id>io.prumo.mcp</id>
+    <name>Prumo MCP</name>
+    <vendor email="gilmarsilva.developer@gmail.com" url="https://github.com/gilmarsilva">Gilmar Silva</vendor>
+
+    <description><![CDATA[
+        <p><b>Prumo MCP</b> turns your IDE into a standardized, isolated and auditable context source
+        for MCP-capable AI clients such as Claude, Codex and Gemini.</p>
+        <p>Prumo is not an AI. It is a deterministic layer between the IDE, your code, Git,
+        documentation, databases, policies and the external AI client. It defines the boundary the
+        assistant may work within &mdash; and enforces it.</p>
+        <ul>
+            <li>Workspaces that isolate repositories, documentation and databases from one another</li>
+            <li>Read-only PostgreSQL access with layered protection</li>
+            <li>Credentials kept in the IDE password safe, never in files or logs</li>
+            <li>Nothing is ever written inside your project repositories</li>
+        </ul>
+    ]]></description>
+
+    <depends>com.intellij.modules.platform</depends>
+
+    <extensions defaultExtensionNs="com.intellij">
+    </extensions>
+</idea-plugin>
