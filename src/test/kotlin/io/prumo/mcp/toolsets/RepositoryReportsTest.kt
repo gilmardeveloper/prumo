@@ -157,6 +157,19 @@ class RepositoryReportsTest {
     }
 
     @Test
+    fun `a cadeia de simbolos nao repete o nome da classe`() {
+        val response = RepositoryReports.ideContext(
+            context,
+            snapshot("C:/repos/consumidor/src/Politicas.kt").copy(
+                // O construtor primario do Kotlin responde pelo nome da propria classe.
+                symbolPath = listOf("WorkspacePolicies", "WorkspacePolicies", "databaseWrite"),
+            ),
+        )
+
+        assertEquals(listOf("WorkspacePolicies", "databaseWrite"), response.symbolPath)
+    }
+
+    @Test
     fun `sem editor aberto a resposta e ausencia, nao invencao`() {
         val response = RepositoryReports.ideContext(context, null)
 

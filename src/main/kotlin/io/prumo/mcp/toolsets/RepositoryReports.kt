@@ -236,7 +236,7 @@ object RepositoryReports {
             selectionStartLine = snapshot.selectionStartLine,
             selectionEndLine = snapshot.selectionEndLine,
             selectionLength = snapshot.selectionLength,
-            symbolPath = snapshot.symbolPath,
+            symbolPath = snapshot.symbolPath.withoutRepeatedNames(),
             language = snapshot.language,
             moduleName = snapshot.moduleName,
         )
@@ -264,6 +264,16 @@ object RepositoryReports {
             // monorepo com submódulo, e a raiz mais profunda produz o caminho relativo mais curto.
             .minByOrNull { (_, relative) -> relative.count { it == '/' } }
     }
+
+    /**
+     * Colapsa nomes repetidos em sequência na cadeia de símbolos.
+     *
+     * Em Kotlin o construtor primário responde pelo nome da própria classe, então um atributo
+     * declarado no construtor produziria `Classe > Classe > atributo`. A repetição é ruído do PSI,
+     * não estrutura do código.
+     */
+    private fun List<String>.withoutRepeatedNames(): List<String> =
+        filterIndexed { index, name -> index == 0 || name != this[index - 1] }
 
     private fun GitBranchState.toResponse() = BranchResponse(
         branch = branch,
