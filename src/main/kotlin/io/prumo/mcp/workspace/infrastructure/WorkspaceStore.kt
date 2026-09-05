@@ -1,5 +1,6 @@
 package io.prumo.mcp.workspace.infrastructure
 
+import io.prumo.mcp.datasource.domain.DataSourceProfile
 import io.prumo.mcp.documentation.DocumentationSource
 import io.prumo.mcp.policy.WorkspacePolicies
 import io.prumo.mcp.storage.JsonStore
@@ -35,6 +36,9 @@ class WorkspaceStore(
         val documentation = json.read(root.resolve(DOCUMENTATION_FILE), serializer<DocumentationList>())
             ?.documentation
             .orEmpty()
+        val datasources = json.read(root.resolve(DATASOURCES_FILE), serializer<DataSourceList>())
+            ?.datasources
+            .orEmpty()
         val policies = json.read(root.resolve(POLICIES_FILE), serializer<WorkspacePolicies>())
             ?: WorkspacePolicies.DENY_ALL
 
@@ -44,6 +48,7 @@ class WorkspaceStore(
             type = descriptor.type,
             repositories = repositories,
             documentation = documentation,
+            datasources = datasources,
             policies = policies,
             createdAt = descriptor.createdAt,
             updatedAt = descriptor.updatedAt,
@@ -72,6 +77,11 @@ class WorkspaceStore(
             root.resolve(DOCUMENTATION_FILE),
             serializer<DocumentationList>(),
             DocumentationList(workspace.documentation),
+        )
+        json.write(
+            root.resolve(DATASOURCES_FILE),
+            serializer<DataSourceList>(),
+            DataSourceList(workspace.datasources),
         )
         json.write(root.resolve(POLICIES_FILE), serializer<WorkspacePolicies>(), workspace.policies)
     }
@@ -117,6 +127,7 @@ class WorkspaceStore(
         const val REPOSITORIES_FILE = "repositories.json"
         const val POLICIES_FILE = "policies.json"
         const val DOCUMENTATION_FILE = "documentation.json"
+        const val DATASOURCES_FILE = "datasources.json"
     }
 }
 
@@ -143,4 +154,10 @@ private data class RepositoryList(
 @Serializable
 private data class DocumentationList(
     val documentation: List<DocumentationSource> = emptyList(),
+)
+
+/** Sem senha: o arquivo guarda como chegar ao banco, nunca o segredo para entrar nele (P5). */
+@Serializable
+private data class DataSourceList(
+    val datasources: List<DataSourceProfile> = emptyList(),
 )

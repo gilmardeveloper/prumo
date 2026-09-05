@@ -12,11 +12,14 @@ import com.intellij.ui.dsl.builder.bindText
 import com.intellij.ui.dsl.builder.columns
 import com.intellij.ui.dsl.builder.panel
 import com.intellij.util.ui.JBUI
+import io.prumo.mcp.credential.PasswordSafeCredentialProvider
+import io.prumo.mcp.datasource.domain.DataSourceProfile
 import io.prumo.mcp.documentation.DocumentAuthority
 import io.prumo.mcp.documentation.DocumentationKind
 import io.prumo.mcp.documentation.DocumentationSource
 import io.prumo.mcp.policy.WorkspacePolicies
 import io.prumo.mcp.repository.RepositoryFingerprint
+import io.prumo.mcp.ui.datasource.DataSourceDialog
 import io.prumo.mcp.workspace.domain.AccessMode
 import io.prumo.mcp.workspace.domain.RepositoryBinding
 import io.prumo.mcp.workspace.domain.RepositoryRole
@@ -48,6 +51,10 @@ class WorkspaceEditorDialog(
     private val documentation = DefaultListModel<DocumentationSource>().apply {
         original.documentation.forEach(::addElement)
     }
+    private val datasources = DefaultListModel<DataSourceProfile>().apply {
+        original.datasources.forEach(::addElement)
+    }
+    private val credentials = PasswordSafeCredentialProvider()
 
     private var referenceWrite = original.policies.referenceWrite
     private var databaseWrite = original.policies.databaseWrite
@@ -93,6 +100,18 @@ class WorkspaceEditorDialog(
             }
         }
 
+        group("Data sources") {
+            row {
+                cell(datasourceList()).align(com.intellij.ui.dsl.builder.AlignX.FILL)
+            }
+            row {
+                comment(
+                    "PostgreSQL in this version. The password goes to the IDE password safe; the " +
+                        "workspace file keeps only how to reach the database.",
+                )
+            }
+        }
+
         group("Policies") {
             row { checkBox("Allow writes to reference repositories").bindSelected(::referenceWrite) }
             row { checkBox("Allow database writes").bindSelected(::databaseWrite) }
@@ -128,6 +147,48 @@ class WorkspaceEditorDialog(
                 list.selectedIndex.takeIf { it >= 0 }?.let(documentation::remove)
             }
             .createPanel()
+    }
+
+    private fun datasourceList(): JComponent {
+        val list = JBList(datasources).apply {
+            cellRenderer = datasourceRenderer()
+            visibleRowCount = 4
+        }
+        return ToolbarDecorator.createDecorator(list)
+            .setAddAction { addDatasource() }
+            .setEditAction { list.selectedIndex.takeIf { it >= 0 }?.let(::editDatasource) }
+            .setRemoveAction { list.selectedIndex.takeIf { it >= 0 }?.let(::removeDatasource) }
+            .createPanel()
+    }
+
+    private fun addDatasource() {
+        val dialog = DataSourceDialog(project, original.id, credentials = credentials)
+        if (!dialog.showAndGet()) {
+            return
+        }
+        val profile = dialog.toProfile()
+        if (datasources.elements().toList().any { it.id == profile.id }) {
+            return
+        }
+        datasources.addElement(profile)
+    }
+
+    private fun editDatasource(index: Int) {
+        val dialog = DataSourceDialog(project, original.id, datasources.get(index), credentials)
+        if (!dialog.showAndGet()) {
+            return
+        }
+        datasources.set(index, dialog.toProfile())
+    }
+
+    /**
+     * Remover o perfil apaga também a senha: deixar a credencial órfã no cofre seria guardar um
+     * segredo que ninguém mais sabe explicar.
+     */
+    private fun removeDatasource(index: Int) {
+        val profile = datasources.get(index)
+        credentials.remove(io.prumo.mcp.credential.CredentialKey(original.id, profile.id), profile.user)
+        datasources.remove(index)
     }
 
     private fun addRepository() {
@@ -191,6 +252,7 @@ class WorkspaceEditorDialog(
         type = workspaceType,
         repositories = repositories.elements().toList(),
         documentation = documentation.elements().toList(),
+        datasources = datasources.elements().toList(),
         policies = WorkspacePolicies(
             referenceWrite = referenceWrite,
             databaseWrite = databaseWrite,
@@ -207,6 +269,10 @@ class WorkspaceEditorDialog(
 
     private fun documentationRenderer() = javax.swing.ListCellRenderer<DocumentationSource> { _, value, _, _, _ ->
         com.intellij.ui.components.JBLabel("${value.name}  —  ${value.kind} · ${value.authority}")
+    }
+
+    private fun datasourceRenderer() = javax.swing.ListCellRenderer<DataSourceProfile> { _, value, _, _, _ ->
+        com.intellij.ui.components.JBLabel("${value.name}  —  PostgreSQL · ${value.accessMode}")
     }
 }
 

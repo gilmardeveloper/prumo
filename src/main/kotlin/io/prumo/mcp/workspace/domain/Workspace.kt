@@ -1,5 +1,6 @@
 package io.prumo.mcp.workspace.domain
 
+import io.prumo.mcp.datasource.domain.DataSourceProfile
 import io.prumo.mcp.documentation.DocumentationSource
 import io.prumo.mcp.policy.WorkspacePolicies
 import kotlinx.serialization.Serializable
@@ -74,6 +75,7 @@ data class Workspace(
     val type: WorkspaceType,
     val repositories: List<RepositoryBinding> = emptyList(),
     val documentation: List<DocumentationSource> = emptyList(),
+    val datasources: List<DataSourceProfile> = emptyList(),
     val policies: WorkspacePolicies = WorkspacePolicies.DENY_ALL,
     val createdAt: String,
     val updatedAt: String,
@@ -85,6 +87,8 @@ data class Workspace(
         require(duplicated.isEmpty()) { "Duplicated repository ids in workspace '$id': $duplicated." }
         val duplicatedDocs = documentation.groupBy { it.id }.filterValues { it.size > 1 }.keys
         require(duplicatedDocs.isEmpty()) { "Duplicated documentation ids in workspace '$id': $duplicatedDocs." }
+        val duplicatedSources = datasources.groupBy { it.id }.filterValues { it.size > 1 }.keys
+        require(duplicatedSources.isEmpty()) { "Duplicated datasource ids in workspace '$id': $duplicatedSources." }
     }
 
     fun repository(repositoryId: String): RepositoryBinding? =
@@ -92,6 +96,9 @@ data class Workspace(
 
     fun repositoriesWith(role: RepositoryRole): List<RepositoryBinding> =
         repositories.filter { it.role == role }
+
+    fun datasource(datasourceId: String): DataSourceProfile? =
+        datasources.firstOrNull { it.id == datasourceId }
 }
 
 /** Identificadores viram nome de diretório e chave de resolução; travessia de caminho é barrada aqui. */

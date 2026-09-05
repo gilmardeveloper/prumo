@@ -41,11 +41,25 @@ dependencies {
     // copia geraria classes duplicadas no classloader do plugin.
     compileOnly("org.jetbrains.kotlinx:kotlinx-serialization-json:1.9.0")
 
+    // Driver PostgreSQL empacotado com o plugin: o Prumo nao depende do Database Tools, que so
+    // existe no Ultimate (F-007). Vai como implementation para ser carregado pelo classloader do
+    // plugin em Community e Ultimate.
+    implementation("org.postgresql:postgresql:42.7.13") {
+        // Anotacoes de analise estatica do Checker Framework: existem so em tempo de compilacao e
+        // acrescentariam 240 KB ao plugin sem serem carregadas em runtime.
+        exclude(group = "org.checkerframework", module = "checker-qual")
+    }
+
     // compileOnly na producao (a plataforma fornece), mas os testes rodam fora da IDE.
     testImplementation("org.jetbrains.kotlinx:kotlinx-serialization-json:1.9.0")
     testImplementation(kotlin("test"))
     testImplementation("org.junit.jupiter:junit-jupiter:5.13.4")
     testRuntimeOnly("org.junit.platform:junit-platform-launcher")
+
+    // PostgreSQL de verdade para os testes de banco. Sem Docker na maquina, esses testes se
+    // declaram pulados em vez de falharem: o resto da suite continua valendo.
+    testImplementation("org.testcontainers:postgresql:1.21.4")
+    testImplementation("org.testcontainers:junit-jupiter:1.21.4")
 }
 
 // O JDK que compila (toolchain) e o bytecode gerado sao deliberadamente diferentes: a plataforma
