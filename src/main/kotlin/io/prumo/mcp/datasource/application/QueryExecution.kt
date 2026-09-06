@@ -29,6 +29,8 @@ data class QueryColumn(
     val masked: Boolean,
     /** Rótulo e coluna de origem: os dois nomes por que esta coluna pode ser reconhecida. */
     val identifiers: List<String> = listOf(name),
+    /** Verdadeiro quando o valor vem de uma expressão, e não diretamente de uma coluna do banco. */
+    val derived: Boolean = false,
     /**
      * Categoria de dado pessoal reconhecida na coluna. `NONE` quando o valor sai como veio do banco.
      *
@@ -155,6 +157,7 @@ class ReadOnlyQueryExecutor(
                 type = metadata.getColumnTypeName(index) ?: "unknown",
                 masked = masked,
                 identifiers = identifiers,
+                derived = computed,
                 obfuscatedAs = if (masked || !obfuscate) {
                     PersonalDataKind.NONE
                 } else {
@@ -179,6 +182,7 @@ class ReadOnlyQueryExecutor(
                         else -> PersonalDataObfuscator.obfuscate(
                             PersonalDataObfuscator.classify(column.identifiers, value),
                             value,
+                            derived = column.derived,
                         )
                     }
                 },

@@ -6,6 +6,25 @@ All notable changes to this project are documented here. The format follows
 
 ## [Unreleased]
 
+## [0.1.0-rc.15] - 2026-09-06
+
+### Fixed
+
+- **Obfuscation failed open where the value did not match the category.** The window is positional
+  over digits, so a value without the expected shape passed through untouched: `substr(email, 5, 6)`
+  returned `elle.l` — real characters the full-value mask hides — and an e-mail misclassified as CPF
+  under `string_agg` came back complete, while `obfuscatedAs` claimed `CPF`. The field meant to say
+  what was hidden was announcing a protection that had not happened. Every window now falls back to
+  hiding the whole value instead of letting it through.
+- **Slicing a document and obfuscating the slice protected nothing.** The window landed on the
+  fragment rather than on the original, so iterating the offset rebuilt e-mail and ID numbers one
+  piece at a time. A value produced by an expression — rather than read straight from a column — is
+  now hidden whole: there is no way to know which part of the original a fragment represents. Real
+  columns keep the useful window.
+
+Both were found by a blind field evaluator probing seven bypass techniques against the installed
+build; the automated suite was green throughout.
+
 ## [0.1.0-rc.14] - 2026-09-06
 
 ### Fixed
@@ -293,7 +312,8 @@ full cycle with a real AI client — are still open.
 - Repository role and workspace type explain themselves in the dialog: both describe the work to the
   AI client and enforce nothing, which access modes and policies do.
 
-[Unreleased]: https://github.com/gilmardeveloper/prumo/compare/v0.1.0-rc.14...HEAD
+[Unreleased]: https://github.com/gilmardeveloper/prumo/compare/v0.1.0-rc.15...HEAD
+[0.1.0-rc.15]: https://github.com/gilmardeveloper/prumo/compare/v0.1.0-rc.14...v0.1.0-rc.15
 [0.1.0-rc.14]: https://github.com/gilmardeveloper/prumo/compare/v0.1.0-rc.13...v0.1.0-rc.14
 [0.1.0-rc.13]: https://github.com/gilmardeveloper/prumo/compare/v0.1.0-rc.12...v0.1.0-rc.13
 [0.1.0-rc.12]: https://github.com/gilmardeveloper/prumo/compare/v0.1.0-rc.11...v0.1.0-rc.12

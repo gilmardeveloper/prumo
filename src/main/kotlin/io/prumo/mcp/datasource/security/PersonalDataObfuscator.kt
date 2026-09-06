@@ -78,10 +78,20 @@ object PersonalDataObfuscator {
         return if (matchesFormat(declared, value)) declared else fallbackFor(declared)
     }
 
-    /** Aplica a janela da categoria. Categoria [PersonalDataKind.NONE] devolve o valor intacto. */
-    fun obfuscate(kind: PersonalDataKind, value: String?): String? {
+    /**
+     * Aplica a janela da categoria. Categoria [PersonalDataKind.NONE] devolve o valor intacto.
+     *
+     * @param derived verdadeiro quando o valor é resultado de uma expressão sobre a coluna, e não a
+     *   coluna em si. Nesse caso a janela posicional não protege: `substr(email, 5, 6)` devolveria
+     *   um pedaço real que a janela do valor inteiro esconderia, e iterar o recorte reconstrói o
+     *   documento. Valor derivado é escondido por inteiro.
+     */
+    fun obfuscate(kind: PersonalDataKind, value: String?, derived: Boolean = false): String? {
         if (value == null || value.isBlank() || kind == PersonalDataKind.NONE) {
             return value
+        }
+        if (derived) {
+            return hideCompletely(value)
         }
         return when (kind) {
             PersonalDataKind.CPF -> digitWindow(value, lead = 3, trail = 3, checkDigits = 2)
@@ -108,7 +118,7 @@ object PersonalDataObfuscator {
         val digits = value.count(Char::isDigit)
         val base = digits - checkDigits
         if (base <= 0 || lead + trail >= base) {
-            return value.map { if (it.isDigit()) HIDDEN else it }.joinToString("")
+            return hideCompletely(value)
         }
 
         val builder = StringBuilder(value.length)
@@ -139,7 +149,8 @@ object PersonalDataObfuscator {
     private fun name(value: String): String {
         val parts = value.trim().split(WHITESPACE).filter { it.isNotBlank() }
         if (parts.size <= 1) {
-            return parts.firstOrNull() ?: value
+            // A estratégia preserva o primeiro nome; um campo com uma palavra só já é o primeiro nome.
+            return parts.firstOrNull() ?: hideCompletely(value)
         }
         val rest = parts.drop(1).joinToString(" ") { part ->
             val initial = part.firstOrNull { it.isLetter() }
@@ -152,7 +163,7 @@ object PersonalDataObfuscator {
     private fun email(value: String): String {
         val at = value.lastIndexOf('@')
         if (at <= 0) {
-            return digitWindow(value, lead = 0, trail = 0, checkDigits = 0)
+            return hideCompletely(value)
         }
         val local = value.substring(0, at)
         val domain = value.substring(at)
@@ -162,8 +173,7 @@ object PersonalDataObfuscator {
 
     /** Preserva o ano: faixa etária e regra por idade continuam analisáveis; dia e mês são escondidos. */
     private fun birthDate(value: String): String {
-        val year = YEAR_PREFIX.find(value)
-            ?: return value.map { if (it.isDigit()) HIDDEN else it }.joinToString("")
+        val year = YEAR_PREFIX.find(value) ?: return hideCompletely(value)
 
         return value.mapIndexed { index, char ->
             when {
@@ -217,6 +227,15 @@ object PersonalDataObfuscator {
         PersonalDataKind.NAME, PersonalDataKind.EMAIL -> kind
         else -> PersonalDataKind.REGISTRY_NUMBER
     }
+
+    /**
+     * Esconde o valor inteiro, preservando só o comprimento.
+     *
+     * É o desfecho de todo caso em que a janela posicional não se aplica: valor sem o formato
+     * esperado, curto demais para acomodar a janela, ou derivado de uma expressão. Deixar passar o
+     * que não se sabe recortar seria falhar aberto.
+     */
+    private fun hideCompletely(value: String): String = HIDDEN.toString().repeat(value.length)
 
     private const val SHORT_FRAGMENT = 3
     private val SEPARATORS = charArrayOf('_', '-', '.', ' ')
