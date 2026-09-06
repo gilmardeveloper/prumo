@@ -6,6 +6,20 @@ All notable changes to this project are documented here. The format follows
 
 ## [Unreleased]
 
+## [0.1.0-rc.14] - 2026-09-06
+
+### Fixed
+
+- **Obfuscation was hiding columns that hold no personal data.** A scan of a real table showed
+  `isn_orgao_origem` and `txt_cargo` treated as documents, because the short fragment `rg` matches
+  inside `orgao` and `cargo`; and `flg_utilizar_nome_social`, a boolean flag, treated as a name.
+  Hiding an organisation code breaks the join that uses it, so over-masking is not free. A short
+  fragment now matches only as a whole segment between separators, and a column whose name starts
+  with a boolean prefix is never personal data. Fragments long enough to be unambiguous still match
+  anywhere. Fields that accompany a document — the issuing body of an ID, for instance — stay
+  protected: telling them apart from the document number would need semantics the name does not
+  carry, and the choice is to protect.
+
 ## [0.1.0-rc.13] - 2026-09-06
 
 ### Fixed
@@ -279,7 +293,8 @@ full cycle with a real AI client — are still open.
 - Repository role and workspace type explain themselves in the dialog: both describe the work to the
   AI client and enforce nothing, which access modes and policies do.
 
-[Unreleased]: https://github.com/gilmardeveloper/prumo/compare/v0.1.0-rc.13...HEAD
+[Unreleased]: https://github.com/gilmardeveloper/prumo/compare/v0.1.0-rc.14...HEAD
+[0.1.0-rc.14]: https://github.com/gilmardeveloper/prumo/compare/v0.1.0-rc.13...v0.1.0-rc.14
 [0.1.0-rc.13]: https://github.com/gilmardeveloper/prumo/compare/v0.1.0-rc.12...v0.1.0-rc.13
 [0.1.0-rc.12]: https://github.com/gilmardeveloper/prumo/compare/v0.1.0-rc.11...v0.1.0-rc.12
 [0.1.0-rc.11]: https://github.com/gilmardeveloper/prumo/compare/v0.1.0-rc.10...v0.1.0-rc.11

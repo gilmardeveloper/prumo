@@ -132,6 +132,48 @@ class PersonalDataObfuscatorTest {
         assertEquals(PersonalDataKind.CPF, PersonalDataObfuscator.classify("NUM_CPF", "12345678901"))
     }
 
+    /**
+     * Ofuscar demais custa o trabalho legítimo: um código de órgão escondido inutiliza a junção que
+     * o usa. Os casos abaixo apareceram numa varredura de tabela real.
+     */
+    @Test
+    fun `fragmento curto nao casa dentro de outra palavra`() {
+        assertEquals(PersonalDataKind.NONE, PersonalDataObfuscator.classify("isn_orgao_origem", "3"))
+        assertEquals(PersonalDataKind.NONE, PersonalDataObfuscator.classify("txt_cargo", "Analista"))
+        assertEquals(PersonalDataKind.NONE, PersonalDataObfuscator.classify("num_energia", "120"))
+    }
+
+    /**
+     * Campo que acompanha um documento continua tratado como parte dele.
+     *
+     * `isn_orgao_rg` traz o segmento `rg` de propósito — é o órgão emissor. Distinguir o número do
+     * documento dos campos que o descrevem exigiria semântica que o nome não carrega, e a escolha é
+     * proteger a mais.
+     */
+    @Test
+    fun `campo que acompanha o documento segue protegido`() {
+        assertEquals(PersonalDataKind.REGISTRY_NUMBER, PersonalDataObfuscator.classify("isn_orgao_rg", "12"))
+    }
+
+    @Test
+    fun `fragmento curto continua valendo como segmento inteiro`() {
+        assertEquals(PersonalDataKind.REGISTRY_NUMBER, PersonalDataObfuscator.classify("txt_rg", "2012356"))
+        assertEquals(PersonalDataKind.NATIONAL_ID, PersonalDataObfuscator.classify("num_pis", "12345678901"))
+    }
+
+    @Test
+    fun `coluna booleana nao e tratada como dado pessoal`() {
+        assertEquals(PersonalDataKind.NONE, PersonalDataObfuscator.classify("flg_utilizar_nome_social", "S"))
+        assertEquals(PersonalDataKind.NONE, PersonalDataObfuscator.classify("ind_email_valido", "1"))
+    }
+
+    @Test
+    fun `o dado pessoal de verdade continua reconhecido`() {
+        assertEquals(PersonalDataKind.CPF, PersonalDataObfuscator.classify("num_cpf", "12345678901"))
+        assertEquals(PersonalDataKind.NAME, PersonalDataObfuscator.classify("dsc_nome_social", "Maria Silva"))
+        assertEquals(PersonalDataKind.EMAIL, PersonalDataObfuscator.classify("txt_email", "a@b.com"))
+    }
+
     @Test
     fun `nenhuma saida preserva o valor original de um documento`() {
         val documentos = mapOf(
