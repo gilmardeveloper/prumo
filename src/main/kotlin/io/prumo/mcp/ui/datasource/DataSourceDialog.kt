@@ -2,13 +2,12 @@ package io.prumo.mcp.ui.datasource
 
 import com.intellij.openapi.progress.ProgressManager
 import com.intellij.openapi.project.Project
+import com.intellij.openapi.ui.ComboBox
 import com.intellij.openapi.ui.DialogWrapper
 import com.intellij.openapi.ui.ValidationInfo
 import com.intellij.ui.components.JBLabel
 import com.intellij.ui.components.JBPasswordField
-import com.intellij.ui.dsl.builder.bindItem
-import com.intellij.ui.dsl.builder.bindIntText
-import com.intellij.ui.dsl.builder.bindText
+import com.intellij.ui.components.JBTextField
 import com.intellij.ui.dsl.builder.columns
 import com.intellij.ui.dsl.builder.panel
 import com.intellij.util.ui.JBUI
@@ -34,6 +33,10 @@ import javax.swing.JComponent
  * formulário é aceito.
  *
  * O teste de conexão informa o desfecho, nunca a mensagem do driver.
+ *
+ * Os campos são lidos direto dos componentes. O `DialogPanel` só copia valor ligado para a
+ * propriedade quando `apply()` roda, e a plataforma o chama depois de validar — validação e teste de
+ * conexão enxergariam o formulário como ele nasceu.
  */
 class DataSourceDialog(
     private val project: Project,
@@ -43,17 +46,32 @@ class DataSourceDialog(
     private val probe: PostgresConnectionProbe = PostgresConnectionProbe(),
 ) : DialogWrapper(project) {
 
-    private var name: String = existing?.name.orEmpty()
-    private var host: String = existing?.host ?: "localhost"
-    private var port: Int = existing?.port ?: DataSourceProfile.DEFAULT_PORT
-    private var database: String = existing?.database.orEmpty()
-    private var user: String = existing?.user.orEmpty()
-    private var accessMode: AccessMode = existing?.accessMode ?: AccessMode.READ_ONLY
-    private var sslMode: SslMode = existing?.sslMode ?: SslMode.PREFER
-    private var defaultSchema: String = existing?.defaultSchema.orEmpty()
-
+    private val nameField = JBTextField(existing?.name.orEmpty())
+    private val hostField = JBTextField(existing?.host ?: "localhost")
+    private val portField = JBTextField((existing?.port ?: DataSourceProfile.DEFAULT_PORT).toString())
+    private val databaseField = JBTextField(existing?.database.orEmpty())
+    private val userField = JBTextField(existing?.user.orEmpty())
     private val passwordField = JBPasswordField()
+    private val defaultSchemaField = JBTextField(existing?.defaultSchema.orEmpty())
+
+    private val accessModeBox = ComboBox(AccessMode.entries.toTypedArray())
+        .apply { selectedItem = existing?.accessMode ?: AccessMode.READ_ONLY }
+
+    private val sslModeBox = ComboBox(SslMode.entries.toTypedArray())
+        .apply { selectedItem = existing?.sslMode ?: SslMode.PREFER }
+
     private val testResult = JBLabel(" ")
+
+    private val name: String get() = nameField.text.trim()
+    private val host: String get() = hostField.text.trim()
+    private val database: String get() = databaseField.text.trim()
+    private val user: String get() = userField.text.trim()
+    private val defaultSchema: String get() = defaultSchemaField.text.trim()
+    private val accessMode: AccessMode get() = accessModeBox.selectedItem as? AccessMode ?: AccessMode.READ_ONLY
+    private val sslMode: SslMode get() = sslModeBox.selectedItem as? SslMode ?: SslMode.PREFER
+
+    /** Porta ilegível vira zero, que a validação recusa junto com qualquer valor fora da faixa. */
+    private val port: Int get() = portField.text.trim().toIntOrNull() ?: 0
 
     init {
         title = PrumoBundle.message(if (existing == null) "datasource.dialog.title.add" else "datasource.dialog.title.edit")
@@ -62,19 +80,15 @@ class DataSourceDialog(
     }
 
     override fun createCenterPanel(): JComponent = panel {
-        row(PrumoBundle.message("datasource.field.name")) { textField().bindText(::name).columns(28).focused() }
-        row(PrumoBundle.message("datasource.field.host")) { textField().bindText(::host).columns(28) }
-        row(PrumoBundle.message("datasource.field.port")) { intTextField(1..65535).bindIntText(::port).columns(6) }
-        row(PrumoBundle.message("datasource.field.database")) { textField().bindText(::database).columns(28) }
-        row(PrumoBundle.message("datasource.field.user")) { textField().bindText(::user).columns(28) }
+        row(PrumoBundle.message("datasource.field.name")) { cell(nameField).columns(28).focused() }
+        row(PrumoBundle.message("datasource.field.host")) { cell(hostField).columns(28) }
+        row(PrumoBundle.message("datasource.field.port")) { cell(portField).columns(6) }
+        row(PrumoBundle.message("datasource.field.database")) { cell(databaseField).columns(28) }
+        row(PrumoBundle.message("datasource.field.user")) { cell(userField).columns(28) }
         row(PrumoBundle.message("datasource.field.password")) { cell(passwordField).columns(28) }
-        row(PrumoBundle.message("datasource.field.access")) {
-            comboBox(AccessMode.entries).bindItem({ accessMode }, { accessMode = it ?: AccessMode.READ_ONLY })
-        }
-        row(PrumoBundle.message("datasource.field.sslMode")) {
-            comboBox(SslMode.entries).bindItem({ sslMode }, { sslMode = it ?: SslMode.PREFER })
-        }
-        row(PrumoBundle.message("datasource.field.defaultSchema")) { textField().bindText(::defaultSchema).columns(20) }
+        row(PrumoBundle.message("datasource.field.access")) { cell(accessModeBox) }
+        row(PrumoBundle.message("datasource.field.sslMode")) { cell(sslModeBox) }
+        row(PrumoBundle.message("datasource.field.defaultSchema")) { cell(defaultSchemaField).columns(20) }
 
         row {
             button(PrumoBundle.message("datasource.test")) { testConnection() }
@@ -86,10 +100,11 @@ class DataSourceDialog(
     }.apply { border = JBUI.Borders.empty(8) }
 
     override fun doValidate(): ValidationInfo? = when {
-        name.isBlank() -> ValidationInfo(PrumoBundle.message("datasource.validation.name"))
-        host.isBlank() -> ValidationInfo(PrumoBundle.message("datasource.validation.host"))
-        database.isBlank() -> ValidationInfo(PrumoBundle.message("datasource.validation.database"))
-        user.isBlank() -> ValidationInfo(PrumoBundle.message("datasource.validation.user"))
+        name.isBlank() -> ValidationInfo(PrumoBundle.message("datasource.validation.name"), nameField)
+        host.isBlank() -> ValidationInfo(PrumoBundle.message("datasource.validation.host"), hostField)
+        port !in PORT_RANGE -> ValidationInfo(PrumoBundle.message("datasource.validation.port"), portField)
+        database.isBlank() -> ValidationInfo(PrumoBundle.message("datasource.validation.database"), databaseField)
+        user.isBlank() -> ValidationInfo(PrumoBundle.message("datasource.validation.user"), userField)
         else -> null
     }
 
@@ -161,5 +176,9 @@ class DataSourceDialog(
             }
         }
         return profile
+    }
+
+    private companion object {
+        val PORT_RANGE = 1..65535
     }
 }
