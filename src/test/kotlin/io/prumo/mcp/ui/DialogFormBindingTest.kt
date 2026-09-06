@@ -17,10 +17,10 @@ class DialogFormBindingTest {
 
     @Test
     fun `dialogo que valida le os componentes, e nao valor ligado`() {
-        val infratores = dialogSources()
+        val infratores = dialogClasses()
             .filter { (_, code) -> code.contains("override fun doValidate") }
             .filter { (_, code) -> BINDINGS.any { code.contains(it) } }
-            .map { (path, _) -> path.fileName.toString() }
+            .map { (name, _) -> name }
 
         assertTrue(
             infratores.isEmpty(),
@@ -28,16 +28,28 @@ class DialogFormBindingTest {
         )
     }
 
+    /**
+     * O recorte é por classe, não por arquivo: um mesmo arquivo hospeda diálogos com regras
+     * diferentes, e o que decide é quem declara `doValidate`.
+     */
     @OptIn(kotlin.io.path.ExperimentalPathApi::class)
-    private fun dialogSources(): List<Pair<Path, String>> {
-        val sources = Path.of("src/main/kotlin/io/prumo/mcp/ui").walk()
+    private fun dialogClasses(): List<Pair<String, String>> {
+        val classes = Path.of("src/main/kotlin/io/prumo/mcp/ui").walk()
             .filter { it.extension == "kt" }
-            .map { it to it.readText() }
+            .flatMap { file -> topLevelClasses(file.readText()) }
             .filter { (_, code) -> code.contains("DialogWrapper(") }
             .toList()
 
-        assertTrue(sources.isNotEmpty(), "nenhum DialogWrapper encontrado")
-        return sources
+        assertTrue(classes.isNotEmpty(), "nenhum DialogWrapper encontrado")
+        return classes
+    }
+
+    private fun topLevelClasses(code: String): List<Pair<String, String>> {
+        val declarations = Regex("""(?m)^(?:internal )?class (\w+)""").findAll(code).toList()
+        return declarations.mapIndexed { index, match ->
+            val end = declarations.getOrNull(index + 1)?.range?.first ?: code.length
+            match.groupValues[1] to code.substring(match.range.first, end)
+        }
     }
 
     private companion object {

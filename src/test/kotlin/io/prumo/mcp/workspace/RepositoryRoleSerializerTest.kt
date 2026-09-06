@@ -9,6 +9,7 @@ import io.prumo.mcp.workspace.infrastructure.WorkspaceStore
 import kotlinx.serialization.json.Json
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertFalse
+import org.junit.jupiter.api.Assertions.assertThrows
 import org.junit.jupiter.api.Assertions.assertTrue
 import org.junit.jupiter.api.Tag
 import org.junit.jupiter.api.Test
@@ -89,6 +90,29 @@ class RepositoryRoleSerializerTest {
         val rewritten = Files.readString(workspaceRoot.resolve("repositories.json"))
         assertTrue(rewritten.contains("\"PRIMARY\""), rewritten)
         assertFalse(rewritten.contains("TARGET"), rewritten)
+    }
+
+    @Test
+    fun `vinculo gravado antes da descricao continua abrindo`() {
+        val binding = json.decodeFromString<RepositoryBinding>(rawBinding("REFERENCE"))
+
+        assertEquals(null, binding.description)
+    }
+
+    @Test
+    fun `descricao acima do teto e recusada no dominio`() {
+        val excesso = "x".repeat(RepositoryBinding.MAX_DESCRIPTION_LENGTH + 1)
+
+        assertThrows(IllegalArgumentException::class.java) { binding(RepositoryRole.REFERENCE).copy(description = excesso) }
+    }
+
+    @Test
+    fun `a descricao sobrevive ao ciclo de gravacao`() {
+        val original = binding(RepositoryRole.LEGACY_REFERENCE).copy(description = "Monólito Seam que define as regras.")
+
+        val recovered = json.decodeFromString<RepositoryBinding>(json.encodeToString(original))
+
+        assertEquals("Monólito Seam que define as regras.", recovered.description)
     }
 
     private fun binding(role: RepositoryRole) = RepositoryBinding(

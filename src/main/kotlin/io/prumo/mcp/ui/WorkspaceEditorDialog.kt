@@ -3,11 +3,15 @@ package io.prumo.mcp.ui
 import com.intellij.openapi.fileChooser.FileChooser
 import com.intellij.openapi.fileChooser.FileChooserDescriptor
 import com.intellij.openapi.project.Project
+import com.intellij.openapi.ui.ComboBox
 import com.intellij.openapi.ui.DialogWrapper
+import com.intellij.openapi.ui.ValidationInfo
 import com.intellij.ui.SimpleListCellRenderer
 import com.intellij.ui.ToolbarDecorator
 import com.intellij.ui.components.JBList
 import com.intellij.ui.components.JBScrollPane
+import com.intellij.ui.components.JBTextArea
+import com.intellij.ui.components.JBTextField
 import com.intellij.ui.dsl.builder.bindItem
 import com.intellij.ui.dsl.builder.bindSelected
 import com.intellij.ui.dsl.builder.bindText
@@ -308,9 +312,25 @@ class RepositoryBindingDialog(
     private val existing: RepositoryBinding? = null,
 ) : DialogWrapper(project) {
 
-    private var role: RepositoryRole = existing?.role ?: RepositoryRole.REFERENCE
-    private var accessMode: AccessMode = existing?.accessMode ?: AccessMode.READ_ONLY
-    private var branchPolicy: String = existing?.branchPolicy.orEmpty()
+    private val roleBox = ComboBox(RepositoryRole.entries.toTypedArray()).apply {
+        selectedItem = existing?.role ?: RepositoryRole.REFERENCE
+        renderer = SimpleListCellRenderer.create("") { PrumoBundle.message(it.labelKey) }
+    }
+
+    private val accessModeBox = ComboBox(AccessMode.entries.toTypedArray()).apply {
+        selectedItem = existing?.accessMode ?: AccessMode.READ_ONLY
+        renderer = SimpleListCellRenderer.create("") { PrumoBundle.message(it.labelKey) }
+    }
+
+    private val branchPolicyField = JBTextField(existing?.branchPolicy.orEmpty())
+
+    private val descriptionArea = JBTextArea(existing?.description.orEmpty(), DESCRIPTION_ROWS, DESCRIPTION_COLUMNS)
+        .apply { lineWrap = true; wrapStyleWord = true }
+
+    private val role: RepositoryRole get() = roleBox.selectedItem as? RepositoryRole ?: RepositoryRole.REFERENCE
+    private val accessMode: AccessMode get() = accessModeBox.selectedItem as? AccessMode ?: AccessMode.READ_ONLY
+    private val branchPolicy: String get() = branchPolicyField.text.trim()
+    private val description: String get() = descriptionArea.text.trim()
 
     init {
         title = PrumoBundle.message("workspace.repository.dialog.title")
@@ -319,25 +339,32 @@ class RepositoryBindingDialog(
 
     override fun createCenterPanel(): JComponent = panel {
         row(PrumoBundle.message("workspace.repository.field.repository")) { label(path.fileName?.toString() ?: id) }
-        row(PrumoBundle.message("workspace.repository.field.role")) {
-            comboBox(
-                RepositoryRole.entries,
-                SimpleListCellRenderer.create("") { PrumoBundle.message(it.labelKey) },
-            ).bindItem({ role }, { role = it ?: RepositoryRole.REFERENCE })
-        }
+        row(PrumoBundle.message("workspace.repository.field.role")) { cell(roleBox) }
         row { comment(PrumoBundle.message("workspace.repository.roleHint"), maxLineLength = 62) }
-        row(PrumoBundle.message("workspace.repository.field.access")) {
-            comboBox(
-                AccessMode.entries,
-                SimpleListCellRenderer.create("") { PrumoBundle.message(it.labelKey) },
-            ).bindItem({ accessMode }, { accessMode = it ?: AccessMode.READ_ONLY })
-        }
+        row(PrumoBundle.message("workspace.repository.field.access")) { cell(accessModeBox) }
         row(PrumoBundle.message("workspace.repository.field.branchPolicy")) {
-            textField().bindText(::branchPolicy).columns(24)
+            cell(branchPolicyField).columns(24)
         }
+        row(PrumoBundle.message("workspace.repository.field.description")) {
+            cell(JBScrollPane(descriptionArea))
+        }
+        row { comment(PrumoBundle.message("workspace.repository.descriptionHint"), maxLineLength = 62) }
         row {
             comment(PrumoBundle.message("workspace.repository.hint"))
         }
+    }
+
+    override fun doValidate(): ValidationInfo? = when {
+        description.length > RepositoryBinding.MAX_DESCRIPTION_LENGTH -> ValidationInfo(
+            PrumoBundle.message(
+                "workspace.repository.validation.description",
+                RepositoryBinding.MAX_DESCRIPTION_LENGTH,
+                description.length,
+            ),
+            descriptionArea,
+        )
+
+        else -> null
     }
 
     fun toBinding(): RepositoryBinding {
@@ -351,7 +378,13 @@ class RepositoryBindingDialog(
             accessMode = accessMode,
             branchPolicy = branchPolicy.ifBlank { null },
             fingerprint = RepositoryFingerprint.forDirectory(path).value,
+            description = description.ifBlank { null },
         )
+    }
+
+    private companion object {
+        const val DESCRIPTION_ROWS = 4
+        const val DESCRIPTION_COLUMNS = 44
     }
 }
 

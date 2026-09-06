@@ -34,7 +34,11 @@ What this workspace allows, decided by the policy engine — not a copy of the c
 Database actions are evaluated without a specific data source; the reason explains that.
 
 ### `prumo_workspace_get_repositories`
-The bound repositories with role, access mode and normalized remote identity (`host/org/name`).
+The bound repositories with role, access mode and normalized remote identity (`host/org/name`),
+plus the free-text `description` the developer wrote about each one: what it is, what it is for
+and which of its rules matter. Roles are `PRIMARY` (what is being built, including the open
+project), `REFERENCE`, `LEGACY_REFERENCE` and `RELATED_COMPONENT`; they describe, they do not
+grant — access mode does.
 Never a local path, never a raw remote URL — a URL can carry an embedded token.
 
 ### `prumo_workspace_get_documentation_sources`

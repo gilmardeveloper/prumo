@@ -52,14 +52,23 @@ data class RepositoryBinding(
     val accessMode: AccessMode,
     val branchPolicy: String? = null,
     val fingerprint: String? = null,
+    /** O que este repositorio e, escrito pelo desenvolvedor e entregue ao cliente de IA. */
+    val description: String? = null,
 ) {
     init {
         require(id.matches(IDENTIFIER)) { "Invalid repository id '$id'." }
         require(name.isNotBlank()) { "Repository name must not be blank." }
         require(localPath.isNotBlank()) { "Repository local path must not be blank." }
+        require((description?.length ?: 0) <= MAX_DESCRIPTION_LENGTH) {
+            "Repository description must not exceed $MAX_DESCRIPTION_LENGTH characters."
+        }
     }
 
     val writable: Boolean get() = accessMode == AccessMode.READ_WRITE
+
+    companion object {
+        const val MAX_DESCRIPTION_LENGTH = 500
+    }
 }
 
 /**

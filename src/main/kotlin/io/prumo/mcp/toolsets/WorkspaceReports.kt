@@ -25,6 +25,8 @@ data class RepositoryResponse(
     val current: Boolean,
     /** Remote normalizado (`host/org/nome`), nulo quando o vínculo não tem Git. */
     val remoteIdentity: String? = null,
+    /** Texto livre escrito pelo desenvolvedor sobre o que este repositório é. */
+    val description: String? = null,
 )
 
 @Serializable
@@ -173,6 +175,7 @@ object WorkspaceReports {
         current = current,
         // O remote cru pode carregar usuário e token na URL; a forma normalizada descarta a credencial.
         remoteIdentity = gitRemote?.let(RepositoryFingerprint.Companion::normalizeRemote),
+        description = description,
     )
 }
 
