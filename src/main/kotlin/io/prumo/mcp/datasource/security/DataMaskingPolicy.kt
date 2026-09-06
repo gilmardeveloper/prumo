@@ -24,7 +24,7 @@ data class DataMaskingPolicy(
 
     fun ruleFor(columnName: String): MaskingRule {
         val normalized = columnName.lowercase(Locale.ROOT)
-        if (ALWAYS_MASKED.any { normalized.contains(it) }) {
+        if (ALWAYS_MASKED.any { ColumnNameMatcher.matches(normalized, it) }) {
             return MaskingRule.MASK
         }
         return columns.entries
@@ -50,7 +50,8 @@ data class DataMaskingPolicy(
 
         /**
          * Fragmentos de nome que sempre mascaram. A lista é de fragmento, não de nome exato:
-         * `senha_atual`, `user_password` e `api_key_hash` precisam cair aqui.
+         * `senha_atual`, `user_password` e `api_key_hash` precisam cair aqui. O fragmento vale como
+         * segmento do nome, não como pedaço de palavra: `secretaria` não é `secret`.
          */
         private val ALWAYS_MASKED = listOf(
             "password", "passwd", "senha", "secret", "token", "apikey", "api_key",
