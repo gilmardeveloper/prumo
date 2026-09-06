@@ -132,7 +132,16 @@ fail closed.
 The limit is known: an obfuscated value is **not a key**. Two values that differ only in the hidden
 digits come back identical, and equality on the way out does not prove equality at the source.
 
-What masking does **not** do is prevent inference. A query using the sensitive column in a predicate
+What masking does **not** do is prevent inference. **A count completes that channel**: aggregates
+over a personal column return real numbers, because hiding a count protects nobody and breaks real
+analysis — but predicate and count together form an oracle. `WHERE substr(num_cpf, 4, 1) = '9'` with
+`count(*)` answers, digit by digit, what the window hides; ten questions per character rebuild a
+document, and each answer is a legitimate number to a legitimate question. This is a known limit and
+a deliberate trade: the alternative was hiding counts, which is what the previous behaviour did and
+what cost three or four attempts per query in any real analysis. The barrier against targeted
+reconstruction is the read-only credential with minimum reach, not Prumo.
+
+A query using the sensitive column in a predicate
 — `WHERE senha = 'guess'` — either returns rows or does not, and that confirms the value without ever
 displaying it. Masking is about what leaves, not about what can be deduced. The barrier against that
 is a least-privilege read-only credential, not Prumo.
