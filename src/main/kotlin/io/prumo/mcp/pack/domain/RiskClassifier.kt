@@ -161,6 +161,17 @@ object RiskClassifier {
         { command -> fragments.any { command.contains(it) } }
 
     /**
+     * Regra por palavra inteira: o comando usa algum destes verbos.
+     *
+     * `del` e `rd` são curtos e vivem dentro de outras palavras — `model`, `handle`, `board` —, então
+     * casar por trecho literal marcaria comando inocente como destrutivo.
+     */
+    private fun anyWord(vararg words: String): (String) -> Boolean {
+        val pattern = Regex("(^|[^a-z0-9_-])(" + words.joinToString("|") { Regex.escape(it) } + ")([^a-z0-9_-]|$)")
+        return { command -> pattern.containsMatchIn(command) }
+    }
+
+    /**
      * Baixar-e-executar é a combinação de duas coisas, não um trecho fixo: alguma forma de trazer
      * conteúdo da rede **e** um cano para um interpretador. `curl https://… | sh` tem o endereço no
      * meio, e procurar por `curl | sh` literal deixaria passar justamente o caso real.
@@ -218,13 +229,31 @@ object RiskClassifier {
             name = "recursive-delete",
             level = RiskLevel.DESTRUCTIVE,
             explanation = "Deletes files recursively and without confirmation.",
-            matches = anyOf("rm -rf", "rm -fr", "remove-item -recurse", "remove-item -force", "rmdir /s"),
+            matches = anyOf("rm -rf", "rm -fr", "remove-item -recurse", "remove-item -force", "rmdir /s", "rd /s"),
+        ),
+        Rule(
+            name = "windows-delete",
+            level = RiskLevel.DESTRUCTIVE,
+            explanation = "Deletes files with the Windows shell, which asks nothing and reports nothing.",
+            matches = anyWord("del", "erase", "rd", "rmdir"),
+        ),
+        Rule(
+            name = "backup-destruction",
+            level = RiskLevel.BLOCKED,
+            explanation = "Destroys the copies the machine keeps to recover from a mistake, which is how ransomware works.",
+            matches = anyOf("vssadmin delete", "shadowcopy delete", "delete shadows", "wbadmin delete", "bcdedit /set"),
         ),
         Rule(
             name = "disk-write",
             level = RiskLevel.DESTRUCTIVE,
             explanation = "Writes directly to a device or formats a volume.",
-            matches = anyOf("mkfs", "dd if=", "format-volume", "diskpart", "shred ", "> /dev/sd"),
+            matches = anyOf("mkfs", "dd if=", "format-volume", "diskpart", "shred ", "> /dev/sd", "cipher /w"),
+        ),
+        Rule(
+            name = "volume-format",
+            level = RiskLevel.DESTRUCTIVE,
+            explanation = "Formats a volume, which erases everything on it.",
+            matches = anyWord("format"),
         ),
         Rule(
             name = "git-history-rewrite",

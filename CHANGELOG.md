@@ -6,6 +6,21 @@ All notable changes to this project are documented here. The format follows
 
 ## [Unreleased]
 
+## [0.1.0-rc.27] - 2026-09-06
+
+### Fixed
+
+- **A pack that wipes the disk was classified `SAFE`.** The risk classifier knew `rm -rf`,
+  `remove-item -recurse` and `rmdir /s`, and did not know `del` — the way the Windows shell deletes
+  files. `cmd.exe /c del /f /s /q C:\*` passed validation as `SAFE`, with no finding, on a
+  Windows-first product: the consent screen would have shown nothing to react to. `del`, `erase`,
+  `rd` and `format` are now destructive, and destroying the machine's shadow copies — `vssadmin
+  delete shadows` and its relatives, which is how ransomware clears the way — is blocked outright.
+  Short verbs match as whole words, so `python treinar_model.py` stays safe: a fragment inside a
+  longer word is not the command.
+
+Found while walking the MVP acceptance checklist against the installed build.
+
 ## [0.1.0-rc.26] - 2026-09-06
 
 ### Fixed
@@ -517,6 +532,7 @@ full cycle with a real AI client — are still open.
   AI client and enforce nothing, which access modes and policies do.
 
 [Unreleased]: https://github.com/gilmardeveloper/prumo/compare/v0.1.0-rc.21...HEAD
+[0.1.0-rc.27]: https://github.com/gilmardeveloper/prumo/compare/v0.1.0-rc.26...v0.1.0-rc.27
 [0.1.0-rc.26]: https://github.com/gilmardeveloper/prumo/compare/v0.1.0-rc.25...v0.1.0-rc.26
 [0.1.0-rc.25]: https://github.com/gilmardeveloper/prumo/compare/v0.1.0-rc.24...v0.1.0-rc.25
 [0.1.0-rc.24]: https://github.com/gilmardeveloper/prumo/compare/v0.1.0-rc.23...v0.1.0-rc.24
