@@ -8,23 +8,26 @@ import kotlin.io.path.readText
 import kotlin.io.path.walk
 
 /**
- * `DialogWrapper` copia os valores ligados por `bindText`, `bindItem` e afins para as propriedades
- * só quando chama `DialogPanel.apply()`, e isso acontece depois de `doValidate()` aprovar. Diálogo
- * que valida ou consulta o formulário antes do OK precisa ler os componentes direto, senão enxerga
- * o formulário como ele nasceu — e recusa o que o usuário acabou de digitar.
+ * Nenhum diálogo deste projeto depende de `bindText`, `bindItem` e afins.
+ *
+ * `DialogWrapper` só copia o valor ligado para a propriedade quando chama `DialogPanel.apply()`, e
+ * isso tem duas condições frágeis: acontece **depois** de `doValidate()` aprovar, e só quando
+ * `createCenterPanel()` devolve o `DialogPanel` em pessoa. Envolver o painel — num `JBScrollPane`,
+ * por exemplo — faz a plataforma deixar de reconhecê-lo, e a gravação passa a descartar em silêncio
+ * tudo o que o usuário editou. As duas armadilhas já custaram um defeito cada; ler do componente
+ * não tem nenhuma delas.
  */
 class DialogFormBindingTest {
 
     @Test
-    fun `dialogo que valida le os componentes, e nao valor ligado`() {
+    fun `nenhum dialogo depende de valor ligado`() {
         val infratores = dialogClasses()
-            .filter { (_, code) -> code.contains("override fun doValidate") }
             .filter { (_, code) -> BINDINGS.any { code.contains(it) } }
             .map { (name, _) -> name }
 
         assertTrue(
             infratores.isEmpty(),
-            "diálogo com doValidate não pode depender de bind*, que só é aplicado depois: $infratores",
+            "diálogo não pode depender de bind*; leia do próprio componente: $infratores",
         )
     }
 

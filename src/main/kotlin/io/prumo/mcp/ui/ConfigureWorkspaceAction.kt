@@ -3,8 +3,9 @@ package io.prumo.mcp.ui
 import com.intellij.openapi.project.Project
 import com.intellij.openapi.ui.DialogWrapper
 import com.intellij.openapi.ui.Messages
-import com.intellij.ui.dsl.builder.bindItem
-import com.intellij.ui.dsl.builder.bindText
+import com.intellij.openapi.ui.ComboBox
+import com.intellij.ui.SimpleListCellRenderer
+import com.intellij.ui.components.JBTextField
 import com.intellij.ui.dsl.builder.columns
 import com.intellij.ui.dsl.builder.panel
 import io.prumo.mcp.i18n.PrumoBundle
@@ -115,8 +116,15 @@ class ConfigureWorkspaceDialog(
     suggestedName: String,
 ) : DialogWrapper(project) {
 
-    var workspaceName: String = suggestedName
-    var workspaceType: WorkspaceType = WorkspaceType.STANDALONE
+    private val nameField = JBTextField(suggestedName)
+
+    private val typeBox = ComboBox(WorkspaceType.entries.toTypedArray()).apply {
+        selectedItem = WorkspaceType.STANDALONE
+        renderer = SimpleListCellRenderer.create("") { PrumoBundle.message(it.labelKey) }
+    }
+
+    val workspaceName: String get() = nameField.text.trim()
+    val workspaceType: WorkspaceType get() = typeBox.selectedItem as? WorkspaceType ?: WorkspaceType.STANDALONE
 
     init {
         title = PrumoBundle.message("workspace.create.title")
@@ -125,17 +133,9 @@ class ConfigureWorkspaceDialog(
 
     override fun createCenterPanel(): JComponent = panel {
         row(PrumoBundle.message("workspace.create.name")) {
-            textField()
-                .bindText(::workspaceName)
-                .columns(30)
-                .focused()
+            cell(nameField).columns(30).focused()
         }
-        row(PrumoBundle.message("workspace.field.type")) {
-            comboBox(WorkspaceType.entries).bindItem(
-                { workspaceType },
-                { workspaceType = it ?: WorkspaceType.STANDALONE },
-            )
-        }
+        row(PrumoBundle.message("workspace.field.type")) { cell(typeBox) }
         row {
             comment(PrumoBundle.message("workspace.create.hint"))
         }

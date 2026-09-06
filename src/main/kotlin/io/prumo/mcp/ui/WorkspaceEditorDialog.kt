@@ -8,13 +8,11 @@ import com.intellij.openapi.ui.DialogWrapper
 import com.intellij.openapi.ui.ValidationInfo
 import com.intellij.ui.SimpleListCellRenderer
 import com.intellij.ui.ToolbarDecorator
+import com.intellij.ui.components.JBCheckBox
 import com.intellij.ui.components.JBList
 import com.intellij.ui.components.JBScrollPane
 import com.intellij.ui.components.JBTextArea
 import com.intellij.ui.components.JBTextField
-import com.intellij.ui.dsl.builder.bindItem
-import com.intellij.ui.dsl.builder.bindSelected
-import com.intellij.ui.dsl.builder.bindText
 import com.intellij.ui.dsl.builder.columns
 import com.intellij.ui.dsl.builder.panel
 import com.intellij.util.ui.JBUI
@@ -29,11 +27,11 @@ import io.prumo.mcp.repository.RepositoryFingerprint
 import io.prumo.mcp.ui.datasource.DataSourceDialog
 import io.prumo.mcp.workspace.domain.AccessMode
 import io.prumo.mcp.workspace.domain.RepositoryBinding
-import java.awt.Dimension
-import java.awt.Toolkit
 import io.prumo.mcp.workspace.domain.RepositoryRole
 import io.prumo.mcp.workspace.domain.Workspace
 import io.prumo.mcp.workspace.domain.WorkspaceType
+import java.awt.Dimension
+import java.awt.Toolkit
 import java.nio.file.Path
 import javax.swing.DefaultListModel
 import javax.swing.JComponent
@@ -45,8 +43,15 @@ class WorkspaceEditorDialog(
     private val primaryRepositoryId: String,
 ) : DialogWrapper(project) {
 
-    var workspaceName: String = original.name
-    var workspaceType: WorkspaceType = original.type
+    private val nameField = JBTextField(original.name)
+
+    private val typeBox = ComboBox(WorkspaceType.entries.toTypedArray()).apply {
+        selectedItem = original.type
+        renderer = SimpleListCellRenderer.create("") { PrumoBundle.message(it.labelKey) }
+    }
+
+    val workspaceName: String get() = nameField.text.trim()
+    val workspaceType: WorkspaceType get() = typeBox.selectedItem as? WorkspaceType ?: original.type
 
     private val repositories = DefaultListModel<RepositoryBinding>().apply {
         original.repositories.forEach(::addElement)
@@ -59,11 +64,14 @@ class WorkspaceEditorDialog(
     }
     private val credentials = PasswordSafeCredentialProvider()
 
-    private var referenceWrite = original.policies.referenceWrite
-    private var databaseWrite = original.policies.databaseWrite
-    private var externalPathAccess = original.policies.externalPathAccess
-    private var processExecution = original.policies.processExecution
-    private var gitWrite = original.policies.gitWrite
+    private val referenceWriteBox = policyBox("workspace.policy.referenceWrite", original.policies.referenceWrite)
+    private val databaseWriteBox = policyBox("workspace.policy.databaseWrite", original.policies.databaseWrite)
+    private val externalPathAccessBox = policyBox("workspace.policy.externalPathAccess", original.policies.externalPathAccess)
+    private val processExecutionBox = policyBox("workspace.policy.processExecution", original.policies.processExecution)
+    private val gitWriteBox = policyBox("workspace.policy.gitWrite", original.policies.gitWrite)
+
+    private fun policyBox(labelKey: String, selected: Boolean) =
+        JBCheckBox(PrumoBundle.message(labelKey), selected)
 
     init {
         title = PrumoBundle.message("workspace.dialog.title")
@@ -74,11 +82,14 @@ class WorkspaceEditorDialog(
     override fun createCenterPanel(): JComponent = scrollable(form())
 
     /**
-     * Envolve o formulario num painel rolavel limitado a parte da altura da tela.
+     * Envolve o formulário num painel rolável limitado a parte da altura da tela.
      *
-     * `DialogWrapper` dimensiona pelo tamanho preferido do conteudo e corta o que nao couber na
-     * tela, sem oferecer gesto para alcancar o excedente. O teto so entra em acao quando o
-     * formulario e mais alto que ele, entao tela grande continua sem barra.
+     * `DialogWrapper` dimensiona pelo tamanho preferido do conteúdo e corta o que não couber na
+     * tela, sem oferecer gesto para alcançar o excedente. O teto só entra em ação quando o
+     * formulário é mais alto que ele, então tela grande continua sem barra.
+     *
+     * Envolver o painel faz `DialogWrapper` deixar de reconhecê-lo como `DialogPanel`, e com isso
+     * `apply()` nunca roda — por isso todo campo deste diálogo é lido do próprio componente.
      */
     private fun scrollable(form: JComponent): JComponent = JBScrollPane(form).apply {
         border = JBUI.Borders.empty()
@@ -93,17 +104,9 @@ class WorkspaceEditorDialog(
 
     private fun form(): JComponent = panel {
         row(PrumoBundle.message("workspace.field.name")) {
-            textField().bindText(::workspaceName).columns(34).focused()
+            cell(nameField).columns(34).focused()
         }
-        row(PrumoBundle.message("workspace.field.type")) {
-            comboBox(
-                WorkspaceType.entries,
-                SimpleListCellRenderer.create("") { PrumoBundle.message(it.labelKey) },
-            ).bindItem(
-                { workspaceType },
-                { workspaceType = it ?: WorkspaceType.STANDALONE },
-            )
-        }
+        row(PrumoBundle.message("workspace.field.type")) { cell(typeBox) }
         row { comment(PrumoBundle.message("workspace.typeHint"), maxLineLength = 72) }
 
         group(PrumoBundle.message("workspace.section.repositories")) {
@@ -134,11 +137,11 @@ class WorkspaceEditorDialog(
         }
 
         group(PrumoBundle.message("workspace.section.policies")) {
-            row { checkBox(PrumoBundle.message("workspace.policy.referenceWrite")).bindSelected(::referenceWrite) }
-            row { checkBox(PrumoBundle.message("workspace.policy.databaseWrite")).bindSelected(::databaseWrite) }
-            row { checkBox(PrumoBundle.message("workspace.policy.externalPathAccess")).bindSelected(::externalPathAccess) }
-            row { checkBox(PrumoBundle.message("workspace.policy.processExecution")).bindSelected(::processExecution) }
-            row { checkBox(PrumoBundle.message("workspace.policy.gitWrite")).bindSelected(::gitWrite) }
+            row { cell(referenceWriteBox) }
+            row { cell(databaseWriteBox) }
+            row { cell(externalPathAccessBox) }
+            row { cell(processExecutionBox) }
+            row { cell(gitWriteBox) }
             row {
                 comment(PrumoBundle.message("workspace.section.policies.hint"))
             }
@@ -270,11 +273,11 @@ class WorkspaceEditorDialog(
         documentation = documentation.elements().toList(),
         datasources = datasources.elements().toList(),
         policies = WorkspacePolicies(
-            referenceWrite = referenceWrite,
-            databaseWrite = databaseWrite,
-            externalPathAccess = externalPathAccess,
-            processExecution = processExecution,
-            gitWrite = gitWrite,
+            referenceWrite = referenceWriteBox.isSelected,
+            databaseWrite = databaseWriteBox.isSelected,
+            externalPathAccess = externalPathAccessBox.isSelected,
+            processExecution = processExecutionBox.isSelected,
+            gitWrite = gitWriteBox.isSelected,
         ),
         updatedAt = now,
     )
