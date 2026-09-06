@@ -64,7 +64,7 @@ class AliasResolutionTest {
         listOf("num_raca_cor", "txt_deficiencia_fisica", "cod_cid", "txt_religiao").forEach { coluna ->
             val kind = PersonalDataObfuscator.classify(coluna, "6")
             assertNotEquals(PersonalDataKind.NONE, kind, "'$coluna' não foi reconhecido como sensível")
-            assertEquals("*", PersonalDataObfuscator.obfuscate(kind, "6"))
+            assertEquals(PersonalDataObfuscator.HIDDEN_VALUE, PersonalDataObfuscator.obfuscate(kind, "6"))
         }
     }
 
@@ -87,6 +87,6 @@ class AliasResolutionTest {
         val kind = PersonalDataObfuscator.classify("txt_observacao_recadastramento", "mora com a mãe")
 
         assertEquals(PersonalDataKind.FREE_TEXT, kind)
-        assertTrue(PersonalDataObfuscator.obfuscate(kind, "mora com a mãe")!!.all { it == '*' })
+        assertEquals(PersonalDataObfuscator.HIDDEN_VALUE, PersonalDataObfuscator.obfuscate(kind, "mora com a mãe"))
     }
 }

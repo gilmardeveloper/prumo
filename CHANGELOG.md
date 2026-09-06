@@ -6,6 +6,17 @@ All notable changes to this project are documented here. The format follows
 
 ## [Unreleased]
 
+## [0.1.0-rc.19] - 2026-09-06
+
+### Fixed
+
+- **The length of a hidden value was itself a leak.** Hiding a value repeated one asterisk per
+  character, so the mask preserved the length. An evaluator masked their own `CASE` labels and
+  rebuilt the whole mapping from the asterisk counts alone, before rewriting the query. Against real
+  data the channel is worse: length distinguishes records, narrows the search space, and — over an
+  expression the caller chose, `char_length` for one — hands back the very result the mask was meant
+  to hide. A hidden value is now a fixed marker, `[hidden]`, the same size whatever it replaced.
+
 ## [0.1.0-rc.18] - 2026-09-06
 
 ### Fixed
@@ -374,7 +385,8 @@ full cycle with a real AI client — are still open.
 - Repository role and workspace type explain themselves in the dialog: both describe the work to the
   AI client and enforce nothing, which access modes and policies do.
 
-[Unreleased]: https://github.com/gilmardeveloper/prumo/compare/v0.1.0-rc.18...HEAD
+[Unreleased]: https://github.com/gilmardeveloper/prumo/compare/v0.1.0-rc.19...HEAD
+[0.1.0-rc.19]: https://github.com/gilmardeveloper/prumo/compare/v0.1.0-rc.18...v0.1.0-rc.19
 [0.1.0-rc.18]: https://github.com/gilmardeveloper/prumo/compare/v0.1.0-rc.17...v0.1.0-rc.18
 [0.1.0-rc.17]: https://github.com/gilmardeveloper/prumo/compare/v0.1.0-rc.16...v0.1.0-rc.17
 [0.1.0-rc.16]: https://github.com/gilmardeveloper/prumo/compare/v0.1.0-rc.15...v0.1.0-rc.16

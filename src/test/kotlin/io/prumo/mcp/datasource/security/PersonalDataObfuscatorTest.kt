@@ -124,7 +124,7 @@ class PersonalDataObfuscatorTest {
 
     @Test
     fun `valor curto demais para a janela e escondido por inteiro`() {
-        assertEquals("****", obfuscate("num_cpf", "1234"))
+        assertEquals(PersonalDataObfuscator.HIDDEN_VALUE, obfuscate("num_cpf", "1234"))
     }
 
     @Test
