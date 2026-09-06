@@ -3,6 +3,8 @@ package io.prumo.mcp.toolsets
 import com.intellij.mcpserver.McpToolset
 import com.intellij.mcpserver.annotations.McpDescription
 import com.intellij.mcpserver.annotations.McpTool
+import com.intellij.ide.plugins.PluginManagerCore
+import com.intellij.openapi.extensions.PluginId
 import io.prumo.mcp.ide.PrumoWorkspaceService
 import io.prumo.mcp.workspace.application.WorkspaceResolution
 import kotlinx.serialization.Serializable
@@ -24,14 +26,23 @@ class PrumoDiagnosticsToolset : McpToolset {
         val project = McpProjectResolver.resolve(coroutineContext)
         val resolution = PrumoWorkspaceService.getInstance().resolve(project)
         return PrumoDiagnostics(
-            pluginVersion = PLUGIN_VERSION,
+            pluginVersion = installedVersion(),
             projectName = project.name,
             workspaceConfigured = resolution is WorkspaceResolution.Resolved,
         )
     }
 
+    /**
+     * Versão lida do descritor instalado, e não de uma constante no código.
+     *
+     * Esta tool existe para dizer o que está rodando. Uma constante escrita à mão envelhece na
+     * primeira release e passa a mentir justamente para quem tenta descobrir se a correção chegou.
+     */
+    private fun installedVersion(): String =
+        PluginManagerCore.getPlugin(PluginId.getId(PLUGIN_ID))?.version ?: "unknown"
+
     private companion object {
-        const val PLUGIN_VERSION = "0.1.0"
+        const val PLUGIN_ID = "io.prumo.mcp"
     }
 }
 

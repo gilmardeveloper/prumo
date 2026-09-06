@@ -207,4 +207,43 @@ class RepositoryReaderTest {
         assertEquals("bytecode", slice.text)
     }
 
+
+    /**
+     * Um agente cego leu o arquivo excluido inteiro so trocando a caixa do nome: no Windows o
+     * sistema de arquivos ignora maiusculas, e a comparacao sobre o texto recebido nao ignorava.
+     */
+    @Test
+    fun `trocar a caixa do nome nao contorna a exclusao`(@TempDir root: Path) {
+        val repo = repository(root)
+        root.resolve("CLAUDE.md").writeText("instrucoes de IA")
+        root.resolve("docs").createDirectories()
+        root.resolve("docs/BUILD.md").writeText("como compilar")
+
+        listOf("claude.md", "CLAUDE.MD", "Claude.Md").forEach { grafia ->
+            assertThrows<RepositoryReadException>(grafia) {
+                RepositoryReader.readFile(repo, grafia, excluded = listOf("CLAUDE.md"))
+            }
+        }
+
+        listOf("DOCS/BUILD.md", "Docs/build.md").forEach { grafia ->
+            assertThrows<RepositoryReadException>(grafia) {
+                RepositoryReader.readFile(repo, grafia, excluded = listOf("docs"))
+            }
+        }
+    }
+
+    @Test
+    fun `listagem e busca tambem ignoram a caixa da exclusao`(@TempDir root: Path) {
+        val repo = repository(root)
+        root.resolve("docs").createDirectories()
+        root.resolve("docs/BUILD.md").writeText("termo exclusivo do excluido")
+
+        // A raiz e o ponto comum: no Linux "DOCS" nem existe, no Windows existe e e o mesmo diretorio.
+        val listagem = RepositoryReader.listDirectory(repo, null, 3, 300, listOf("DOCS"))
+        assertTrue(listagem.entries.none { it.path.lowercase().startsWith("docs") }, listagem.entries.toString())
+
+        val busca = RepositoryReader.searchText(repo, "termo exclusivo do excluido", excluded = listOf("DOCS"))
+        assertTrue(busca.matches.isEmpty(), busca.matches.toString())
+    }
+
 }

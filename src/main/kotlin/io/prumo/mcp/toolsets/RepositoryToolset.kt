@@ -115,7 +115,8 @@ class RepositoryToolset : McpToolset {
     @McpDescription(
         "Searches for literal text inside a repository bound to the current workspace and returns " +
             "the matching paths and lines. Binary files, the .git directory and the paths excluded " +
-            "for this repository in the workspace are never read.",
+            "for this repository are never read. The excluded list is in the repository entry of " +
+            "prumo_workspace_get_repositories.",
     )
     suspend fun searchText(
         @McpDescription("Text to look for.")

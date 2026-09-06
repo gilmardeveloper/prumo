@@ -222,10 +222,8 @@ object RepositoryReader {
      * `CLAUDE.md` sem motor de padrões — e sem canto escuro onde um caminho escape por acidente.
      */
     private fun isExcluded(root: Path, candidate: Path, excluded: List<String>): Boolean {
-        val relative = root.toAbsolutePath().normalize()
-            .relativize(candidate.toAbsolutePath().normalize())
-        val segments = relative.map { it.name }
-        if (segments.any { it == GIT_DIRECTORY }) {
+        val segments = realRelative(root, candidate).map { it.name }
+        if (segments.any { it.equals(GIT_DIRECTORY, ignoreCase = true) }) {
             return true
         }
 
@@ -233,11 +231,27 @@ object RepositoryReader {
         return excluded.any { entry ->
             val alvo = entry.trim().trimEnd('/').replace(BACKSLASH, '/')
             alvo.isNotEmpty() && (
-                normalized == alvo ||
-                    normalized.startsWith("$alvo/") ||
-                    segments.any { it == alvo }
+                normalized.equals(alvo, ignoreCase = true) ||
+                    normalized.startsWith("$alvo/", ignoreCase = true) ||
+                    segments.any { it.equals(alvo, ignoreCase = true) }
                 )
         }
+    }
+
+    /**
+     * Caminho relativo pela grafia que está no disco, e não pela que o cliente digitou.
+     *
+     * No Windows o sistema de arquivos ignora maiúsculas, então `claude.md` abre o `CLAUDE.md`. Uma
+     * comparação sobre o texto recebido deixaria a exclusão cair com uma troca de caixa —
+     * demonstrado em campo por um agente que leu o arquivo inteiro assim. `toRealPath` devolve a
+     * grafia real; a comparação sem diferenciar caixa cobre o caminho que ainda não existe.
+     */
+    private fun realRelative(root: Path, candidate: Path): Path {
+        val raiz = runCatching { root.toRealPath() }.getOrElse { root.toAbsolutePath().normalize() }
+        val alvo = runCatching { candidate.toRealPath() }
+            .getOrElse { candidate.toAbsolutePath().normalize() }
+        return runCatching { raiz.relativize(alvo) }
+            .getOrElse { root.toAbsolutePath().normalize().relativize(candidate.toAbsolutePath().normalize()) }
     }
 
     private fun assertReadableAsText(file: Path, relativePath: String) {
