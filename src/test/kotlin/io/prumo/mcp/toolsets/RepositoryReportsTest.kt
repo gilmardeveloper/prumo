@@ -32,7 +32,7 @@ class RepositoryReportsTest {
         name = "folha-calculadora-consumidor",
         localPath = "C:/repos/consumidor",
         gitRemote = "git@github.com:org/consumidor.git",
-        role = RepositoryRole.TARGET,
+        role = RepositoryRole.PRIMARY,
         accessMode = AccessMode.READ_WRITE,
     )
 

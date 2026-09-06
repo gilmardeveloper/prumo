@@ -227,7 +227,7 @@ private fun binding(id: String, localPath: Path, remote: String?) = RepositoryBi
     name = id,
     localPath = localPath.toString(),
     gitRemote = remote,
-    role = RepositoryRole.TARGET,
+    role = RepositoryRole.PRIMARY,
     accessMode = AccessMode.READ_WRITE,
 )
 
@@ -250,7 +250,7 @@ private fun context(
             name = "folha-calculadora-consumidor",
             localPath = "C:/repos/consumidor",
             gitRemote = currentRemote,
-            role = RepositoryRole.TARGET,
+            role = RepositoryRole.PRIMARY,
             accessMode = AccessMode.READ_WRITE,
         ),
         RepositoryBinding(

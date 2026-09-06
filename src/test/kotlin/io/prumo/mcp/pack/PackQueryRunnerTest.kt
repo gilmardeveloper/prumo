@@ -71,7 +71,7 @@ class PackQueryRunnerTest {
         name = "Folha 2026",
         type = WorkspaceType.LEGACY_MAINTENANCE,
         repositories = listOf(
-            RepositoryBinding("app", "app", "C:/repos/app", role = RepositoryRole.TARGET, accessMode = AccessMode.READ_ONLY),
+            RepositoryBinding("app", "app", "C:/repos/app", role = RepositoryRole.PRIMARY, accessMode = AccessMode.READ_ONLY),
         ),
         datasources = datasources,
         policies = WorkspacePolicies.DENY_ALL,

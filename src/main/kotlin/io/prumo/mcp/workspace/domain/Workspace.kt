@@ -16,11 +16,16 @@ enum class WorkspaceType {
     CUSTOM,
 }
 
-/** Papel de um repositório dentro do workspace. */
-@Serializable
+/**
+ * Papel de um repositório dentro do workspace.
+ *
+ * Descreve o repositório para o cliente de IA e não concede acesso: quem concede é o [AccessMode].
+ * Valor gravado que não exista mais aqui é resolvido por [RepositoryRoleSerializer].
+ */
+@Serializable(with = RepositoryRoleSerializer::class)
 enum class RepositoryRole {
+    /** O que está sendo construído, incluindo o projeto aberto na IDE. */
     PRIMARY,
-    TARGET,
     REFERENCE,
     LEGACY_REFERENCE,
     RELATED_COMPONENT,

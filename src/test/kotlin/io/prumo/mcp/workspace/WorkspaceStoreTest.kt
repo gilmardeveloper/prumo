@@ -50,7 +50,7 @@ class WorkspaceStoreTest {
 
     private fun binding(
         id: String,
-        role: RepositoryRole = RepositoryRole.TARGET,
+        role: RepositoryRole = RepositoryRole.PRIMARY,
         access: AccessMode = AccessMode.READ_WRITE,
         path: String = "/repos/$id",
     ) = RepositoryBinding(
@@ -151,7 +151,7 @@ class WorkspaceStoreTest {
     @Test
     fun `somente leitura nao e gravavel`() {
         assertTrue(!binding("legado", RepositoryRole.LEGACY_REFERENCE, AccessMode.READ_ONLY).writable)
-        assertTrue(binding("alvo", RepositoryRole.TARGET, AccessMode.READ_WRITE).writable)
+        assertTrue(binding("alvo", RepositoryRole.PRIMARY, AccessMode.READ_WRITE).writable)
     }
 }
 

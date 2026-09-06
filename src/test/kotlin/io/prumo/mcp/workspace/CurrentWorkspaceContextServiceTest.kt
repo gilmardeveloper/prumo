@@ -35,7 +35,7 @@ class CurrentWorkspaceContextServiceTest {
         id: String,
         remote: String?,
         path: String,
-        role: RepositoryRole = RepositoryRole.TARGET,
+        role: RepositoryRole = RepositoryRole.PRIMARY,
         access: AccessMode = AccessMode.READ_WRITE,
     ) = RepositoryBinding(
         id = id,
