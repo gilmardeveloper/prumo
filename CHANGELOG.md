@@ -6,6 +6,29 @@ All notable changes to this project are documented here. The format follows
 
 ## [Unreleased]
 
+## [0.1.0-rc.24] - 2026-09-06
+
+### Added
+
+- **Packs can finally be imported and exported from the interface.** The exchange format, the risk
+  classifier and the consent screen were all built and tested, and nothing in the product called
+  them: `PackExporter` had no caller outside its own tests, and the importer was reachable only from
+  the approval queue — which itself only appeared when a submission was already waiting. A workspace
+  with no pending submission showed no pack section at all. The tool window now always carries a
+  **Packs installed** section, listing what is installed, with **Import from file…** and **Export…**.
+  An imported file passes through the same consent screen as a pack proposed by an AI client, and
+  every failure — a file that is not a pack, a pack carrying a secret, a checksum that does not
+  match — reaches the user as a dialog instead of dying in the IDE log.
+
+### Changed
+
+- **Two tool descriptions now say what the tool does not do.** `prumo_pack_list` explains that a
+  submitted pack does not appear there until the developer accepts it, so an empty list right after
+  a submission is expected — a blind evaluator read that emptiness as failure and nearly submitted
+  the same pack twice — and points at `prumo_pack_get_authoring_spec` as the starting point for
+  writing one. `prumo_pack_validate` states that it never runs the SQL or the command a tool carries:
+  a draft can be valid, `SAFE`, and still hold a query that fails or scans a whole table.
+
 ## [0.1.0-rc.23] - 2026-09-06
 
 ### Fixed
@@ -467,6 +490,7 @@ full cycle with a real AI client — are still open.
   AI client and enforce nothing, which access modes and policies do.
 
 [Unreleased]: https://github.com/gilmardeveloper/prumo/compare/v0.1.0-rc.21...HEAD
+[0.1.0-rc.24]: https://github.com/gilmardeveloper/prumo/compare/v0.1.0-rc.23...v0.1.0-rc.24
 [0.1.0-rc.23]: https://github.com/gilmardeveloper/prumo/compare/v0.1.0-rc.22...v0.1.0-rc.23
 [0.1.0-rc.22]: https://github.com/gilmardeveloper/prumo/compare/v0.1.0-rc.21...v0.1.0-rc.22
 [0.1.0-rc.21]: https://github.com/gilmardeveloper/prumo/compare/v0.1.0-rc.20...v0.1.0-rc.21
