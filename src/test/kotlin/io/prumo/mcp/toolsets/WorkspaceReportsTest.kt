@@ -42,6 +42,20 @@ class WorkspaceReportsTest {
         assertNoLocalPath(json.encodeToString(WorkspaceContextResponse.serializer(), response))
     }
 
+    /**
+     * A interface passou a exibir rotulo traduzido; o contrato lido pela IA nao.
+     */
+    @Test
+    fun `papel e acesso chegam ao cliente MCP como identificador em ingles`() {
+        val response = WorkspaceReports.repositories(context())
+
+        assertEquals(listOf("PRIMARY", "LEGACY_REFERENCE"), response.repositories.map { it.role })
+        assertEquals(listOf("READ_WRITE", "READ_ONLY"), response.repositories.map { it.accessMode })
+        val serialized = json.encodeToString(RepositoriesResponse.serializer(), response)
+        assertFalse(serialized.contains("Principal"), serialized)
+        assertFalse(serialized.contains("Somente leitura"), serialized)
+    }
+
     @Test
     fun `a lista de repositorios entrega identificador, nunca caminho nem credencial`() {
         val context = context(currentRemote = "https://someone:s3cr3t-token@github.com/org/consumidor.git")

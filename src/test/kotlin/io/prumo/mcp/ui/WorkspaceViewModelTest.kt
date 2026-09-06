@@ -48,14 +48,18 @@ class WorkspaceViewModelTest {
         ) as WorkspaceViewModel.Configured
 
         assertEquals("Modernização Folha", model.workspaceName)
-        assertEquals("MODERNIZATION", model.workspaceType)
+        assertEquals("workspace.type.modernization", model.workspaceTypeKey)
         assertEquals(listOf("folha-calculadora-consumidor", "folha"), model.repositories.map { it.name })
         assertEquals(listOf(true, false), model.repositories.map { it.current })
-        assertEquals("READ_ONLY", model.repositories.last().accessMode)
+        assertEquals("access.mode.readOnly", model.repositories.last().accessModeKey)
         assertTrue(model.policies.none { it.allowed })
         assertTrue(
             model.policies.all { it.labelKey.startsWith("policy.") },
             "o modelo da tela carrega chave, nao frase pronta",
+        )
+        assertTrue(
+            model.repositories.all { it.roleKey.startsWith("repository.role.") },
+            "papel tambem viaja como chave, nao como texto traduzido",
         )
     }
 

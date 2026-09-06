@@ -5,6 +5,7 @@ import com.intellij.openapi.project.Project
 import com.intellij.openapi.ui.ComboBox
 import com.intellij.openapi.ui.DialogWrapper
 import com.intellij.openapi.ui.ValidationInfo
+import com.intellij.ui.SimpleListCellRenderer
 import com.intellij.ui.components.JBLabel
 import com.intellij.ui.components.JBPasswordField
 import com.intellij.ui.components.JBTextField
@@ -22,6 +23,7 @@ import io.prumo.mcp.datasource.domain.SslMode
 import io.prumo.mcp.datasource.messageKey
 import io.prumo.mcp.ide.PrumoWorkspaceService
 import io.prumo.mcp.ui.ConfigureWorkspaceAction
+import io.prumo.mcp.ui.labelKey
 import io.prumo.mcp.workspace.domain.AccessMode
 import java.util.Arrays
 import javax.swing.JComponent
@@ -54,8 +56,10 @@ class DataSourceDialog(
     private val passwordField = JBPasswordField()
     private val defaultSchemaField = JBTextField(existing?.defaultSchema.orEmpty())
 
-    private val accessModeBox = ComboBox(AccessMode.entries.toTypedArray())
-        .apply { selectedItem = existing?.accessMode ?: AccessMode.READ_ONLY }
+    private val accessModeBox = ComboBox(AccessMode.entries.toTypedArray()).apply {
+        selectedItem = existing?.accessMode ?: AccessMode.READ_ONLY
+        renderer = SimpleListCellRenderer.create("") { PrumoBundle.message(it.labelKey) }
+    }
 
     private val sslModeBox = ComboBox(SslMode.entries.toTypedArray())
         .apply { selectedItem = existing?.sslMode ?: SslMode.PREFER }
@@ -87,6 +91,7 @@ class DataSourceDialog(
         row(PrumoBundle.message("datasource.field.user")) { cell(userField).columns(28) }
         row(PrumoBundle.message("datasource.field.password")) { cell(passwordField).columns(28) }
         row(PrumoBundle.message("datasource.field.access")) { cell(accessModeBox) }
+
         row(PrumoBundle.message("datasource.field.sslMode")) { cell(sslModeBox) }
         row(PrumoBundle.message("datasource.field.defaultSchema")) { cell(defaultSchemaField).columns(20) }
 

@@ -12,7 +12,7 @@ sealed interface WorkspaceViewModel {
     data class Configured(
         val workspaceId: String,
         val workspaceName: String,
-        val workspaceType: String,
+        val workspaceTypeKey: String,
         val currentRepositoryName: String,
         val repositories: List<RepositoryRow>,
         val policies: List<PolicyRow>,
@@ -22,8 +22,8 @@ sealed interface WorkspaceViewModel {
 
     data class RepositoryRow(
         val name: String,
-        val role: String,
-        val accessMode: String,
+        val roleKey: String,
+        val accessModeKey: String,
         val current: Boolean,
     )
 
@@ -50,13 +50,13 @@ sealed interface WorkspaceViewModel {
                 Configured(
                     workspaceId = context.workspace.id,
                     workspaceName = context.workspace.name,
-                    workspaceType = context.workspace.type.name,
+                    workspaceTypeKey = context.workspace.type.labelKey,
                     currentRepositoryName = context.currentRepository.name,
                     repositories = context.workspace.repositories.map {
                         RepositoryRow(
                             name = it.name,
-                            role = it.role.name,
-                            accessMode = it.accessMode.name,
+                            roleKey = it.role.labelKey,
+                            accessModeKey = it.accessMode.labelKey,
                             current = it.id == context.currentRepository.id,
                         )
                     },

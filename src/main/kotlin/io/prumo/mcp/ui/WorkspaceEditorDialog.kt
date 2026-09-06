@@ -4,6 +4,7 @@ import com.intellij.openapi.fileChooser.FileChooser
 import com.intellij.openapi.fileChooser.FileChooserDescriptor
 import com.intellij.openapi.project.Project
 import com.intellij.openapi.ui.DialogWrapper
+import com.intellij.ui.SimpleListCellRenderer
 import com.intellij.ui.ToolbarDecorator
 import com.intellij.ui.components.JBList
 import com.intellij.ui.components.JBScrollPane
@@ -91,7 +92,10 @@ class WorkspaceEditorDialog(
             textField().bindText(::workspaceName).columns(34).focused()
         }
         row(PrumoBundle.message("workspace.field.type")) {
-            comboBox(WorkspaceType.entries).bindItem(
+            comboBox(
+                WorkspaceType.entries,
+                SimpleListCellRenderer.create("") { PrumoBundle.message(it.labelKey) },
+            ).bindItem(
                 { workspaceType },
                 { workspaceType = it ?: WorkspaceType.STANDALONE },
             )
@@ -272,15 +276,23 @@ class WorkspaceEditorDialog(
     )
 
     private fun repositoryRenderer() = javax.swing.ListCellRenderer<RepositoryBinding> { _, value, _, _, _ ->
-        com.intellij.ui.components.JBLabel("${value.name}  —  ${value.role} · ${value.accessMode}")
+        com.intellij.ui.components.JBLabel(
+            value.name + "  —  " + PrumoBundle.message(value.role.labelKey) + " · " +
+                PrumoBundle.message(value.accessMode.labelKey),
+        )
     }
 
     private fun documentationRenderer() = javax.swing.ListCellRenderer<DocumentationSource> { _, value, _, _, _ ->
-        com.intellij.ui.components.JBLabel("${value.name}  —  ${value.kind} · ${value.authority}")
+        com.intellij.ui.components.JBLabel(
+            value.name + "  —  " + PrumoBundle.message(value.kind.labelKey) + " · " +
+                PrumoBundle.message(value.authority.labelKey),
+        )
     }
 
     private fun datasourceRenderer() = javax.swing.ListCellRenderer<DataSourceProfile> { _, value, _, _, _ ->
-        com.intellij.ui.components.JBLabel("${value.name}  —  PostgreSQL · ${value.accessMode}")
+        com.intellij.ui.components.JBLabel(
+            value.name + "  —  PostgreSQL · " + PrumoBundle.message(value.accessMode.labelKey),
+        )
     }
 
     private companion object {
@@ -308,11 +320,17 @@ class RepositoryBindingDialog(
     override fun createCenterPanel(): JComponent = panel {
         row(PrumoBundle.message("workspace.repository.field.repository")) { label(path.fileName?.toString() ?: id) }
         row(PrumoBundle.message("workspace.repository.field.role")) {
-            comboBox(RepositoryRole.entries).bindItem({ role }, { role = it ?: RepositoryRole.REFERENCE })
+            comboBox(
+                RepositoryRole.entries,
+                SimpleListCellRenderer.create("") { PrumoBundle.message(it.labelKey) },
+            ).bindItem({ role }, { role = it ?: RepositoryRole.REFERENCE })
         }
         row { comment(PrumoBundle.message("workspace.repository.roleHint"), maxLineLength = 62) }
         row(PrumoBundle.message("workspace.repository.field.access")) {
-            comboBox(AccessMode.entries).bindItem({ accessMode }, { accessMode = it ?: AccessMode.READ_ONLY })
+            comboBox(
+                AccessMode.entries,
+                SimpleListCellRenderer.create("") { PrumoBundle.message(it.labelKey) },
+            ).bindItem({ accessMode }, { accessMode = it ?: AccessMode.READ_ONLY })
         }
         row(PrumoBundle.message("workspace.repository.field.branchPolicy")) {
             textField().bindText(::branchPolicy).columns(24)
