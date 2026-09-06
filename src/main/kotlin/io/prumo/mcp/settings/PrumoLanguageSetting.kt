@@ -76,6 +76,23 @@ class PrumoLanguageSetting(
         val shared: PrumoLanguageSetting by lazy {
             PrumoLanguageSetting(FileSystemStorageProvider.forCurrentSystem())
         }
+
+        /** O idioma em que a interface fala. */
+        fun currentLanguage(): PrumoLanguage = languageOf { shared }
+
+        /**
+         * Resolve o idioma tolerando ambiente sem área de configuração alcançável.
+         *
+         * Máquina em que o diretório do usuário não se resolve registra o motivo e recebe
+         * [PrumoLanguage.SYSTEM]: a interface continua existindo, no idioma da IDE.
+         */
+        internal fun languageOf(source: () -> PrumoLanguageSetting): PrumoLanguage =
+            try {
+                source().current()
+            } catch (cause: RuntimeException) {
+                LOG.warn("Prumo MCP could not resolve the language preference; falling back to the IDE language.", cause)
+                PrumoLanguage.SYSTEM
+            }
     }
 }
 

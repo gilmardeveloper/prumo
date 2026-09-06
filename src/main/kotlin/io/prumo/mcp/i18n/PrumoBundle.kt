@@ -22,7 +22,7 @@ private const val BUNDLE = "messages.PrumoBundle"
 object PrumoBundle : DynamicBundle(PrumoBundle::class.java, BUNDLE) {
 
     fun message(@PropertyKey(resourceBundle = BUNDLE) key: String, vararg parameters: Any): String {
-        val locale = PrumoLanguageSetting.shared.current().locale()
+        val locale = PrumoLanguageSetting.currentLanguage().locale()
             ?: return getMessage(key, *parameters)
         return AbstractBundle.message(localized(locale), key, *parameters)
     }
