@@ -134,6 +134,53 @@ class RiskClassifierTest {
         }
     }
 
+    /**
+     * O produto é Windows-first, e as formas de apagar do `cmd.exe` não são as do shell Unix. Um
+     * `del /f /s /q C:\*` apaga o disco inteiro e passava como `SAFE`, sem um aviso na tela de
+     * consentimento.
+     */
+    @Test
+    fun `apagar e formatar pelo shell do Windows sao destrutivos`() {
+        listOf(
+            """cmd.exe /c del /f /s /q C:\*""",
+            "cmd.exe /c erase /q relatorio.csv",
+            "cmd.exe /c rd /s /q build",
+            "cmd.exe /c format d: /q",
+        ).forEach { command ->
+            val assessment = RiskClassifier.assess(
+                pack(capabilities = setOf(Capability.PROCESS_EXECUTE), tools = listOf(script("t", command))),
+            )
+            assertEquals(RiskLevel.DESTRUCTIVE, assessment.level, command)
+        }
+    }
+
+    @Test
+    fun `apagar a copia de sombra e bloqueado`() {
+        val assessment = RiskClassifier.assess(
+            pack(
+                capabilities = setOf(Capability.PROCESS_EXECUTE),
+                tools = listOf(script("t", "vssadmin delete shadows /all /quiet")),
+            ),
+        )
+
+        assertEquals(RiskLevel.BLOCKED, assessment.level)
+    }
+
+    /** Verbo curto não pode casar dentro de palavra: `model` não é `del`, `board` não é `rd`. */
+    @Test
+    fun `comando inocente que contem o verbo dentro de outra palavra continua seguro`() {
+        listOf(
+            "python treinar_model.py --formatar",
+            "node build.js --dashboard",
+            "gradle test --rerun-tasks",
+        ).forEach { command ->
+            val assessment = RiskClassifier.assess(
+                pack(capabilities = setOf(Capability.PROCESS_EXECUTE), tools = listOf(script("t", command))),
+            )
+            assertEquals(RiskLevel.SAFE, assessment.level, command)
+        }
+    }
+
     @Test
     fun `saida de rede e caminho de maquina sao sensiveis, nao destrutivos`() {
         val assessment = RiskClassifier.assess(
