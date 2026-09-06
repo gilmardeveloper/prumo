@@ -27,6 +27,10 @@ data class AvailableDataSourceResponse(
     val accessMode: String,
     val writable: Boolean,
     val defaultSchema: String? = null,
+    /** Texto livre escrito pelo desenvolvedor sobre o que este banco é. */
+    val description: String? = null,
+    /** Verdadeiro quando o dado pessoal devolvido por uma consulta sai parcialmente escondido. */
+    val personalDataObfuscated: Boolean = true,
 )
 
 @Serializable
@@ -146,6 +150,8 @@ object DatabaseReports {
                     accessMode = it.accessMode.name,
                     writable = it.writable,
                     defaultSchema = it.defaultSchema,
+                    description = it.description,
+                    personalDataObfuscated = it.obfuscatePersonalData,
                 )
             },
         )

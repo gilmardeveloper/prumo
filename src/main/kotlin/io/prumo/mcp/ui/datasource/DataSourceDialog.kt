@@ -9,6 +9,8 @@ import com.intellij.ui.SimpleListCellRenderer
 import com.intellij.ui.components.JBLabel
 import com.intellij.ui.components.JBPasswordField
 import com.intellij.ui.components.JBTextField
+import com.intellij.ui.components.JBScrollPane
+import com.intellij.ui.components.JBTextArea
 import com.intellij.ui.dsl.builder.columns
 import com.intellij.ui.dsl.builder.panel
 import com.intellij.util.ui.JBUI
@@ -56,6 +58,9 @@ class DataSourceDialog(
     private val passwordField = JBPasswordField()
     private val defaultSchemaField = JBTextField(existing?.defaultSchema.orEmpty())
 
+    private val descriptionArea = JBTextArea(existing?.description.orEmpty(), DESCRIPTION_ROWS, DESCRIPTION_COLUMNS)
+        .apply { lineWrap = true; wrapStyleWord = true }
+
     private val accessModeBox = ComboBox(AccessMode.entries.toTypedArray()).apply {
         selectedItem = existing?.accessMode ?: AccessMode.READ_ONLY
         renderer = SimpleListCellRenderer.create("") { PrumoBundle.message(it.labelKey) }
@@ -71,6 +76,7 @@ class DataSourceDialog(
     private val database: String get() = databaseField.text.trim()
     private val user: String get() = userField.text.trim()
     private val defaultSchema: String get() = defaultSchemaField.text.trim()
+    private val description: String get() = descriptionArea.text.trim()
     private val accessMode: AccessMode get() = accessModeBox.selectedItem as? AccessMode ?: AccessMode.READ_ONLY
     private val sslMode: SslMode get() = sslModeBox.selectedItem as? SslMode ?: SslMode.PREFER
 
@@ -94,6 +100,8 @@ class DataSourceDialog(
 
         row(PrumoBundle.message("datasource.field.sslMode")) { cell(sslModeBox) }
         row(PrumoBundle.message("datasource.field.defaultSchema")) { cell(defaultSchemaField).columns(20) }
+        row(PrumoBundle.message("datasource.field.description")) { cell(JBScrollPane(descriptionArea)) }
+        row { comment(PrumoBundle.message("datasource.descriptionHint"), maxLineLength = 62) }
 
         row {
             button(PrumoBundle.message("datasource.test")) { testConnection() }
@@ -110,6 +118,14 @@ class DataSourceDialog(
         port !in PORT_RANGE -> ValidationInfo(PrumoBundle.message("datasource.validation.port"), portField)
         database.isBlank() -> ValidationInfo(PrumoBundle.message("datasource.validation.database"), databaseField)
         user.isBlank() -> ValidationInfo(PrumoBundle.message("datasource.validation.user"), userField)
+        description.length > DataSourceProfile.MAX_DESCRIPTION_LENGTH -> ValidationInfo(
+            PrumoBundle.message(
+                "datasource.validation.description",
+                DataSourceProfile.MAX_DESCRIPTION_LENGTH,
+                description.length,
+            ),
+            descriptionArea,
+        )
         else -> null
     }
 
@@ -161,6 +177,7 @@ class DataSourceDialog(
             accessMode = accessMode,
             sslMode = sslMode,
             defaultSchema = defaultSchema.ifBlank { null },
+            description = description.ifBlank { null },
         )
     }
 
@@ -184,6 +201,8 @@ class DataSourceDialog(
     }
 
     private companion object {
+        const val DESCRIPTION_ROWS = 4
+        const val DESCRIPTION_COLUMNS = 40
         val PORT_RANGE = 1..65535
     }
 }

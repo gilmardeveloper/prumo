@@ -114,4 +114,52 @@ class DatabaseReportsTest {
             repository,
         )
     }
+
+    @Test
+    fun `a lista de bancos entrega a descricao e o estado da ofuscacao, nunca o endereco`() {
+        val profile = io.prumo.mcp.datasource.domain.DataSourceProfile(
+            id = "dev",
+            name = "dev",
+            host = "10.0.0.1",
+            database = "backup_producao",
+            user = "leitor",
+            description = "Cópia de backup de produção, para desenvolvimento e análise.",
+        )
+        val context = io.prumo.mcp.workspace.application.WorkspaceContext(
+            io.prumo.mcp.workspace.domain.Workspace(
+                id = "folha",
+                name = "folha",
+                type = io.prumo.mcp.workspace.domain.WorkspaceType.STANDALONE,
+                repositories = listOf(
+                    io.prumo.mcp.workspace.domain.RepositoryBinding(
+                        id = "folha",
+                        name = "folha",
+                        localPath = "C:/repos/folha",
+                        role = io.prumo.mcp.workspace.domain.RepositoryRole.PRIMARY,
+                        accessMode = io.prumo.mcp.workspace.domain.AccessMode.READ_ONLY,
+                    ),
+                ),
+                datasources = listOf(profile),
+                createdAt = "2026-09-06T00:00:00Z",
+                updatedAt = "2026-09-06T00:00:00Z",
+            ),
+            io.prumo.mcp.workspace.domain.RepositoryBinding(
+                id = "folha",
+                name = "folha",
+                localPath = "C:/repos/folha",
+                role = io.prumo.mcp.workspace.domain.RepositoryRole.PRIMARY,
+                accessMode = io.prumo.mcp.workspace.domain.AccessMode.READ_ONLY,
+            ),
+        )
+
+        val resposta = DatabaseReports.available(context)
+        val serializado = kotlinx.serialization.json.Json.encodeToString(resposta)
+
+        val banco = resposta.datasources.single()
+        assertEquals("Cópia de backup de produção, para desenvolvimento e análise.", banco.description)
+        assertTrue(banco.personalDataObfuscated, "a ofuscação nasce ligada")
+        assertFalse(serializado.contains("10.0.0.1"), "o endereço do banco não pode chegar ao cliente")
+        assertFalse(serializado.contains("leitor"), "o usuário do banco não pode chegar ao cliente")
+        assertFalse(serializado.contains("backup_producao"), "o nome do banco não pode chegar ao cliente")
+    }
 }
