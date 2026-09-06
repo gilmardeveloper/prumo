@@ -179,6 +179,15 @@ object SensitiveColumnScanner {
 
     private val BOUNDARIES = listOf("from", "where", "group", "order", "limit", "having", "union", "offset")
 
+    /**
+     * Nomes das agregações que voltam completas, para exibição.
+     *
+     * A orientação entregue ao cliente é gerada desta lista, e não escrita à parte: acrescentar uma
+     * função aqui muda o texto junto, sem depender de alguém lembrar de atualizá-lo.
+     */
+    val SAFE_AGGREGATE_NAMES: List<String>
+        get() = SAFE_AGGREGATES.map { it.removeSuffix("(").removeSuffix("_") }.distinct()
+
     /** Agregações e funções que produzem um número sobre o conjunto, nunca um valor de origem. */
     private val SAFE_AGGREGATES = listOf(
         "count(", "sum(", "avg(", "stddev", "variance", "var_", "length(", "char_length(",
