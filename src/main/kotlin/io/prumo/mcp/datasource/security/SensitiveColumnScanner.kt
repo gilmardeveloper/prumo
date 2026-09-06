@@ -18,6 +18,12 @@ object SensitiveColumnScanner {
 
     private val IDENTIFIER = Regex("[A-Za-z_][A-Za-z0-9_]*")
 
+    /** `<coluna> AS <apelido>`, com a coluna possivelmente qualificada por tabela. */
+    private val ALIAS = Regex(
+        """(?:[A-Za-z_][A-Za-z0-9_]*\.)?([A-Za-z_][A-Za-z0-9_]*)\s+as\s+([A-Za-z_][A-Za-z0-9_]*)""",
+        RegexOption.IGNORE_CASE,
+    )
+
     fun touchesSensitiveColumn(sql: String, masking: DataMaskingPolicy): Boolean =
         IDENTIFIER.findAll(sql.lowercase(Locale.ROOT))
             .any { masking.ruleFor(it.value) == MaskingRule.MASK }
@@ -72,6 +78,17 @@ object SensitiveColumnScanner {
         }
         return SAFE_AGGREGATES.any { normalized.startsWith(it) }
     }
+
+    /**
+     * Mapeia cada apelido do statement à coluna que ele renomeia.
+     *
+     * Uma subconsulta que faz `SELECT txt_email AS a` e uma consulta externa que faz `upper(t.a)`
+     * deixam o driver sem coluna de origem e o rótulo sem nada que denuncie o dado: o identificador
+     * que sobrou é `a`. Sem resolver o apelido de volta, a expressão passa limpa.
+     */
+    fun aliasOrigins(sql: String): Map<String, String> =
+        ALIAS.findAll(sql)
+            .associate { it.groupValues[2].lowercase(Locale.ROOT) to it.groupValues[1].lowercase(Locale.ROOT) }
 
     /** Todos os identificadores citados no statement, para o recuo em que nada mais é confiável. */
     fun allIdentifiers(sql: String): List<String> =

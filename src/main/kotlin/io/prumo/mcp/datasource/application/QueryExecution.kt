@@ -154,6 +154,7 @@ class ReadOnlyQueryExecutor(
         val safeAggregates = SensitiveColumnScanner.safeAggregatePositions(sql, metadata.columnCount)
         val touchesSecret by lazy { SensitiveColumnScanner.touchesSensitiveColumn(sql, masking) }
         val statementIdentifiers by lazy { SensitiveColumnScanner.allIdentifiers(sql) }
+        val aliasOrigins = SensitiveColumnScanner.aliasOrigins(sql)
         val columns = (1..metadata.columnCount).map { index ->
             val label = metadata.getColumnLabel(index).orEmpty()
             val origin = baseColumnName(metadata, index)
@@ -167,7 +168,12 @@ class ReadOnlyQueryExecutor(
             // reconhecida pelos identificadores do statement inteiro.
             val expression = expressionIdentifiers?.getOrNull(index - 1)
                 ?: if (computed) statementIdentifiers else emptyList()
-            val identifiers = (listOf(label, origin) + expression).filter { it.isNotBlank() }.distinct()
+            // Um apelido de subconsulta esconde a coluna que ele renomeia; resolvê-lo de volta é o
+            // que impede a expressão sobre o apelido de sair sem classificação.
+            val identifiers = (listOf(label, origin) + expression)
+                .flatMap { listOf(it) + listOfNotNull(aliasOrigins[it.lowercase()]) }
+                .filter { it.isNotBlank() }
+                .distinct()
             QueryColumn(
                 name = name,
                 type = metadata.getColumnTypeName(index) ?: "unknown",

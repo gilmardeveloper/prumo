@@ -31,7 +31,7 @@ data class AvailableDataSourceResponse(
     /** Texto livre escrito pelo desenvolvedor sobre o que este banco é. */
     val description: String? = null,
     /** Verdadeiro quando o dado pessoal devolvido por uma consulta sai parcialmente escondido. */
-    val personalDataObfuscated: Boolean = true,
+    val personalDataObfuscated: Boolean,
     /** O que esperar deste banco, antes da primeira consulta. */
     val guidance: String,
 )
@@ -122,8 +122,13 @@ data class QueryResultResponse(
     val rowCount: Int,
     val truncated: Boolean,
     val durationMillis: Long,
-    /** Estado da proteção de dado pessoal neste banco. */
-    val personalDataObfuscated: Boolean = true,
+    /**
+     * Estado da proteção de dado pessoal neste banco.
+     *
+     * Sem valor padrão de propósito: o serializador omite campo igual ao padrão, e o estado ligado —
+     * que é o comum — nunca chegaria ao cliente.
+     */
+    val personalDataObfuscated: Boolean,
     /** Como trabalhar com o que veio. Ausente quando o resultado não tocou dado pessoal. */
     val guidance: String? = null,
 )

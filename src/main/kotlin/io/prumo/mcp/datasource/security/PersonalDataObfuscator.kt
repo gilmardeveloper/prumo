@@ -20,6 +20,10 @@ enum class PersonalDataKind {
     EMAIL,
     BIRTH_DATE,
     BANK_ACCOUNT,
+    /** Dado sensível na acepção da LGPD: origem racial, saúde, deficiência, biometria. */
+    SENSITIVE_ATTRIBUTE,
+    /** Texto livre que pode conter qualquer coisa sobre a pessoa. */
+    FREE_TEXT,
 }
 
 /**
@@ -103,6 +107,8 @@ object PersonalDataObfuscator {
             PersonalDataKind.EMAIL -> email(value)
             PersonalDataKind.BIRTH_DATE -> birthDate(value)
             PersonalDataKind.BANK_ACCOUNT -> digitWindow(value, lead = 0, trail = 4, checkDigits = 0)
+            PersonalDataKind.SENSITIVE_ATTRIBUTE -> hideCompletely(value)
+            PersonalDataKind.FREE_TEXT -> hideCompletely(value)
             PersonalDataKind.NONE -> value
         }
     }
@@ -195,6 +201,8 @@ object PersonalDataObfuscator {
             PersonalDataKind.BIRTH_DATE -> YEAR_PREFIX.containsMatchIn(value)
             PersonalDataKind.NAME -> value.any(Char::isLetter)
             PersonalDataKind.BANK_ACCOUNT -> digits > 0
+            PersonalDataKind.SENSITIVE_ATTRIBUTE -> true
+            PersonalDataKind.FREE_TEXT -> true
             PersonalDataKind.REGISTRY_NUMBER -> true
             PersonalDataKind.NONE -> true
         }
@@ -270,7 +278,19 @@ object PersonalDataObfuscator {
         listOf("telefone", "celular", "fone", "phone", "whatsapp") to PersonalDataKind.PHONE,
         listOf("nascimento", "data_nasc", "dat_nasc", "birth") to PersonalDataKind.BIRTH_DATE,
         listOf("conta_corrente", "num_conta", "conta_bancaria", "nu_conta") to PersonalDataKind.BANK_ACCOUNT,
-        listOf("nome_mae", "nome_pai", "nome_completo", "nom_funcionario", "nome_social", "txt_nome", "nm_pessoa")
-            to PersonalDataKind.NAME,
+        listOf(
+            "nome_mae", "nome_pai", "nome_completo", "nom_funcionario", "nome_social", "txt_nome",
+            "nm_pessoa", "nome_servidor", "nome_pessoa", "nome_civil", "nome_beneficiario",
+            "nome_dependente", "nome_titular",
+        ) to PersonalDataKind.NAME,
+        listOf(
+            "raca", "cor_pele", "etnia", "deficiencia", "doenca", "cid", "religiao",
+            "orientacao_sexual", "biometria", "digital",
+        ) to PersonalDataKind.SENSITIVE_ATTRIBUTE,
+        listOf(
+            "carteira_profissional", "documento_militar", "reservista", "registro_nacional_estrangeiro",
+            "rne", "id_funcional", "matricula_funcional",
+        ) to PersonalDataKind.REGISTRY_NUMBER,
+        listOf("observacao", "obs_livre", "anotacao", "descricao_pessoal") to PersonalDataKind.FREE_TEXT,
     )
 }
