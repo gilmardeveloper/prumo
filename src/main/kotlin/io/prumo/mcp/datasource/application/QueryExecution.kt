@@ -103,18 +103,23 @@ class ReadOnlyQueryExecutor(
         sql: String,
     ): QueryOutcome {
         val metadata = rows.metaData
+        // Coluna calculada nao tem coluna de origem; so a leitura do statement denuncia a origem.
+        // Posicoes nulas significam lista de selecao nao mapeavel: toda calculada e tratada como
+        // sensivel se o statement encostar em segredo em qualquer ponto.
+        val sensitivePositions = SensitiveColumnScanner.sensitivePositions(sql, masking, metadata.columnCount)
         val touchesSecret by lazy { SensitiveColumnScanner.touchesSensitiveColumn(sql, masking) }
         val columns = (1..metadata.columnCount).map { index ->
             val label = metadata.getColumnLabel(index).orEmpty()
             val origin = baseColumnName(metadata, index)
             val name = label.ifBlank { origin }
-            // Coluna calculada nao tem coluna de origem; so a leitura do statement denuncia a origem.
             val computed = origin.isBlank()
+            val computedFromSecret =
+                if (sensitivePositions == null) touchesSecret else index in sensitivePositions
             QueryColumn(
                 name = name,
                 type = metadata.getColumnTypeName(index) ?: "unknown",
                 masked = masking.ruleFor(listOf(label, origin)) == MaskingRule.MASK ||
-                    (computed && touchesSecret),
+                    (computed && computedFromSecret),
             )
         }
 
