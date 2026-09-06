@@ -27,6 +27,8 @@ data class RepositoryResponse(
     val remoteIdentity: String? = null,
     /** Texto livre escrito pelo desenvolvedor sobre o que este repositório é. */
     val description: String? = null,
+    /** Caminhos que o Prumo recusa ler, listar e varrer neste repositório. Regra, não pedido. */
+    val excludedPaths: List<String> = emptyList(),
 )
 
 @Serializable
@@ -176,6 +178,7 @@ object WorkspaceReports {
         // O remote cru pode carregar usuário e token na URL; a forma normalizada descarta a credencial.
         remoteIdentity = gitRemote?.let(RepositoryFingerprint.Companion::normalizeRemote),
         description = description,
+        excludedPaths = excludedPaths,
     )
 }
 

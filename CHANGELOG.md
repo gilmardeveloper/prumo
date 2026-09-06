@@ -6,6 +6,19 @@ All notable changes to this project are documented here. The format follows
 
 ## [Unreleased]
 
+## [0.1.0-rc.4] - 2026-09-06
+
+### Added
+
+- **Excluded paths per repository.** A section in the repository binding dialog lists folders and
+  files Prumo refuses to read, list or search. Until now the only way to say "ignore the AI context
+  folders" was a sentence in the repository description — which a field test showed for what it is:
+  one blind agent read it and complied, another read it and listed `.claude`, `.idea` and `target`
+  anyway, reporting "guidance in prose, no enforcement". Now the three repository tools enforce it.
+  `.git` became the first built-in entry of that list instead of a special case in the code.
+- `prumo_workspace_get_repositories` publishes `excludedPaths`, so the AI client is told the rule
+  instead of discovering it by trial.
+
 ## [0.1.0-rc.3] - 2026-09-06
 
 Found by three blind agents driving the real MCP transport against a live IDE, without knowledge of
@@ -107,7 +120,8 @@ full cycle with a real AI client — are still open.
 - Repository role and workspace type explain themselves in the dialog: both describe the work to the
   AI client and enforce nothing, which access modes and policies do.
 
-[Unreleased]: https://github.com/gilmardeveloper/prumo/compare/v0.1.0-rc.3...HEAD
+[Unreleased]: https://github.com/gilmardeveloper/prumo/compare/v0.1.0-rc.4...HEAD
+[0.1.0-rc.4]: https://github.com/gilmardeveloper/prumo/compare/v0.1.0-rc.3...v0.1.0-rc.4
 [0.1.0-rc.3]: https://github.com/gilmardeveloper/prumo/compare/v0.1.0-rc.2...v0.1.0-rc.3
 [0.1.0-rc.2]: https://github.com/gilmardeveloper/prumo/compare/v0.1.0-rc.1...v0.1.0-rc.2
 [0.1.0-rc.1]: https://github.com/gilmardeveloper/prumo/releases/tag/v0.1.0-rc.1

@@ -45,6 +45,9 @@ Os repositórios vinculados com papel, modo de acesso e identidade normalizada d
 que é, para que serve e quais regras dele importam. Os papéis são `PRIMARY` (o que está sendo
 construído, incluindo o projeto aberto), `REFERENCE`, `LEGACY_REFERENCE` e `RELATED_COMPONENT`; eles
 descrevem, não concedem — quem concede é o modo de acesso.
+Traz também `excludedPaths`: os caminhos que o Prumo recusa ler, listar e varrer naquele repositório.
+Não é pedido — as três tools de repositório impõem. O `.git` está sempre nessa lista, mesmo sem
+configuração.
 Nunca um caminho local, nunca a URL crua do remote — uma URL pode carregar token embutido.
 
 ### `prumo_workspace_get_documentation_sources`
