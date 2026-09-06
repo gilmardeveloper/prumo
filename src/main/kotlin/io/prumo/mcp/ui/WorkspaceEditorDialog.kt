@@ -189,7 +189,7 @@ class WorkspaceEditorDialog(
         if (!dialog.showAndGet()) {
             return
         }
-        val profile = dialog.toProfile()
+        val profile = profileOrReport(dialog) ?: return
         if (datasources.elements().toList().any { it.id == profile.id }) {
             return
         }
@@ -201,8 +201,26 @@ class WorkspaceEditorDialog(
         if (!dialog.showAndGet()) {
             return
         }
-        datasources.set(index, dialog.toProfile())
+        datasources.set(index, profileOrReport(dialog) ?: return)
     }
+
+    /**
+     * Monta o perfil, e diz na tela o que houve quando o domínio o recusa.
+     *
+     * Sem isto a recusa some com o banco sem uma palavra: o diálogo fecha e a lista continua como
+     * estava, como se nada tivesse sido pedido.
+     */
+    private fun profileOrReport(dialog: DataSourceDialog): DataSourceProfile? =
+        try {
+            dialog.toProfile()
+        } catch (recusa: IllegalArgumentException) {
+            Messages.showErrorDialog(
+                project,
+                PrumoBundle.message("datasource.invalid", recusa.message.orEmpty()),
+                "Prumo MCP",
+            )
+            null
+        }
 
     /** Remove o perfil e a senha correspondente no cofre. */
     private fun removeDatasource(index: Int) {
