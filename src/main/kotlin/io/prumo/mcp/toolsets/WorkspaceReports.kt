@@ -46,6 +46,15 @@ data class PolicyDecisionResponse(
     val action: String,
     val allowed: Boolean,
     val reason: String? = null,
+    /** Preenchido nas ações de banco: a decisão vale por datasource, não para o workspace inteiro. */
+    val datasources: List<DataSourceDecisionResponse>? = null,
+)
+
+@Serializable
+data class DataSourceDecisionResponse(
+    val datasourceId: String,
+    val allowed: Boolean,
+    val reason: String? = null,
 )
 
 @Serializable
@@ -71,6 +80,19 @@ data class DocumentationSourceResponse(
     val available: Boolean,
     /** Falso para formatos apenas catalogados, como PDF: o documento é conhecido, o texto não é lido. */
     val textExtractionSupported: Boolean,
+)
+
+@Serializable
+data class DocumentContentResponse(
+    val documentationId: String,
+    val name: String,
+    val authority: String,
+    val path: String,
+    val text: String,
+    val firstLine: Int,
+    val lastLine: Int,
+    val totalLines: Int,
+    val truncated: Boolean,
 )
 
 @Serializable
@@ -127,20 +149,68 @@ object WorkspaceReports {
             workspaceId = context.workspace.id,
             currentRepositoryAccessMode = context.currentRepository.accessMode.name,
             decisions = PolicyAction.entries.map { action ->
-                val decision = PolicyEngine.evaluate(
-                    PolicyRequest(
-                        action = action,
-                        policies = context.policies,
-                        repositoryAccess = context.currentRepository.accessMode,
-                    ),
-                )
-                PolicyDecisionResponse(
-                    action = action.name,
-                    allowed = decision.allowed,
-                    reason = (decision as? PolicyDecision.Denied)?.reason,
-                )
+                if (action in DATABASE_ACTIONS) databaseDecision(context, action) else decisionFor(context, action)
             },
         )
+
+    private fun decisionFor(context: WorkspaceContext, action: PolicyAction): PolicyDecisionResponse {
+        val decision = PolicyEngine.evaluate(
+            PolicyRequest(
+                action = action,
+                policies = context.policies,
+                repositoryAccess = context.currentRepository.accessMode,
+            ),
+        )
+        return PolicyDecisionResponse(
+            action = action.name,
+            allowed = decision.allowed,
+            reason = (decision as? PolicyDecision.Denied)?.reason,
+        )
+    }
+
+    /**
+     * Decide uma ação de banco contra cada datasource vinculado, não contra uma chamada sem
+     * datasource resolvido.
+     *
+     * Avaliar sem datasource devolvia recusa em workspace onde a consulta funciona, e um cliente que
+     * lesse a política antes de consultar concluía que o banco estava fechado. A ação é permitida
+     * quando qualquer datasource a permite, e o detalhe por datasource acompanha a decisão.
+     */
+    private fun databaseDecision(context: WorkspaceContext, action: PolicyAction): PolicyDecisionResponse {
+        val datasources = context.workspace.datasources
+        if (datasources.isEmpty()) {
+            return PolicyDecisionResponse(
+                action = action.name,
+                allowed = false,
+                reason = "No database is bound to this workspace.",
+                datasources = emptyList(),
+            )
+        }
+
+        val perDatasource = datasources.map { profile ->
+            val decision = PolicyEngine.evaluate(
+                PolicyRequest(
+                    action = action,
+                    policies = context.policies,
+                    repositoryAccess = context.currentRepository.accessMode,
+                    databaseAccess = profile.accessMode,
+                ),
+            )
+            DataSourceDecisionResponse(
+                datasourceId = profile.id,
+                allowed = decision.allowed,
+                reason = (decision as? PolicyDecision.Denied)?.reason,
+            )
+        }
+        val permitido = perDatasource.filter { it.allowed }.map { it.datasourceId }
+
+        return PolicyDecisionResponse(
+            action = action.name,
+            allowed = permitido.isNotEmpty(),
+            reason = if (permitido.isNotEmpty()) null else "No bound database allows this action.",
+            datasources = perDatasource,
+        )
+    }
 
     fun repositories(context: WorkspaceContext): RepositoriesResponse =
         RepositoriesResponse(
@@ -180,6 +250,8 @@ object WorkspaceReports {
         description = description,
         excludedPaths = excludedPaths,
     )
+
+    private val DATABASE_ACTIONS = setOf(PolicyAction.QUERY_DATABASE, PolicyAction.WRITE_DATABASE)
 }
 
 /**
@@ -280,15 +352,16 @@ object WorkspacePreparation {
         if (Files.isRegularFile(location) && !SupportedDocumentFormats.isReadableAsText(location)) {
             return PreparationCheck(
                 check = check,
-                status = CheckStatus.OK,
+                status = CheckStatus.WARNING,
                 message = "Documentation source '${source.name}' is catalogued, but Prumo does not " +
-                    "extract text from this format.",
+                    "extract text from this format: its content is out of reach.",
             )
         }
         return PreparationCheck(
             check = check,
             status = CheckStatus.OK,
-            message = "Documentation source '${source.name}' is available as ${source.authority.name}.",
+            message = "Documentation source '${source.name}' is available as ${source.authority.name} " +
+                "and can be read with prumo_workspace_read_documentation.",
         )
     }
 

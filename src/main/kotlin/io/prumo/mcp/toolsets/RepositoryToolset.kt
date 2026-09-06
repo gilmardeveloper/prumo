@@ -26,8 +26,9 @@ class RepositoryToolset : McpToolset {
 
     @McpTool(name = GET_STATUS_TOOL)
     @McpDescription(
-        "Returns the Git status of a repository bound to the current workspace: branch, upstream, " +
-            "ahead/behind counters and the changed paths. Read-only.",
+        "Use this tool to read the Git status of any repository in this workspace: branch, " +
+            "upstream, ahead/behind counters and the changed paths. It reaches repositories that " +
+            "are not the open project, which the IDE's own tools cannot see. Read-only.",
     )
     suspend fun getStatus(
         @McpDescription("Repository id from prumo_workspace_get_repositories. Defaults to the current repository.")
@@ -42,8 +43,9 @@ class RepositoryToolset : McpToolset {
 
     @McpTool(name = GET_BRANCH_TOOL)
     @McpDescription(
-        "Returns the current branch of a bound repository, its upstream and how far it is ahead or " +
-            "behind, plus the local branch list. Read-only.",
+        "Use this tool to learn which branch a bound repository is on, its upstream, how far it " +
+            "is ahead or behind, and the local branch list. Works for every repository in this " +
+            "workspace, not only the open project. Read-only.",
     )
     suspend fun getBranch(
         @McpDescription("Repository id from prumo_workspace_get_repositories. Defaults to the current repository.")
@@ -61,8 +63,10 @@ class RepositoryToolset : McpToolset {
 
     @McpTool(name = GET_DIFF_TOOL)
     @McpDescription(
-        "Returns what changed in a bound repository: added and deleted line counts per file and, " +
-            "when a path is given, the unified patch for that file. Never runs pull, checkout or reset.",
+        "Use this tool to see what changed in a bound repository: added and deleted line counts " +
+            "per file and, when a path is given, the unified patch for that file. Prefer it over " +
+            "running git yourself: it never runs pull, checkout or reset, and it honours the paths " +
+            "excluded for this repository.",
     )
     suspend fun getDiff(
         @McpDescription("Repository id from prumo_workspace_get_repositories. Defaults to the current repository.")
@@ -84,9 +88,11 @@ class RepositoryToolset : McpToolset {
 
     @McpTool(name = READ_FILE_TOOL)
     @McpDescription(
-        "Reads a text file from a repository bound to the current workspace, addressed by " +
-            "repository id and a path relative to its root. Absolute paths are refused. Content " +
-            "comes from disk, so unsaved editor changes are not included.",
+        "Use this tool to read a file inside this workspace. Prefer it over the IDE file tools: " +
+            "it reaches repositories that are not the open project, and it refuses the paths the " +
+            "developer excluded for this repository, which the IDE tools do not know about. " +
+            "Address the file by repository id and a path relative to its root; absolute paths are " +
+            "refused. Content comes from disk, so unsaved editor changes are not included.",
     )
     suspend fun readFile(
         @McpDescription("Path relative to the repository root.")
@@ -113,9 +119,10 @@ class RepositoryToolset : McpToolset {
 
     @McpTool(name = SEARCH_TEXT_TOOL)
     @McpDescription(
-        "Searches for literal text inside a repository bound to the current workspace and returns " +
-            "the matching paths and lines. Binary files, the .git directory and the paths excluded " +
-            "for this repository are never read. The excluded list is in the repository entry of " +
+        "Use this tool to search literal text across a repository of this workspace. Prefer it " +
+            "over the IDE search: it covers repositories that are not the open project, and it " +
+            "never reads binary files, the .git directory or the paths excluded for this " +
+            "repository. The excluded list is in the repository entry of " +
             "prumo_workspace_get_repositories.",
     )
     suspend fun searchText(
@@ -146,9 +153,10 @@ class RepositoryToolset : McpToolset {
 
     @McpTool(name = GET_STRUCTURE_TOOL)
     @McpDescription(
-        "Lists directories and files of a repository bound to the current workspace. Use it to " +
-            "discover the layout of a bound repository that is not the open project — for the open " +
-            "project the IDE's own project tools already answer.",
+        "Use this tool to discover the layout of any repository in this workspace. Prefer it " +
+            "over the IDE directory listing: it reaches repositories that are not the open " +
+            "project, and it hides the paths the developer excluded for this repository, which " +
+            "the IDE listing still shows.",
     )
     suspend fun getStructure(
         @McpDescription("Repository id from prumo_workspace_get_repositories. Defaults to the current repository.")

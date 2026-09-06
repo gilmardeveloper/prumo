@@ -50,9 +50,16 @@ Never a local path, never a raw remote URL — a URL can carry an embedded token
 The attached documentation with authority level and whether Prumo can read it as text. PDF is
 reported as catalogued and not extractable.
 
+### `prumo_workspace_read_documentation`
+Reads the content of a documentation source, addressed by its `documentationId`. When the source is a
+folder, it also takes the path of a file inside it. Pages by line. Absolute paths, parent traversal
+and any path that leaves the registered root are refused; a catalogue-only format such as PDF is
+refused with an explanation.
+
 ### `prumo_workspace_prepare`
 Validates the workspace and returns `READY`, `WARNING` or `ERROR` with one check per repository and
-documentation source. **Read-only**: it never runs `git pull`, `checkout`, `reset` or any mutation.
+documentation source. A source whose content Prumo cannot read is reported as `WARNING`.
+**Read-only**: it never runs `git pull`, `checkout`, `reset` or any mutation.
 
 ---
 

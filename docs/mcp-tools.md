@@ -54,10 +54,16 @@ Nunca um caminho local, nunca a URL crua do remote — uma URL pode carregar tok
 A documentação anexada, com nível de autoridade e se o Prumo consegue lê-la como texto. PDF é
 reportado como catalogado e não extraível.
 
+### `prumo_workspace_read_documentation`
+Lê o conteúdo de uma fonte de documentação, endereçada pelo `documentationId`. Quando a fonte é uma
+pasta, recebe também o caminho de um arquivo dentro dela. Pagina por linha. Caminho absoluto,
+travessia e qualquer caminho que escape da raiz cadastrada são recusados; formato apenas catalogado,
+como PDF, é recusado com a explicação.
+
 ### `prumo_workspace_prepare`
 Valida o workspace e devolve `READY`, `WARNING` ou `ERROR`, com uma verificação por repositório e por
-fonte de documentação. **Somente leitura**: nunca roda `git pull`, `checkout`, `reset` nem qualquer
-mutação.
+fonte de documentação. Fonte cujo conteúdo o Prumo não lê vira `WARNING`. **Somente leitura**: nunca
+roda `git pull`, `checkout`, `reset` nem qualquer mutação.
 
 ---
 

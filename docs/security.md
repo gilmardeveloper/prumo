@@ -96,8 +96,34 @@ de IA, e isso está fora do alcance deste plugin.
 
 A máscara decide pela **coluna de origem**, lida do metadado do driver, e não pelo apelido que o
 cliente escolheu: `SELECT senha AS num_matricula` volta mascarado. Coluna calculada não tem coluna de
-origem no metadado, então uma consulta que encoste em nome sensível mascara também as calculadas —
-sobra máscara, e essa é a direção aceita.
+origem no metadado; nesse caso o Prumo lê a lista de seleção e mascara a coluna cuja própria
+expressão encosta em nome sensível. Quando a lista não pode ser mapeada com segurança — expansão por
+`*`, statement que não é um `SELECT` simples —, todas as calculadas são mascaradas: sobra máscara, e
+essa é a direção aceita.
+
+## Ofuscação de dado pessoal
+
+Segredo de autenticação é substituído por inteiro. **Dado pessoal é parcialmente escondido**, o
+suficiente para não ser reconstruído e pouco o bastante para a IA continuar entendendo o campo: CPF
+sai como `123.***.789-**`, telefone como `(85) ****-4321`, nome como `Maria S. S.`, e-mail preserva
+o domínio, e data de nascimento preserva o ano — faixa etária e regra por idade continuam
+analisáveis.
+
+Três decisões sustentam isso:
+
+- **Dígito verificador nunca é exibido.** Ele é função dos demais dígitos: não acrescenta informação
+  de negócio, e permite conferir um palpite vindo de outra fonte.
+- **Ofusca-se o dado, nunca o metadado.** Nome de coluna, tipo, comentário, constraint e índice saem
+  íntegros. A IA precisa entender a estrutura por inteiro para escrever consulta correta; o que ela
+  não precisa é do documento da pessoa.
+- **A ofuscação acontece na saída**, depois de o banco ter resolvido a consulta. Junção, agrupamento,
+  filtro e ordenação continuam operando sobre o valor real.
+
+O interruptor fica no vínculo do banco e **nasce ligado**: um banco recém-vinculado protege sem
+depender de alguém lembrar de ativar.
+
+O limite é conhecido: valor ofuscado **não é chave**. Dois valores que diferem apenas nos dígitos
+escondidos saem iguais, e igualdade na saída não prova igualdade na origem.
 
 O que a máscara **não** faz é impedir inferência. Uma consulta que use a coluna sensível num
 predicado — `WHERE senha = 'tentativa'` — devolve linhas ou não devolve, e isso confirma o valor sem

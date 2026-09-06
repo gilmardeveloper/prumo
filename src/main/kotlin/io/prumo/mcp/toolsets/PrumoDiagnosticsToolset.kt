@@ -19,8 +19,10 @@ class PrumoDiagnosticsToolset : McpToolset {
     @Suppress("FunctionName")
     @McpTool
     @McpDescription(
-        "Reports whether Prumo MCP is active and which open project the current call resolves to. " +
-            "Use it to confirm connectivity before calling any other Prumo tool.",
+        "Use this tool to check whether Prumo MCP is active and which open project the current " +
+            "call resolves to. Prumo gives you the workspace this project belongs to — its " +
+            "repositories, documentation and databases — and enforces its boundary. When it is " +
+            "active, call prumo_workspace_prepare next.",
     )
     suspend fun prumo_diagnostics(): PrumoDiagnostics {
         val project = McpProjectResolver.resolve(coroutineContext)

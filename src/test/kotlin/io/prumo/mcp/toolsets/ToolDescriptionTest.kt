@@ -1,0 +1,118 @@
+package io.prumo.mcp.toolsets
+
+import com.intellij.mcpserver.annotations.McpDescription
+import com.intellij.mcpserver.annotations.McpTool
+import org.junit.jupiter.api.Assertions.assertTrue
+import org.junit.jupiter.api.Tag
+import org.junit.jupiter.api.Test
+
+/**
+ * A descrição de cada tool é a única superfície pela qual o Prumo se apresenta ao cliente de IA.
+ *
+ * O servidor MCP da IDE não transmite texto de apresentação, e as tools do Prumo chegam ao cliente
+ * no fim de uma lista longa, disputando a mesma necessidade com as tools nativas. Uma descrição que
+ * apenas declara o que a tool faz perde para uma que diz quando usá-la.
+ */
+@Tag("security")
+class ToolDescriptionTest {
+
+    private data class Tool(val name: String, val description: String)
+
+    private val tools: List<Tool> = listOf(
+        WorkspaceToolset::class.java,
+        RepositoryToolset::class.java,
+        IdeToolset::class.java,
+        DatabaseToolset::class.java,
+        PackToolset::class.java,
+        PackAuthoringToolset::class.java,
+    ).flatMap { toolset ->
+        toolset.declaredMethods.mapNotNull { method ->
+            val name = method.getAnnotation(McpTool::class.java)?.name ?: return@mapNotNull null
+            Tool(name, method.getAnnotation(McpDescription::class.java)?.description.orEmpty())
+        }
+    }
+
+    @Test
+    fun `nenhuma descricao entrega o cliente a outra familia de ferramentas`() {
+        val cedendo = tools.filter { tool ->
+            CESSAO.any { tool.description.contains(it, ignoreCase = true) }
+        }
+
+        assertTrue(cedendo.isEmpty(), "descrição cedendo a preferência: ${cedendo.map { it.name }}")
+    }
+
+    @Test
+    fun `as tools de leitura dizem quando devem ser usadas`() {
+        val semInstrucao = tools
+            .filter { it.name in INSTRUCTIVE }
+            .filterNot { tool -> INSTRUCAO.any { tool.description.contains(it) } }
+
+        assertTrue(semInstrucao.isEmpty(), "descrição sem instrução de uso: ${semInstrucao.map { it.name }}")
+    }
+
+    /**
+     * O servidor da IDE não transmite texto de apresentação: entre a conexão e a primeira chamada,
+     * o cliente recebe do Prumo apenas nomes e descrições. Se nenhuma delas apontar o ponto de
+     * partida, ele não existe para quem chega sem contexto.
+     */
+    @Test
+    fun `as tools de entrada apontam o ponto de partida`() {
+        val entrada = tools.filter { it.name in ENTRY_POINTS }
+        val semRota = entrada.filterNot { it.description.contains(PREPARE) }
+
+        assertTrue(entrada.isNotEmpty(), "nenhuma tool de entrada encontrada")
+        assertTrue(semRota.isEmpty(), "tool de entrada sem rota para $PREPARE: ${semRota.map { it.name }}")
+    }
+
+    @Test
+    fun `o ponto de partida se apresenta como tal`() {
+        val prepare = tools.single { it.name == PREPARE }
+
+        assertTrue(prepare.description.contains("Call this first"), "prepare não se anuncia como primeiro passo")
+        assertTrue(prepare.description.contains("boundary"), "prepare não explica o que é um workspace")
+    }
+
+    @Test
+    fun `toda tool tem descricao`() {
+        val vazias = tools.filter { it.description.isBlank() }
+
+        assertTrue(vazias.isEmpty(), "tool sem descrição: ${vazias.map { it.name }}")
+    }
+
+    private companion object {
+        /** Formulações que mandam o cliente procurar a resposta fora do Prumo. */
+        val CESSAO = listOf(
+            "already answer",
+            "use the IDE's own",
+            "the IDE's own project tools",
+        )
+
+        val INSTRUCAO = listOf("Use this tool", "Prefer it over", "Call it")
+
+        const val PREPARE = "prumo_workspace_prepare"
+
+        /** Tools por onde um cliente sem contexto chega ao Prumo. */
+        val ENTRY_POINTS = setOf(
+            "prumo_workspace_get_context",
+            "prumo_workspace_get_repositories",
+        )
+
+        /**
+         * Tools que competem por uma necessidade que a família nativa também atende, e por isso
+         * precisam dizer ao cliente quando escolhê-las.
+         */
+        val INSTRUCTIVE = setOf(
+            "prumo_database_describe_table",
+            "prumo_database_get_schema",
+            "prumo_database_list_available",
+            "prumo_database_list_tables",
+            "prumo_ide_get_current_context",
+            "prumo_repository_get_branch",
+            "prumo_repository_get_diff",
+            "prumo_repository_get_status",
+            "prumo_repository_get_structure",
+            "prumo_repository_read_file",
+            "prumo_repository_search_text",
+        )
+    }
+}
