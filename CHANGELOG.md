@@ -6,6 +6,20 @@ All notable changes to this project are documented here. The format follows
 
 ## [Unreleased]
 
+## [0.1.0-rc.5] - 2026-09-06
+
+### Fixed
+
+- **Excluded paths could be reached by changing the case of the name.** The exclusion compared the
+  text the client sent, while the Windows filesystem ignores case, so `claude.md` opened the excluded
+  `CLAUDE.md` and `DOCS/` listed the excluded `docs/`. A blind agent read an excluded file whole this
+  way, minutes after the feature shipped. The comparison now runs over the real on-disk path and
+  ignores case on every platform.
+- **`prumo_diagnostics` reported a version written by hand in the code**, frozen at `0.1.0` while
+  `0.1.0-rc.4` was installed — the one tool whose job is to say what is running. It now reads the
+  version from the installed plugin descriptor, and a test fails if any source repeats the version
+  declared in the build.
+
 ## [0.1.0-rc.4] - 2026-09-06
 
 ### Added
@@ -120,7 +134,8 @@ full cycle with a real AI client — are still open.
 - Repository role and workspace type explain themselves in the dialog: both describe the work to the
   AI client and enforce nothing, which access modes and policies do.
 
-[Unreleased]: https://github.com/gilmardeveloper/prumo/compare/v0.1.0-rc.4...HEAD
+[Unreleased]: https://github.com/gilmardeveloper/prumo/compare/v0.1.0-rc.5...HEAD
+[0.1.0-rc.5]: https://github.com/gilmardeveloper/prumo/compare/v0.1.0-rc.4...v0.1.0-rc.5
 [0.1.0-rc.4]: https://github.com/gilmardeveloper/prumo/compare/v0.1.0-rc.3...v0.1.0-rc.4
 [0.1.0-rc.3]: https://github.com/gilmardeveloper/prumo/compare/v0.1.0-rc.2...v0.1.0-rc.3
 [0.1.0-rc.2]: https://github.com/gilmardeveloper/prumo/compare/v0.1.0-rc.1...v0.1.0-rc.2
