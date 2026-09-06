@@ -6,6 +6,8 @@ All notable changes to this project are documented here. The format follows
 
 ## [Unreleased]
 
+## [0.1.0-rc.8] - 2026-09-06
+
 ### Fixed
 
 - **A repository with excluded paths was silently dropped instead of being bound.** The dialog said
@@ -168,7 +170,8 @@ full cycle with a real AI client — are still open.
 - Repository role and workspace type explain themselves in the dialog: both describe the work to the
   AI client and enforce nothing, which access modes and policies do.
 
-[Unreleased]: https://github.com/gilmardeveloper/prumo/compare/v0.1.0-rc.7...HEAD
+[Unreleased]: https://github.com/gilmardeveloper/prumo/compare/v0.1.0-rc.8...HEAD
+[0.1.0-rc.8]: https://github.com/gilmardeveloper/prumo/compare/v0.1.0-rc.7...v0.1.0-rc.8
 [0.1.0-rc.7]: https://github.com/gilmardeveloper/prumo/compare/v0.1.0-rc.6...v0.1.0-rc.7
 [0.1.0-rc.6]: https://github.com/gilmardeveloper/prumo/compare/v0.1.0-rc.5...v0.1.0-rc.6
 [0.1.0-rc.5]: https://github.com/gilmardeveloper/prumo/compare/v0.1.0-rc.4...v0.1.0-rc.5
