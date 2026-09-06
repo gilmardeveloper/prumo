@@ -4,6 +4,10 @@ import com.intellij.mcpserver.McpToolset
 import com.intellij.mcpserver.annotations.McpDescription
 import com.intellij.mcpserver.annotations.McpTool
 import io.prumo.mcp.policy.PolicyAction
+import kotlinx.coroutines.withContext
+import kotlinx.coroutines.Dispatchers
+import io.prumo.mcp.documentation.DocumentationReader
+import io.prumo.mcp.documentation.DocumentationReadException
 
 /**
  * Superfície MCP do workspace corrente.
@@ -66,6 +70,50 @@ class WorkspaceToolset : McpToolset {
             WorkspaceReports.documentationSources(call.context)
         }
 
+    @McpTool(name = READ_DOCUMENTATION_TOOL)
+    @McpDescription(
+        "Use this tool to read the documentation the developer attached to this workspace. Prefer " +
+            "it over inferring a rule from the code: a specification or manual listed here carries " +
+            "more authority than an implementation. Address the source by the documentationId from " +
+            "prumo_workspace_get_documentation_sources; when the source is a folder, pass the path " +
+            "of a file inside it. Formats Prumo only catalogues, such as PDF, are refused with an " +
+            "explanation.",
+    )
+    suspend fun readDocumentation(
+        @McpDescription("Documentation id from prumo_workspace_get_documentation_sources.")
+        documentationId: String,
+        @McpDescription("Path of a file inside the source, relative to its root. Only for folder sources.")
+        path: String? = null,
+        @McpDescription("First line to return, starting at 1.")
+        firstLine: Int = 1,
+        @McpDescription("How many lines to return at most.")
+        maxLines: Int = DocumentationReader.DEFAULT_MAX_LINES,
+    ): DocumentContentResponse =
+        prumoToolCall(
+            READ_DOCUMENTATION_TOOL,
+            "workspace.read_documentation",
+            PolicyAction.READ_DOCUMENTATION,
+        ) { call ->
+            val source = call.context.workspace.documentation.firstOrNull { it.id == documentationId }
+                ?: throw DocumentationReadException(
+                    "Documentation source '$documentationId' is not attached to this workspace.",
+                )
+            val slice = withContext(Dispatchers.IO) {
+                DocumentationReader.read(source, path, firstLine, maxLines)
+            }
+            DocumentContentResponse(
+                documentationId = slice.documentationId,
+                name = source.name,
+                authority = source.authority.name,
+                path = slice.path,
+                text = slice.text,
+                firstLine = slice.firstLine,
+                lastLine = slice.lastLine,
+                totalLines = slice.totalLines,
+                truncated = slice.truncated,
+            )
+        }
+
     @McpTool(name = PREPARE_TOOL)
     @McpDescription(
         "Call this first, before reading anything in this project. A Prumo workspace is the " +
@@ -86,5 +134,6 @@ class WorkspaceToolset : McpToolset {
         const val GET_REPOSITORIES_TOOL = "prumo_workspace_get_repositories"
         const val GET_DOCUMENTATION_SOURCES_TOOL = "prumo_workspace_get_documentation_sources"
         const val PREPARE_TOOL = "prumo_workspace_prepare"
+        const val READ_DOCUMENTATION_TOOL = "prumo_workspace_read_documentation"
     }
 }

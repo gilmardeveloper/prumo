@@ -83,6 +83,19 @@ data class DocumentationSourceResponse(
 )
 
 @Serializable
+data class DocumentContentResponse(
+    val documentationId: String,
+    val name: String,
+    val authority: String,
+    val path: String,
+    val text: String,
+    val firstLine: Int,
+    val lastLine: Int,
+    val totalLines: Int,
+    val truncated: Boolean,
+)
+
+@Serializable
 data class DocumentationSourcesResponse(
     val workspaceId: String,
     val sources: List<DocumentationSourceResponse>,
@@ -339,15 +352,16 @@ object WorkspacePreparation {
         if (Files.isRegularFile(location) && !SupportedDocumentFormats.isReadableAsText(location)) {
             return PreparationCheck(
                 check = check,
-                status = CheckStatus.OK,
+                status = CheckStatus.WARNING,
                 message = "Documentation source '${source.name}' is catalogued, but Prumo does not " +
-                    "extract text from this format.",
+                    "extract text from this format: its content is out of reach.",
             )
         }
         return PreparationCheck(
             check = check,
             status = CheckStatus.OK,
-            message = "Documentation source '${source.name}' is available as ${source.authority.name}.",
+            message = "Documentation source '${source.name}' is available as ${source.authority.name} " +
+                "and can be read with prumo_workspace_read_documentation.",
         )
     }
 
