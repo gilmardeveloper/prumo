@@ -14,8 +14,9 @@ import javax.swing.JComponent
 /**
  * *Settings · Tools · Prumo MCP* — onde o idioma da interface é escolhido.
  *
- * O nome exibido é resolvido em código, e não pelo `<resource-bundle>` do `plugin.xml`, que segue
- * sempre o idioma da IDE.
+ * O nome exibido vem do `displayName` do `plugin.xml`, que a plataforma exige para não carregar esta
+ * classe ao abrir Settings. [getDisplayName] devolve o mesmo texto, para quando ela consulta a
+ * instância.
  */
 class PrumoLanguageConfigurable : Configurable {
 

@@ -8,7 +8,7 @@
         for MCP-capable AI clients such as Claude, Codex and Gemini.</p>
         <p>Prumo is not an AI. It is a deterministic layer between the IDE, your code, Git,
         documentation, databases, policies and the external AI client. It defines the boundary the
-        assistant may work within &mdash; and enforces it.</p>
+        assistant may work within — and enforces it.</p>
         <ul>
             <li>Workspaces that isolate repositories, documentation and databases from one another</li>
             <li>Read-only PostgreSQL access with layered protection</li>
@@ -30,10 +30,11 @@
                     anchor="right"
                     factoryClass="io.prumo.mcp.ui.PrumoToolWindowFactory" />
 
-        <!-- Sem 'key' de proposito: o nome exibido vem de getDisplayName(), que obedece a
-             preferencia de idioma do Prumo; a chave do resource-bundle obedeceria so a IDE. -->
+        <!-- 'displayName' literal: a plataforma exige nome no descritor para nao carregar a
+             classe ao abrir Settings, e o nome do produto e o mesmo nos dois idiomas. -->
         <applicationConfigurable id="io.prumo.mcp.settings"
                                  parentId="tools"
+                                 displayName="Prumo MCP"
                                  instance="io.prumo.mcp.settings.PrumoLanguageConfigurable" />
     </extensions>
 
