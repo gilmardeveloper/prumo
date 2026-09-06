@@ -100,7 +100,13 @@ class RepositoryToolset : McpToolset {
     ): FileContentResponse =
         repositoryCall(READ_FILE_TOOL, "repository.read_file", repositoryId) { call ->
             val slice = withContext(Dispatchers.IO) {
-                RepositoryReader.readFile(rootOf(call.repository), path, firstLine, maxLines)
+                RepositoryReader.readFile(
+                    rootOf(call.repository),
+                    path,
+                    firstLine,
+                    maxLines,
+                    call.repository.excludedPaths,
+                )
             }
             RepositoryReports.file(call.repository, slice)
         }
@@ -108,7 +114,8 @@ class RepositoryToolset : McpToolset {
     @McpTool(name = SEARCH_TEXT_TOOL)
     @McpDescription(
         "Searches for literal text inside a repository bound to the current workspace and returns " +
-            "the matching paths and lines. Binary files and the .git directory are never read.",
+            "the matching paths and lines. Binary files, the .git directory and the paths excluded " +
+            "for this repository in the workspace are never read.",
     )
     suspend fun searchText(
         @McpDescription("Text to look for.")
@@ -124,7 +131,14 @@ class RepositoryToolset : McpToolset {
     ): TextSearchResponse =
         repositoryCall(SEARCH_TEXT_TOOL, "repository.search_text", repositoryId) { call ->
             val outcome = withContext(Dispatchers.IO) {
-                RepositoryReader.searchText(rootOf(call.repository), query, scope, ignoreCase, maxResults)
+                RepositoryReader.searchText(
+                    root = rootOf(call.repository),
+                    query = query,
+                    scope = scope,
+                    ignoreCase = ignoreCase,
+                    maxResults = maxResults,
+                    excluded = call.repository.excludedPaths,
+                )
             }
             RepositoryReports.search(call.repository, query, outcome)
         }
@@ -147,7 +161,13 @@ class RepositoryToolset : McpToolset {
     ): RepositoryStructureResponse =
         repositoryCall(GET_STRUCTURE_TOOL, "project.get_structure", repositoryId) { call ->
             val listing = withContext(Dispatchers.IO) {
-                RepositoryReader.listDirectory(rootOf(call.repository), path, maxDepth, maxEntries)
+                RepositoryReader.listDirectory(
+                    rootOf(call.repository),
+                    path,
+                    maxDepth,
+                    maxEntries,
+                    call.repository.excludedPaths,
+                )
             }
             RepositoryReports.structure(call.repository, listing)
         }

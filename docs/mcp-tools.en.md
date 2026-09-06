@@ -41,6 +41,9 @@ plus the free-text `description` the developer wrote about each one: what it is,
 and which of its rules matter. Roles are `PRIMARY` (what is being built, including the open
 project), `REFERENCE`, `LEGACY_REFERENCE` and `RELATED_COMPONENT`; they describe, they do not
 grant — access mode does.
+It also carries `excludedPaths`: the paths Prumo refuses to read, list or search in that repository.
+This is not a request — the three repository tools enforce it. `.git` is always on that list, with no
+configuration.
 Never a local path, never a raw remote URL — a URL can carry an embedded token.
 
 ### `prumo_workspace_get_documentation_sources`

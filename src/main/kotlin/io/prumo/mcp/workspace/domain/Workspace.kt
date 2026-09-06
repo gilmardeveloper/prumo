@@ -54,6 +54,14 @@ data class RepositoryBinding(
     val fingerprint: String? = null,
     /** O que este repositorio e, escrito pelo desenvolvedor e entregue ao cliente de IA. */
     val description: String? = null,
+    /**
+     * Caminhos que o Prumo nunca le, lista, nem varre neste repositorio.
+     *
+     * Diferente da [description], que é contexto entregue à IA e que ela pode ignorar, esta lista é
+     * imposta pelas tools. Vale para a superfície do Prumo: outra família de ferramentas do servidor
+     * MCP continua alcançando o disco por conta própria.
+     */
+    val excludedPaths: List<String> = emptyList(),
 ) {
     init {
         require(id.matches(IDENTIFIER)) { "Invalid repository id '$id'." }
@@ -62,12 +70,27 @@ data class RepositoryBinding(
         require((description?.length ?: 0) <= MAX_DESCRIPTION_LENGTH) {
             "Repository description must not exceed $MAX_DESCRIPTION_LENGTH characters."
         }
+        require(excludedPaths.size <= MAX_EXCLUDED_PATHS) {
+            "A repository must not exclude more than $MAX_EXCLUDED_PATHS paths."
+        }
+        excludedPaths.forEach { entry ->
+            require(entry.isNotBlank()) { "An excluded path must not be blank." }
+            require(entry.trim() == entry) { "Excluded path '$entry' has surrounding blanks." }
+            require(!entry.contains("..")) { "Excluded path '$entry' must not contain '..'." }
+            require(!ABSOLUTE_LOOKING.containsMatchIn(entry)) {
+                "Excluded path '$entry' must be relative to the repository root."
+            }
+        }
     }
 
     val writable: Boolean get() = accessMode == AccessMode.READ_WRITE
 
     companion object {
         const val MAX_DESCRIPTION_LENGTH = 500
+        const val MAX_EXCLUDED_PATHS = 100
+
+        /** Barra inicial, barra invertida inicial e unidade do Windows. */
+        private val ABSOLUTE_LOOKING = Regex("""^([/\\]|[A-Za-z]:)""")
     }
 }
 

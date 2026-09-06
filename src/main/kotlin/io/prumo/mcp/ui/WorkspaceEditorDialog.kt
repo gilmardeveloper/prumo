@@ -5,6 +5,7 @@ import com.intellij.openapi.fileChooser.FileChooserDescriptor
 import com.intellij.openapi.project.Project
 import com.intellij.openapi.ui.ComboBox
 import com.intellij.openapi.ui.DialogWrapper
+import com.intellij.openapi.ui.Messages
 import com.intellij.openapi.ui.ValidationInfo
 import com.intellij.ui.SimpleListCellRenderer
 import com.intellij.ui.ToolbarDecorator
@@ -306,7 +307,7 @@ class WorkspaceEditorDialog(
 }
 
 class RepositoryBindingDialog(
-    project: Project,
+    private val project: Project,
     private val id: String,
     private val path: Path,
     private val existing: RepositoryBinding? = null,
@@ -332,6 +333,10 @@ class RepositoryBindingDialog(
     private val branchPolicy: String get() = branchPolicyField.text.trim()
     private val description: String get() = descriptionArea.text.trim()
 
+    private val excluded = DefaultListModel<String>().apply {
+        existing?.excludedPaths?.forEach(::addElement)
+    }
+
     init {
         title = PrumoBundle.message("workspace.repository.dialog.title")
         init()
@@ -349,6 +354,15 @@ class RepositoryBindingDialog(
             cell(JBScrollPane(descriptionArea))
         }
         row { comment(PrumoBundle.message("workspace.repository.descriptionHint"), maxLineLength = 62) }
+
+        group(PrumoBundle.message("workspace.repository.section.excluded")) {
+            row {
+                cell(excludedList()).align(com.intellij.ui.dsl.builder.AlignX.FILL)
+            }
+            row {
+                comment(PrumoBundle.message("workspace.repository.excludedHint"), maxLineLength = 62)
+            }
+        }
         row {
             comment(PrumoBundle.message("workspace.repository.hint"))
         }
@@ -379,7 +393,31 @@ class RepositoryBindingDialog(
             branchPolicy = branchPolicy.ifBlank { null },
             fingerprint = RepositoryFingerprint.forDirectory(path).value,
             description = description.ifBlank { null },
+            excludedPaths = excluded.elements().toList(),
         )
+    }
+
+    /**
+     * Lista editável dos caminhos que o Prumo recusa neste repositório.
+     *
+     * O `.git` não aparece aqui: ele é recusado sempre, sem depender de configuração.
+     */
+    private fun excludedList(): JComponent {
+        val list = JBList(excluded).apply { visibleRowCount = 4 }
+        return ToolbarDecorator.createDecorator(list)
+            .setAddAction {
+                val digitado = Messages.showInputDialog(
+                    project,
+                    PrumoBundle.message("workspace.repository.excluded.prompt"),
+                    PrumoBundle.message("workspace.repository.section.excluded"),
+                    null,
+                )?.trim().orEmpty()
+                if (digitado.isNotBlank() && !excluded.contains(digitado)) {
+                    excluded.addElement(digitado)
+                }
+            }
+            .setRemoveAction { list.selectedIndex.takeIf { it >= 0 }?.let(excluded::remove) }
+            .createPanel()
     }
 
     private companion object {

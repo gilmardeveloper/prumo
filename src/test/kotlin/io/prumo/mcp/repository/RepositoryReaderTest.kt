@@ -154,4 +154,57 @@ class RepositoryReaderTest {
         assertFalse(falha.message.orEmpty().contains("token"), "a recusa nao pode ecoar o conteudo")
     }
 
+
+    /**
+     * Exclusao escrita na descricao do repositorio e pedido: um agente cego respeitou, outro listou
+     * a pasta assim mesmo. Aqui ela e regra, e vale nos tres pontos de leitura.
+     */
+    @Test
+    fun `caminho excluido e recusado na leitura`(@TempDir root: Path) {
+        val repo = repository(root)
+        root.resolve("target").createDirectories()
+        root.resolve("target/saida.txt").writeText("bytecode")
+
+        val falha = assertThrows<RepositoryReadException> {
+            RepositoryReader.readFile(repo, "target/saida.txt", excluded = listOf("target"))
+        }
+
+        assertTrue(falha.message.orEmpty().contains("excluded"), falha.message.orEmpty())
+        assertFalse(falha.message.orEmpty().contains("bytecode"), "a recusa nao ecoa o conteudo")
+    }
+
+    @Test
+    fun `caminho excluido nao aparece na listagem nem na busca`(@TempDir root: Path) {
+        val repo = repository(root)
+        root.resolve(".claude/skills").createDirectories()
+        root.resolve(".claude/skills/SKILL.md").writeText("segredo de contexto")
+
+        val listagem = RepositoryReader.listDirectory(repo, null, 3, 300, listOf(".claude"))
+        assertFalse(listagem.entries.any { it.path.contains(".claude") }, listagem.entries.toString())
+
+        val busca = RepositoryReader.searchText(repo, "segredo de contexto", excluded = listOf(".claude"))
+        assertTrue(busca.matches.isEmpty(), busca.matches.toString())
+    }
+
+    @Test
+    fun `arquivo solto tambem pode ser excluido`(@TempDir root: Path) {
+        val repo = repository(root)
+        root.resolve("CLAUDE.md").writeText("instrucoes de IA")
+
+        assertThrows<RepositoryReadException> {
+            RepositoryReader.readFile(repo, "CLAUDE.md", excluded = listOf("CLAUDE.md"))
+        }
+    }
+
+    @Test
+    fun `sem exclusao configurada o repositorio continua legivel`(@TempDir root: Path) {
+        val repo = repository(root)
+        root.resolve("target").createDirectories()
+        root.resolve("target/saida.txt").writeText("bytecode")
+
+        val slice = RepositoryReader.readFile(repo, "target/saida.txt")
+
+        assertEquals("bytecode", slice.text)
+    }
+
 }

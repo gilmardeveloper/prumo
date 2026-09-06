@@ -58,14 +58,21 @@ object RepositoryReader {
     private const val MAX_READABLE_BYTES = 2L * 1024 * 1024
     private const val SNIPPET_LENGTH = 200
 
-    fun readFile(root: Path, relativePath: String, firstLine: Int = 1, maxLines: Int = 400): FileSlice {
+    fun readFile(
+        root: Path,
+        relativePath: String,
+        firstLine: Int = 1,
+        maxLines: Int = 400,
+        excluded: List<String> = emptyList(),
+    ): FileSlice {
         require(firstLine >= 1) { "firstLine must be 1 or greater." }
         require(maxLines >= 1) { "maxLines must be 1 or greater." }
 
         val file = PathSecurityValidator.resolve(root, relativePath)
-        if (isInsideGitDirectory(root, file)) {
+        if (isExcluded(root, file, excluded)) {
             throw RepositoryReadException(
-                "Path '$relativePath' is inside the repository's .git directory, which Prumo never reads as content.",
+                "Path '$relativePath' is excluded from this repository in the Prumo workspace, " +
+                    "so Prumo does not read it.",
             )
         }
         if (!file.isRegularFile()) {
@@ -99,6 +106,7 @@ object RepositoryReader {
         ignoreCase: Boolean = true,
         maxResults: Int = 50,
         maxFiles: Int = 5_000,
+        excluded: List<String> = emptyList(),
     ): TextSearchOutcome {
         require(query.isNotBlank()) { "The search query must not be blank." }
         require(maxResults >= 1) { "maxResults must be 1 or greater." }
@@ -108,7 +116,7 @@ object RepositoryReader {
         var scanned = 0
         var truncated = false
 
-        walk(root, start).forEach { file ->
+        walk(root, start, excluded).forEach { file ->
             if (truncated) {
                 return@forEach
             }
@@ -145,6 +153,7 @@ object RepositoryReader {
         relativePath: String? = null,
         maxDepth: Int = 2,
         maxEntries: Int = 300,
+        excluded: List<String> = emptyList(),
     ): DirectoryListing {
         require(maxDepth >= 1) { "maxDepth must be 1 or greater." }
         require(maxEntries >= 1) { "maxEntries must be 1 or greater." }
@@ -158,7 +167,7 @@ object RepositoryReader {
         var truncated = false
         Files.walk(start, maxDepth).use { paths ->
             paths.filter { it != start }
-                .filter { candidate -> !isInsideGitDirectory(root, candidate) }
+                .filter { candidate -> !isExcluded(root, candidate, excluded) }
                 .sorted()
                 .forEach { candidate ->
                     if (entries.size >= maxEntries) {
@@ -190,23 +199,45 @@ object RepositoryReader {
             PathSecurityValidator.resolve(root, relativePath)
         }
 
-    private fun walk(root: Path, start: Path): List<Path> =
+    private fun walk(root: Path, start: Path, excluded: List<String>): List<Path> =
         if (!start.isDirectory()) {
             listOf(start)
         } else {
             Files.walk(start).use { paths ->
-                paths.filter { candidate -> !isInsideGitDirectory(root, candidate) }
+                paths.filter { candidate -> !isExcluded(root, candidate, excluded) }
                     .filter(Path::isRegularFile)
                     .sorted()
                     .toList()
             }
         }
 
-    /** O diretório interno do Git nunca entra em leitura nem em busca. */
-    private fun isInsideGitDirectory(root: Path, candidate: Path): Boolean {
+    /**
+     * Decide se um caminho está fora do alcance deste repositório.
+     *
+     * O `.git` é a primeira entrada, sempre, sem depender de configuração: é onde mora a URL do
+     * remote, que pode carregar token. As demais vêm do vínculo do workspace.
+     *
+     * Uma entrada casa quando o caminho relativo é igual a ela, quando começa com ela seguida de
+     * barra, ou quando qualquer segmento do caminho é igual a ela. Isso cobre `target`, `.claude` e
+     * `CLAUDE.md` sem motor de padrões — e sem canto escuro onde um caminho escape por acidente.
+     */
+    private fun isExcluded(root: Path, candidate: Path, excluded: List<String>): Boolean {
         val relative = root.toAbsolutePath().normalize()
             .relativize(candidate.toAbsolutePath().normalize())
-        return relative.any { it.name == GIT_DIRECTORY }
+        val segments = relative.map { it.name }
+        if (segments.any { it == GIT_DIRECTORY }) {
+            return true
+        }
+
+        val normalized = segments.joinToString("/")
+        return excluded.any { entry ->
+            val alvo = entry.trim().trimEnd('/').replace(BACKSLASH, '/')
+            alvo.isNotEmpty() && (
+                normalized == alvo ||
+                    normalized.startsWith("$alvo/") ||
+                    segments.any { it == alvo }
+                )
+        }
     }
 
     private fun assertReadableAsText(file: Path, relativePath: String) {
@@ -250,4 +281,5 @@ object RepositoryReader {
     private fun normalize(path: String): String = path.replace('\\', '/')
 
     private const val GIT_DIRECTORY = ".git"
+    private val BACKSLASH: Char = 92.toChar()
 }
