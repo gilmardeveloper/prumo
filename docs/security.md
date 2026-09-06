@@ -139,10 +139,20 @@ valor não tem o formato da categoria, esconde-se tudo. A regra é falhar fechad
 O limite é conhecido: valor ofuscado **não é chave**. Dois valores que diferem apenas nos dígitos
 escondidos saem iguais, e igualdade na saída não prova igualdade na origem.
 
-O que a máscara **não** faz é impedir inferência. Uma consulta que use a coluna sensível num
-predicado — `WHERE senha = 'tentativa'` — devolve linhas ou não devolve, e isso confirma o valor sem
-nunca exibi-lo. Mascarar é sobre o que sai, não sobre o que se deduz. A barreira contra isso é a
-credencial somente-leitura com alcance mínimo, não o Prumo.
+O que a máscara **não** faz é impedir inferência. O predicado de `WHERE`, `HAVING` e `ORDER BY`
+é avaliado pelo banco sobre o valor real, antes de qualquer máscara: `WHERE senha = 'tentativa'`
+devolve linhas ou não devolve, e isso confirma o valor sem nunca exibi-lo.
+
+**A contagem completa esse canal.** Agregação sobre coluna pessoal volta com o número real, porque
+esconder uma contagem não protege ninguém e inviabiliza análise legítima. Mas predicado e contagem,
+juntos, formam um oráculo: `WHERE substr(num_cpf, 4, 1) = '9'` com `count(*)` responde, dígito a
+dígito, o que a janela esconde. Dez perguntas por caractere reconstroem um documento — e a resposta
+de cada uma é um número legítimo sobre uma pergunta legítima.
+
+Isso é limite conhecido e é uma escolha: a alternativa seria esconder contagens, que foi o
+comportamento anterior e custou três a quatro tentativas por consulta em qualquer análise real. A
+barreira contra reconstrução dirigida é a credencial somente-leitura com alcance mínimo, não o
+Prumo. Mascarar é sobre o que sai, não sobre o que se deduz.
 
 ## A orientação entregue à IA
 

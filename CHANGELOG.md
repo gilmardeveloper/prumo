@@ -6,6 +6,19 @@ All notable changes to this project are documented here. The format follows
 
 ## [Unreleased]
 
+## [0.1.0-rc.21] - 2026-09-06
+
+### Documentation
+
+- **The inference limit is stated with its real reach.** Predicates were already documented as
+  evaluated over the raw value, before any mask. What was missing is that freeing aggregates in
+  0.1.0-rc.16 completed the channel: `WHERE substr(num_cpf, 4, 1) = '9'` with `count(*)` answers,
+  digit by digit, what the window hides, and each answer is a legitimate number to a legitimate
+  question. A field evaluator demonstrated it at population level without reconstructing anyone.
+  Nothing changed in behaviour — hiding counts was the previous behaviour, and it cost three or four
+  attempts per query in real analysis. The trade is now written down where someone deciding whether
+  to point this at a production copy will read it.
+
 ## [0.1.0-rc.20] - 2026-09-06
 
 ### Fixed
@@ -416,7 +429,8 @@ full cycle with a real AI client — are still open.
 - Repository role and workspace type explain themselves in the dialog: both describe the work to the
   AI client and enforce nothing, which access modes and policies do.
 
-[Unreleased]: https://github.com/gilmardeveloper/prumo/compare/v0.1.0-rc.20...HEAD
+[Unreleased]: https://github.com/gilmardeveloper/prumo/compare/v0.1.0-rc.21...HEAD
+[0.1.0-rc.21]: https://github.com/gilmardeveloper/prumo/compare/v0.1.0-rc.20...v0.1.0-rc.21
 [0.1.0-rc.20]: https://github.com/gilmardeveloper/prumo/compare/v0.1.0-rc.19...v0.1.0-rc.20
 [0.1.0-rc.19]: https://github.com/gilmardeveloper/prumo/compare/v0.1.0-rc.18...v0.1.0-rc.19
 [0.1.0-rc.18]: https://github.com/gilmardeveloper/prumo/compare/v0.1.0-rc.17...v0.1.0-rc.18
