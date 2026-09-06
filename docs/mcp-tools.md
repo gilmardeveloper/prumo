@@ -1,154 +1,162 @@
-# MCP tools
+# Tools MCP
 
-Every Prumo tool follows the same contract:
+**Português (Brasil)** · [English](mcp-tools.en.md)
 
-1. context resolved only through `CurrentWorkspaceContextService`;
-2. the policy engine consulted before acting;
-3. addressing by `repositoryId` / `datasourceId` / `packId` plus a relative path — **never an
-   absolute path from the client**;
-4. structured output, without secrets and without unnecessary absolute paths;
-5. a sanitized audit entry;
-6. an explicit, actionable error on ambiguity or violation.
+Toda tool do Prumo segue o mesmo contrato:
 
-Names use `_` because that is the format the platform's own tools use and the one AI clients accept.
-The canonical name with a dot (`workspace.get_context`) is what appears in the audit trail.
+1. contexto resolvido só pelo `CurrentWorkspaceContextService`;
+2. motor de políticas consultado antes de agir;
+3. endereçamento por `repositoryId` / `datasourceId` / `packId` mais um caminho relativo — **nunca um
+   caminho absoluto vindo do cliente**;
+4. saída estruturada, sem segredo e sem caminho absoluto desnecessário;
+5. registro de auditoria saneado;
+6. erro explícito e acionável diante de ambiguidade ou violação.
+
+Os nomes usam `_` porque é o formato das próprias tools da plataforma e o que os clientes de IA
+aceitam. O nome canônico com ponto (`workspace.get_context`) é o que aparece na trilha de auditoria.
+
+Os nomes de tool, os parâmetros e as frases devolvidas ao cliente permanecem em inglês: são contrato
+lido por uma IA. Este documento é traduzido; o contrato citado nele, não.
 
 ---
 
-## Diagnostics
+## Diagnóstico
 
 ### `prumo_diagnostics`
-Confirms Prumo is active, which project the call resolved to, and whether that project is bound to
-exactly one workspace. Use it before anything else when a client behaves oddly.
+Confirma que o Prumo está ativo, para qual projeto a chamada resolveu, e se esse projeto está
+vinculado a exatamente um workspace. Use antes de qualquer coisa quando um cliente se comportar de
+forma estranha.
 
 ---
 
 ## Workspace
 
 ### `prumo_workspace_get_context`
-The current workspace: id, name, type, the repository the open project belongs to, how many
-repositories and documentation sources it has. Only the current workspace is ever visible.
+O workspace corrente: id, nome, tipo, o repositório a que o projeto aberto pertence, e quantos
+repositórios e fontes de documentação ele tem. Só o workspace corrente é visível, sempre.
 
 ### `prumo_workspace_get_policy`
-What this workspace allows, decided by the policy engine — not a copy of the configuration flags.
-Database actions are evaluated without a specific data source; the reason explains that.
+O que este workspace permite, decidido pelo motor de políticas — não uma cópia das flags de
+configuração. As ações de banco são avaliadas sem um banco específico; a justificativa explica isso.
 
 ### `prumo_workspace_get_repositories`
-The bound repositories with role, access mode and normalized remote identity (`host/org/name`),
-plus the free-text `description` the developer wrote about each one: what it is, what it is for
-and which of its rules matter. Roles are `PRIMARY` (what is being built, including the open
-project), `REFERENCE`, `LEGACY_REFERENCE` and `RELATED_COMPONENT`; they describe, they do not
-grant — access mode does.
-Never a local path, never a raw remote URL — a URL can carry an embedded token.
+Os repositórios vinculados com papel, modo de acesso e identidade normalizada do remote
+(`host/org/nome`), mais a `description` em texto livre que o desenvolvedor escreveu sobre cada um: o
+que é, para que serve e quais regras dele importam. Os papéis são `PRIMARY` (o que está sendo
+construído, incluindo o projeto aberto), `REFERENCE`, `LEGACY_REFERENCE` e `RELATED_COMPONENT`; eles
+descrevem, não concedem — quem concede é o modo de acesso.
+Nunca um caminho local, nunca a URL crua do remote — uma URL pode carregar token embutido.
 
 ### `prumo_workspace_get_documentation_sources`
-The attached documentation with authority level and whether Prumo can read it as text. PDF is
-reported as catalogued and not extractable.
+A documentação anexada, com nível de autoridade e se o Prumo consegue lê-la como texto. PDF é
+reportado como catalogado e não extraível.
 
 ### `prumo_workspace_prepare`
-Validates the workspace and returns `READY`, `WARNING` or `ERROR` with one check per repository and
-documentation source. **Read-only**: it never runs `git pull`, `checkout`, `reset` or any mutation.
+Valida o workspace e devolve `READY`, `WARNING` ou `ERROR`, com uma verificação por repositório e por
+fonte de documentação. **Somente leitura**: nunca roda `git pull`, `checkout`, `reset` nem qualquer
+mutação.
 
 ---
 
-## Repository
+## Repositório
 
-All of these accept a `repositoryId` and default to the repository of the open project. They read
-from disk, so unsaved editor changes are not included — for those, use the IDE's own tools.
+Todas aceitam um `repositoryId` e, por padrão, usam o repositório do projeto aberto. Leem do disco,
+então alterações não salvas no editor não entram — para essas, use as ferramentas da própria IDE.
 
 ### `prumo_repository_get_status`
-Branch, upstream, ahead/behind counters and changed paths, from `git status --porcelain=v2`.
+Branch, upstream, contadores de adiantamento e atraso, e caminhos alterados, a partir de
+`git status --porcelain=v2`.
 
 ### `prumo_repository_get_branch`
-Current branch with its upstream and distance, plus the local branch list.
+Branch corrente com seu upstream e a distância, mais a lista de branches locais.
 
 ### `prumo_repository_get_diff`
-Added and deleted line counts per file and, when a `path` is given, the unified patch for that file.
-Accepts `staged`. Never runs a mutating Git command.
+Contagem de linhas acrescentadas e removidas por arquivo e, quando um `path` é informado, o patch
+unificado daquele arquivo. Aceita `staged`. Nunca roda comando Git que altere estado.
 
 ### `prumo_repository_read_file`
-Reads a text file by `path` relative to the repository root, with `firstLine` and `maxLines`.
-Absolute paths and `..` are refused. Binary files are refused with an explicit message.
+Lê um arquivo de texto por `path` relativo à raiz do repositório, com `firstLine` e `maxLines`.
+Caminho absoluto e `..` são recusados. Arquivo binário é recusado com mensagem explícita.
 
 ### `prumo_repository_search_text`
-Literal text search inside a bound repository, optionally scoped to a subdirectory. Binary files and
-`.git` are never read.
+Busca literal dentro de um repositório vinculado, opcionalmente restrita a um subdiretório. Arquivo
+binário e `.git` nunca são lidos.
 
 ### `prumo_repository_get_structure`
-Directories and files of a bound repository. Use it to discover the layout of a repository that is
-**not** the open project — for the open project the IDE's own tools already answer.
+Diretórios e arquivos de um repositório vinculado. Serve para descobrir o layout de um repositório
+que **não** é o projeto aberto — para o projeto aberto as ferramentas da própria IDE já respondem.
 
 ---
 
 ## IDE
 
 ### `prumo_ide_get_current_context`
-Where the developer is right now: the file as `repositoryId` plus a relative path, caret line and
-column, selection range, the chain of symbols containing the caret, language and module. If the open
-file belongs to no repository of this workspace, the answer is only `insideWorkspace: false` —
-naming a file outside the boundary would already be telling about it.
+Onde o desenvolvedor está agora: o arquivo como `repositoryId` mais caminho relativo, linha e coluna
+do cursor, intervalo selecionado, a cadeia de símbolos que contém o cursor, linguagem e módulo. Se o
+arquivo aberto não pertence a repositório algum deste workspace, a resposta é só
+`insideWorkspace: false` — nomear um arquivo fora da fronteira já seria contar sobre ele.
 
 ---
 
-## Database
+## Banco de dados
 
 ### `prumo_database_list_available`
-The databases bound to this workspace: id, name, engine, access mode, default schema. **Never** host,
-port, user, database name or credentials.
+Os bancos vinculados a este workspace: id, nome, motor, modo de acesso e schema padrão. **Nunca**
+host, porta, usuário, nome do banco ou credencial.
 
 ### `prumo_database_get_schema`
-Schemas with how many tables and views each holds. System schemas are omitted.
+Schemas com quantas tabelas e views cada um guarda. Schemas de sistema ficam de fora.
 
 ### `prumo_database_list_tables`
-Tables, views and materialized views, optionally restricted to one schema. Row counts are the
-planner's estimate, stated as such.
+Tabelas, views e views materializadas, opcionalmente restritas a um schema. A contagem de linhas é a
+estimativa do planejador, declarada como tal.
 
 ### `prumo_database_describe_table`
-Columns with types, nullability, defaults and comments; constraints and indexes as PostgreSQL itself
-renders them. Structure only — no row is read.
+Colunas com tipo, nulabilidade, padrão e comentário; restrições e índices como o próprio PostgreSQL
+os apresenta. Só estrutura — nenhuma linha é lida.
 
 ### `prumo_database_execute_readonly`
-One read-only statement. Accepts `SELECT`, `WITH … SELECT` and `EXPLAIN` without `ANALYZE`; refuses
-DML, DDL, DCL, `CALL`, `COPY`, multiple statements and anything the parser could not read. Runs in a
-read-only transaction that is rolled back. `maxRows` defaults to 100, ceiling 1000, with `truncated`
-in the response. Columns whose name announces a secret come back masked.
-A statement the server itself rejects — unknown column or table, missing `GROUP BY`, denied
-privilege — comes back with the server's own message, naming what it refused.
+Um statement de leitura. Aceita `SELECT`, `WITH … SELECT` e `EXPLAIN` sem `ANALYZE`; recusa DML, DDL,
+DCL, `CALL`, `COPY`, múltiplos statements e qualquer coisa que o parser não conseguiu ler. Roda numa
+transação somente-leitura encerrada em rollback. `maxRows` começa em 100, com teto de 1000, e a
+resposta traz `truncated`. Coluna cujo nome anuncia segredo volta mascarada.
+Statement que o próprio servidor recusa — coluna ou tabela inexistente, `GROUP BY` faltando,
+privilégio negado — volta com a mensagem do servidor, nomeando o que foi recusado.
 
 ---
 
-## Packs
+## Pacotes
 
 ### `prumo_pack_list`
-Installed packs with the capabilities each declared. Every response is marked `thirdParty: true`.
-Accepts a `language` tag for titles and descriptions.
+Os pacotes instalados com as capacidades que cada um declarou. Toda resposta vem marcada com
+`thirdParty: true`. Aceita uma tag `language` para títulos e descrições.
 
 ### `prumo_pack_search_knowledge`
-Deterministic search over pack knowledge — text, title and tags. No embeddings, no model ranking:
-the same question always returns the same result, and the LLM interprets it.
+Busca determinística sobre o conhecimento do pacote — texto, título e tags. Sem embeddings, sem
+ranqueamento por modelo: a mesma pergunta devolve sempre o mesmo resultado, e o modelo o interpreta.
 
 ### `prumo_pack_get_knowledge`
-The full text of one knowledge item, addressed by `packId` and `itemId`. File paths are never
-accepted from the client.
+O texto completo de um item de conhecimento, endereçado por `packId` e `itemId`. Caminho de arquivo
+nunca é aceito do cliente.
 
 ### `prumo_pack_run_tool`
-Runs a tool of an installed pack: a saved read-only query or a confined script. Queries pass through
-the same layers as `execute_readonly`; scripts run confined, with the workspace policy and the
-declared capability both required.
+Roda uma ferramenta de um pacote instalado: uma consulta salva de leitura ou um script confinado. As
+consultas passam pelas mesmas camadas do `execute_readonly`; os scripts rodam confinados, exigindo ao
+mesmo tempo a política do workspace e a capacidade declarada.
 
 ---
 
-## Pack authoring
+## Autoria de pacote
 
 ### `prumo_pack_get_authoring_spec`
-Everything needed to write a pack Prumo will accept: schema, capability catalogue, security rules,
-limits, where it gets installed, three complete examples and the most common reasons a pack is
-refused. Read this before writing a pack.
+Tudo o que é preciso para escrever um pacote que o Prumo aceite: esquema, catálogo de capacidades,
+regras de segurança, limites, onde ele é instalado, três exemplos completos e os motivos mais comuns
+de recusa. Leia antes de escrever um pacote.
 
 ### `prumo_pack_validate`
-Checks a draft and returns what is wrong, where, and how to fix it. Free of side effects — call it
-until the draft is valid.
+Confere um rascunho e devolve o que está errado, onde, e como corrigir. Sem efeito colateral — pode
+ser chamada até o rascunho ficar válido.
 
 ### `prumo_pack_submit`
-Puts the draft in the approval queue in the Prumo tool window. **It does not install, activate or
-run anything.** Only the developer, on the consent screen, activates a pack.
+Põe o rascunho na fila de aprovação, na janela do Prumo. **Não instala, não ativa e não roda nada.**
+Só o desenvolvedor, na tela de consentimento, ativa um pacote.

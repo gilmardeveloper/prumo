@@ -92,7 +92,7 @@ so the boundary is visible while you work, not buried in a settings file.
 
 ## The MCP surface
 
-Twenty-five tools, documented one by one in [docs/mcp-tools.md](docs/mcp-tools.md):
+Twenty-five tools, documented one by one in [docs/mcp-tools.en.md](docs/mcp-tools.en.md):
 
 | Group | What it answers |
 |---|---|
@@ -109,7 +109,7 @@ knowledge.
 
 ## Security
 
-The design assumptions are written down in [docs/security.md](docs/security.md), including what
+The design assumptions are written down in [docs/security.en.md](docs/security.en.md), including what
 Prumo does **not** protect against. In short:
 
 - credentials live in the IDE password safe, never in a file, a log, an audit entry or an error
@@ -149,7 +149,7 @@ registry, richer pack tooling. Nothing in this list is half-built in the codebas
 
 ## Trying the whole thing
 
-[docs/demo.md](docs/demo.md) walks the complete cycle end to end — workspace, boundary, database,
+[docs/demo.en.md](docs/demo.en.md) walks the complete cycle end to end — workspace, boundary, database,
 a pack written by an AI client and installed by a human — with what to observe at each step. It is
 the script that decides whether this MVP is done.
 

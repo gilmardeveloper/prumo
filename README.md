@@ -113,8 +113,7 @@ IA seguem sempre em inglês: são contrato lido por uma máquina, não texto de 
 
 ## As ferramentas MCP
 
-Vinte e cinco ferramentas, documentadas uma a uma em [docs/mcp-tools.md](docs/mcp-tools.md) (em
-inglês):
+Vinte e cinco ferramentas, documentadas uma a uma em [docs/mcp-tools.md](docs/mcp-tools.md):
 
 | Grupo | O que responde |
 |---|---|

