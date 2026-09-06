@@ -80,12 +80,12 @@ class PackToolRunnerTest {
 
     @Test
     fun `o script trabalha dentro do proprio pack, nunca no repositorio do usuario`(@TempDir root: Path) {
-        install(root, setOf(Capability.PROCESS_EXECUTE), tool(if (windows) "cd" else "pwd"))
+        val store = install(root, setOf(Capability.PROCESS_EXECUTE), tool(if (windows) "cd" else "pwd"))
         val runner = PackToolRunner(storage(root))
 
         val result = runner.run("folha-2026", executionAllowed, "folha-tools", "relatorio")
 
-        val esperado = storage(root).workspaceRoot("folha-2026").resolve("packs/folha-tools/work")
+        val esperado = store.rootOf("folha-2026", "folha-tools").resolve("work")
         assertTrue(
             result.stdout.trim().lowercase().contains(esperado.toRealPath().toString().lowercase()),
             result.stdout,

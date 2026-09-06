@@ -43,7 +43,7 @@ data class ScriptResult(
  * A invocação é auditada com o pack de origem. A saída do script não entra na trilha.
  */
 class PackToolRunner(
-    private val storage: LocalStorageProvider,
+    storage: LocalStorageProvider,
     private val store: PackStore = PackStore(storage),
     private val executor: ProcessExecutor = ProcessExecutor(),
     private val environmentProbe: EnvironmentProbe = SystemEnvironmentProbe,
@@ -129,12 +129,9 @@ class PackToolRunner(
             )
     }
 
-    /** Diretório de trabalho do pack, em `workspaces/<id>/packs/<pack>/work`. */
+    /** Diretório de trabalho do pack, sob a raiz que o store resolve e valida. */
     private fun workingDirectory(workspaceId: String, packId: String): Path {
-        val directory = storage.workspaceRoot(workspaceId)
-            .resolve("packs")
-            .resolve(packId)
-            .resolve(WORK_DIRECTORY)
+        val directory = store.rootOf(workspaceId, packId).resolve(WORK_DIRECTORY)
         Files.createDirectories(directory)
         return directory
     }
