@@ -4,6 +4,7 @@ import com.intellij.openapi.fileChooser.FileChooser
 import com.intellij.openapi.fileChooser.FileChooserDescriptor
 import com.intellij.openapi.fileChooser.FileChooserFactory
 import com.intellij.openapi.fileChooser.FileSaverDescriptor
+import com.intellij.openapi.application.ApplicationManager
 import com.intellij.openapi.project.Project
 import com.intellij.openapi.ui.Messages
 import com.intellij.ui.components.JBLabel
@@ -13,6 +14,7 @@ import io.prumo.mcp.i18n.PrumoBundle
 import io.prumo.mcp.ide.PrumoWorkspaceService
 import io.prumo.mcp.pack.application.PackFileExchange
 import io.prumo.mcp.pack.application.PackStore
+import io.prumo.mcp.ui.PrumoToolWindowFactory
 import io.prumo.mcp.ui.WorkspaceViewModel
 import java.nio.file.Path
 import javax.swing.Icon
@@ -99,6 +101,7 @@ class PackExchangePanel(
             ),
         )
         status.text = PrumoBundle.message("pack.exchange.imported", preview.manifest.id)
+        ApplicationManager.getApplication().invokeLater { PrumoToolWindowFactory.refreshOpenProjects() }
     }
 
     /** Exporta o pack escolhido. Com um só instalado, não há o que escolher. */

@@ -6,6 +6,17 @@ All notable changes to this project are documented here. The format follows
 
 ## [Unreleased]
 
+## [0.1.0-rc.26] - 2026-09-06
+
+### Fixed
+
+- **The panel kept describing the state from before the click.** Right after installing a pack from
+  the queue, the tool window still read "no pack is installed in this workspace yet", still offered
+  nothing to export, and still announced one proposal waiting above an empty list. Only the queue's
+  own list was redrawn, and installing changes two sections it does not draw. Installing, importing
+  and discarding now rebuild the whole panel, and a test fails if a pack panel changes workspace
+  state without doing so.
+
 ## [0.1.0-rc.25] - 2026-09-06
 
 ### Fixed
@@ -506,6 +517,7 @@ full cycle with a real AI client — are still open.
   AI client and enforce nothing, which access modes and policies do.
 
 [Unreleased]: https://github.com/gilmardeveloper/prumo/compare/v0.1.0-rc.21...HEAD
+[0.1.0-rc.26]: https://github.com/gilmardeveloper/prumo/compare/v0.1.0-rc.25...v0.1.0-rc.26
 [0.1.0-rc.25]: https://github.com/gilmardeveloper/prumo/compare/v0.1.0-rc.24...v0.1.0-rc.25
 [0.1.0-rc.24]: https://github.com/gilmardeveloper/prumo/compare/v0.1.0-rc.23...v0.1.0-rc.24
 [0.1.0-rc.23]: https://github.com/gilmardeveloper/prumo/compare/v0.1.0-rc.22...v0.1.0-rc.23
