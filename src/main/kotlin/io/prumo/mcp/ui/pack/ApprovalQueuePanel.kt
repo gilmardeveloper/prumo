@@ -11,6 +11,7 @@ import io.prumo.mcp.pack.application.PackStore
 import io.prumo.mcp.pack.authoring.PackSubmission
 import io.prumo.mcp.pack.authoring.SubmissionQueue
 import io.prumo.mcp.pack.exchange.PackImporter
+import io.prumo.mcp.pack.exchange.PackOrigin
 import javax.swing.DefaultListModel
 import javax.swing.JComponent
 import javax.swing.ListCellRenderer
@@ -62,7 +63,12 @@ class ApprovalQueuePanel(
             status.text = PrumoBundle.message("pack.queue.empty")
             return
         }
-        val preview = PackImporter.preview(submission.draft)
+        val preview = try {
+            PackImporter.preview(submission.draft, PackOrigin.DRAFT)
+        } catch (failure: Exception) {
+            showPackFailure(project, failure, "pack.queue.installError")
+            return
+        }
         val dialog = PackConsentDialog(project, preview)
         if (!dialog.showAndGet()) {
             status.text = PrumoBundle.message("pack.queue.notInstalled")
@@ -70,12 +76,17 @@ class ApprovalQueuePanel(
         }
 
         val service = PrumoWorkspaceService.getInstance()
-        PackImporter.install(
-            store = PackStore(service.storage),
-            workspaceId = workspaceId,
-            preview = preview,
-            acceptance = dialog.acceptance(System.getProperty("user.name") ?: "developer"),
-        )
+        try {
+            PackImporter.install(
+                store = PackStore(service.storage),
+                workspaceId = workspaceId,
+                preview = preview,
+                acceptance = dialog.acceptance(System.getProperty("user.name") ?: "developer"),
+            )
+        } catch (failure: Exception) {
+            showPackFailure(project, failure, "pack.queue.installError")
+            return
+        }
         service.audit.record(
             workspaceId = workspaceId,
             tool = "prumo_ide",

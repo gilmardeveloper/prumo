@@ -4,6 +4,7 @@ import io.prumo.mcp.pack.exchange.PackExchangeException
 import io.prumo.mcp.pack.exchange.PackExporter
 import io.prumo.mcp.pack.exchange.PackImportPreview
 import io.prumo.mcp.pack.exchange.PackImporter
+import io.prumo.mcp.pack.exchange.PackOrigin
 import java.io.IOException
 import java.nio.charset.StandardCharsets
 import java.nio.file.Files
@@ -28,7 +29,7 @@ class PackFileExchange(private val store: PackStore) {
         } catch (cause: IOException) {
             throw PackExchangeException("Prumo could not read '${file.fileName}': ${cause.message}")
         }
-        return PackImporter.preview(content)
+        return PackImporter.preview(content, PackOrigin.EXPORTED_FILE)
     }
 
     /**

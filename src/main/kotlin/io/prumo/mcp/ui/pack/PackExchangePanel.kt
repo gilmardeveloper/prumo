@@ -65,11 +65,7 @@ class PackExchangePanel(
         val preview = try {
             PackFileExchange(store).read(Path.of(file.path))
         } catch (failure: Exception) {
-            Messages.showErrorDialog(
-                project,
-                failure.message ?: PrumoBundle.message("pack.exchange.unknownError"),
-                PrumoBundle.message("pack.exchange.importError"),
-            )
+            showPackFailure(project, failure, "pack.exchange.importError")
             return
         }
 
@@ -86,11 +82,7 @@ class PackExchangePanel(
                 acceptance = dialog.acceptance(System.getProperty("user.name") ?: "developer"),
             )
         } catch (failure: Exception) {
-            Messages.showErrorDialog(
-                project,
-                failure.message ?: PrumoBundle.message("pack.exchange.unknownError"),
-                PrumoBundle.message("pack.exchange.importError"),
-            )
+            showPackFailure(project, failure, "pack.exchange.importError")
             return
         }
         service.audit.record(
@@ -125,11 +117,7 @@ class PackExchangePanel(
         val written = try {
             PackFileExchange(PackStore(service.storage)).write(workspaceId, pack.packId, wrapper.file.toPath())
         } catch (failure: Exception) {
-            Messages.showErrorDialog(
-                project,
-                failure.message ?: PrumoBundle.message("pack.exchange.unknownError"),
-                PrumoBundle.message("pack.exchange.exportError"),
-            )
+            showPackFailure(project, failure, "pack.exchange.exportError")
             return
         }
         service.audit.record(

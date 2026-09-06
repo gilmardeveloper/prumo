@@ -5,6 +5,7 @@ import io.prumo.mcp.pack.domain.RiskLevel
 import io.prumo.mcp.pack.exchange.PackExchangeException
 import io.prumo.mcp.pack.exchange.PackImportPreview
 import io.prumo.mcp.pack.exchange.PackImporter
+import io.prumo.mcp.pack.exchange.PackOrigin
 import kotlinx.serialization.Serializable
 
 @Serializable
@@ -31,7 +32,7 @@ object PackValidator {
 
     fun validate(draft: String): ValidationReport {
         val preview = try {
-            PackImporter.preview(draft)
+            PackImporter.preview(draft, PackOrigin.DRAFT)
         } catch (failure: PackExchangeException) {
             return ValidationReport(
                 valid = false,

@@ -6,6 +6,22 @@ All notable changes to this project are documented here. The format follows
 
 ## [Unreleased]
 
+## [0.1.0-rc.25] - 2026-09-06
+
+### Fixed
+
+- **No pack proposed by an AI client could be installed.** 0.1.0-rc.22 made a missing checksum a
+  refusal, to keep the promise that `install` states. That promise is about an exchange file, which
+  always passes through the exporter and always carries a checksum — but a draft written by an MCP
+  client never was packaged, and the authoring specification never asked it for one. So the very
+  path the approval queue exists to serve started refusing every submission at the moment of
+  install. A preview now carries where it came from: an exchange file without a checksum is still
+  refused, a draft without one is not, and a checksum that is present and wrong is refused in both.
+- **The refusal reached the user as "IDE Internal Errors".** `ApprovalQueuePanel` let the exception
+  escape from the button listener, so the IDE swallowed it into the error report and the queue sat
+  there unchanged. Both pack panels now show every failure as a dialog, through one shared helper,
+  and a test fails if a panel that reads or installs a pack does not use it.
+
 ## [0.1.0-rc.24] - 2026-09-06
 
 ### Added
@@ -490,6 +506,7 @@ full cycle with a real AI client — are still open.
   AI client and enforce nothing, which access modes and policies do.
 
 [Unreleased]: https://github.com/gilmardeveloper/prumo/compare/v0.1.0-rc.21...HEAD
+[0.1.0-rc.25]: https://github.com/gilmardeveloper/prumo/compare/v0.1.0-rc.24...v0.1.0-rc.25
 [0.1.0-rc.24]: https://github.com/gilmardeveloper/prumo/compare/v0.1.0-rc.23...v0.1.0-rc.24
 [0.1.0-rc.23]: https://github.com/gilmardeveloper/prumo/compare/v0.1.0-rc.22...v0.1.0-rc.23
 [0.1.0-rc.22]: https://github.com/gilmardeveloper/prumo/compare/v0.1.0-rc.21...v0.1.0-rc.22
