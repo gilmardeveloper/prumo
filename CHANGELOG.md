@@ -6,6 +6,26 @@ All notable changes to this project are documented here. The format follows
 
 ## [Unreleased]
 
+## [0.1.0-rc.12] - 2026-09-06
+
+### Fixed
+
+- **Personal data obfuscation could be undone with an alias.** `SELECT num_cpf AS codigo` handed the
+  document back in full, and so did `substr(num_cpf, 1, 3)` and `num_cpf || ''`. A blind field
+  evaluator extracted CPF, name, e-mail, birth date and mother's name of real people in one query.
+  The obfuscation added in 0.1.0-rc.9 decided by the output label alone, while the secret mask beside
+  it had decided by label *and* origin column since 0.1.0-rc.3 — the fix for the very same bypass,
+  one line above, was not carried over to the new feature. A column is now recognised by every name
+  that identifies it: the query label, the origin column, and — for a computed column, whose origin
+  the driver does not report — the identifiers named in its own select-list expression.
+
+### Known limitation
+
+- An aggregate given the name of a personal column is obfuscated too: `count(distinct num_cpf) AS
+  num_cpf` comes back hidden, because the only name the column carries announces personal data. It
+  fails closed and the response says so in `obfuscatedAs`; naming the aggregate something else
+  returns the number.
+
 ## [0.1.0-rc.11] - 2026-09-06
 
 ### Fixed
@@ -248,7 +268,8 @@ full cycle with a real AI client — are still open.
 - Repository role and workspace type explain themselves in the dialog: both describe the work to the
   AI client and enforce nothing, which access modes and policies do.
 
-[Unreleased]: https://github.com/gilmardeveloper/prumo/compare/v0.1.0-rc.11...HEAD
+[Unreleased]: https://github.com/gilmardeveloper/prumo/compare/v0.1.0-rc.12...HEAD
+[0.1.0-rc.12]: https://github.com/gilmardeveloper/prumo/compare/v0.1.0-rc.11...v0.1.0-rc.12
 [0.1.0-rc.11]: https://github.com/gilmardeveloper/prumo/compare/v0.1.0-rc.10...v0.1.0-rc.11
 [0.1.0-rc.10]: https://github.com/gilmardeveloper/prumo/compare/v0.1.0-rc.9...v0.1.0-rc.10
 [0.1.0-rc.9]: https://github.com/gilmardeveloper/prumo/compare/v0.1.0-rc.8...v0.1.0-rc.9

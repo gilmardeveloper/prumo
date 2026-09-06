@@ -27,6 +27,8 @@ data class QueryColumn(
     val name: String,
     val type: String,
     val masked: Boolean,
+    /** Rótulo e coluna de origem: os dois nomes por que esta coluna pode ser reconhecida. */
+    val identifiers: List<String> = listOf(name),
     /**
      * Categoria de dado pessoal reconhecida na coluna. `NONE` quando o valor sai como veio do banco.
      *
@@ -131,6 +133,7 @@ class ReadOnlyQueryExecutor(
         // Posicoes nulas significam lista de selecao nao mapeavel: toda calculada e tratada como
         // sensivel se o statement encostar em segredo em qualquer ponto.
         val sensitivePositions = SensitiveColumnScanner.sensitivePositions(sql, masking, metadata.columnCount)
+        val expressionIdentifiers = SensitiveColumnScanner.identifiersByPosition(sql, metadata.columnCount)
         val touchesSecret by lazy { SensitiveColumnScanner.touchesSensitiveColumn(sql, masking) }
         val columns = (1..metadata.columnCount).map { index ->
             val label = metadata.getColumnLabel(index).orEmpty()
@@ -145,10 +148,17 @@ class ReadOnlyQueryExecutor(
                 name = name,
                 type = metadata.getColumnTypeName(index) ?: "unknown",
                 masked = masked,
+                identifiers = (listOf(label, origin) + expressionIdentifiers?.getOrNull(index - 1).orEmpty())
+                    .filter { it.isNotBlank() }
+                    .distinct(),
                 obfuscatedAs = if (masked || !obfuscate) {
                     PersonalDataKind.NONE
                 } else {
-                    PersonalDataObfuscator.classify(name, null)
+                    PersonalDataObfuscator.classify(
+                        (listOf(label, origin) + expressionIdentifiers?.getOrNull(index - 1).orEmpty())
+                            .filter { it.isNotBlank() },
+                        null,
+                    )
                 },
             )
         }
@@ -167,7 +177,7 @@ class ReadOnlyQueryExecutor(
                         column.masked && value != null -> DataMaskingPolicy.MASKED
                         column.obfuscatedAs == PersonalDataKind.NONE -> value
                         else -> PersonalDataObfuscator.obfuscate(
-                            PersonalDataObfuscator.classify(column.name, value),
+                            PersonalDataObfuscator.classify(column.identifiers, value),
                             value,
                         )
                     }
