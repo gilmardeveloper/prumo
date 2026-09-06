@@ -127,6 +127,11 @@ recém-vinculado protege sem depender de alguém lembrar de ativar. Desligado, o
 entregue à IA exatamente como está no banco — a máscara de senha e token continua valendo, por
 ser outra garantia.
 
+Agregação que produz um número sobre o conjunto — `count`, `sum`, `avg`, `length` — não é ofuscada:
+não carrega documento de ninguém, e escondê-la inutiliza a análise sem proteger nada. `min`, `max`,
+`string_agg` e `array_agg` continuam ofuscados, porque devolvem valores das linhas. **A linha que
+importa é outra: estatística se responde, lista nominal não.**
+
 Valor derivado de expressão — `substr`, `string_agg`, concatenação — é escondido por inteiro, e não
 pela janela: a janela cairia sobre o recorte, e iterar o recorte reconstruiria o documento. Onde o
 valor não tem o formato da categoria, esconde-se tudo. A regra é falhar fechado.
