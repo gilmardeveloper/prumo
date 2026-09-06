@@ -40,6 +40,7 @@ data class PackImportPreview(
     val envelope: PackEnvelope,
     val assessment: RiskAssessment,
     val checksum: String,
+    /** Verdadeiro só quando o arquivo traz checksum e ele confere com o recalculado. */
     val checksumMatches: Boolean,
     val scripts: Map<String, String>,
 ) {
@@ -130,7 +131,7 @@ object PackImporter {
             envelope = envelope,
             assessment = RiskClassifier.assess(envelope.manifest),
             checksum = expected,
-            checksumMatches = envelope.checksum.isBlank() || envelope.checksum == expected,
+            checksumMatches = envelope.checksum == expected,
             scripts = scripts,
         )
     }
@@ -138,7 +139,7 @@ object PackImporter {
     /**
      * Instala o pack revisado.
      *
-     * Exige o aceite, recusa `BLOCKED` e recusa quando o checksum não confere.
+     * Exige o aceite, recusa `BLOCKED` e recusa arquivo cujo checksum falte ou não confira.
      */
     fun install(
         store: PackStore,
@@ -154,7 +155,11 @@ object PackImporter {
         }
         if (!preview.checksumMatches) {
             throw PackExchangeException(
-                "The pack file changed after it was packaged. Ask the author for a fresh export.",
+                if (preview.envelope.checksum.isBlank()) {
+                    "This pack file carries no checksum. Ask the author for a fresh export."
+                } else {
+                    "The pack file changed after it was packaged. Ask the author for a fresh export."
+                },
             )
         }
         val accepted = acceptance

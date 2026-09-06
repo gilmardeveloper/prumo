@@ -9,12 +9,15 @@ import io.prumo.mcp.pack.domain.PackToolKind
 import io.prumo.mcp.pack.domain.RiskClassifier
 import io.prumo.mcp.pack.domain.RiskLevel
 import io.prumo.mcp.pack.exchange.PackAcceptance
+import io.prumo.mcp.pack.exchange.PackEnvelope
 import io.prumo.mcp.pack.exchange.PackExchangeException
 import io.prumo.mcp.pack.exchange.PackExporter
 import io.prumo.mcp.pack.exchange.PackImporter
 import io.prumo.mcp.platform.PrumoDirectories
 import io.prumo.mcp.policy.Capability
 import io.prumo.mcp.storage.FileSystemStorageProvider
+import kotlinx.serialization.json.Json
+import kotlinx.serialization.serializer
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertFalse
 import org.junit.jupiter.api.Assertions.assertTrue
@@ -243,6 +246,26 @@ class PackExchangeTest {
         assertThrows<PackExchangeException> {
             PackImporter.install(store, "destino", preview, acceptance("folha-tools", preview.checksum))
         }
+    }
+
+    @Test
+    fun `arquivo sem checksum e recusado`(@TempDir root: Path) {
+        val store = PackStore(storage(root))
+        store.save("origem", pack())
+        val exportado = PackExporter.export(store, "origem", "folha-tools")
+        val semChecksum = Json.encodeToString(
+            serializer<PackEnvelope>(),
+            Json.decodeFromString(serializer<PackEnvelope>(), exportado).copy(checksum = ""),
+        )
+
+        val preview = PackImporter.preview(semChecksum)
+
+        assertFalse(preview.checksumMatches)
+        val failure = assertThrows<PackExchangeException> {
+            PackImporter.install(store, "destino", preview, acceptance("folha-tools", preview.checksum))
+        }
+        assertTrue(failure.message.orEmpty().contains("no checksum"))
+        assertTrue(store.list("destino").isEmpty())
     }
 
     @Test
