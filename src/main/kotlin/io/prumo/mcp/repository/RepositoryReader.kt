@@ -240,8 +240,18 @@ object RepositoryReader {
      * barra, ou quando qualquer segmento do caminho é igual a ela. Isso cobre `target`, `.claude` e
      * `CLAUDE.md` sem motor de padrões — e sem canto escuro onde um caminho escape por acidente.
      */
-    private fun isExcluded(root: Path, candidate: Path, excluded: List<String>): Boolean {
-        val segments = realRelative(root, candidate).map { it.name }
+    private fun isExcluded(root: Path, candidate: Path, excluded: List<String>): Boolean =
+        isExcludedPath(realRelative(root, candidate).map { it.name }.joinToString("/"), excluded)
+
+    /**
+     * Decide a exclusão a partir do caminho relativo em texto, sem tocar o disco.
+     *
+     * Existe para o caminho que o disco não pode confirmar — o arquivo que o Git reporta como
+     * apagado, por exemplo. A regra de casamento é esta, e só esta: duplicá-la em outro ponto foi
+     * como a exclusão nasceu contornável por troca de caixa.
+     */
+    fun isExcludedPath(relativePath: String, excluded: List<String>): Boolean {
+        val segments = relativePath.replace(BACKSLASH, '/').split('/').filter { it.isNotBlank() }
         if (segments.any { it.equals(GIT_DIRECTORY, ignoreCase = true) }) {
             return true
         }

@@ -79,6 +79,12 @@ class RepositoryToolset : McpToolset {
         repositoryCall(GET_DIFF_TOOL, "repository.get_diff", repositoryId) { call ->
             val root = rootOf(call.repository)
             val executor = GitCommandExecutor(call.project)
+            if (path != null && RepositoryReader.isExcludedPath(path, call.repository.excludedPaths)) {
+                throw RepositoryReadException(
+                    "Path '$path' is excluded from this repository in the Prumo workspace, " +
+                        "so Prumo does not show its changes.",
+                )
+            }
             withContext(Dispatchers.IO) {
                 val deltas = GitStateParser.parseNumstat(executor.changedFiles(root, staged, path))
                 val patch = path?.let { executor.patch(root, staged, it, PATCH_CONTEXT_LINES) }
