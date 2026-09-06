@@ -112,6 +112,7 @@ object RepositoryReader {
         require(maxResults >= 1) { "maxResults must be 1 or greater." }
 
         val start = scopeRoot(root, scope)
+        assertScopeAllowed(root, start, scope, excluded)
         val matches = mutableListOf<TextMatch>()
         var scanned = 0
         var truncated = false
@@ -159,6 +160,7 @@ object RepositoryReader {
         require(maxEntries >= 1) { "maxEntries must be 1 or greater." }
 
         val start = scopeRoot(root, relativePath)
+        assertScopeAllowed(root, start, relativePath, excluded)
         if (!start.isDirectory()) {
             throw RepositoryReadException("Path '${relativePath.orEmpty()}' is not a directory in this repository.")
         }
@@ -189,6 +191,23 @@ object RepositoryReader {
             path = relativePath?.let(::normalize).orEmpty(),
             entries = entries,
             truncated = truncated,
+        )
+    }
+
+    /**
+     * Recusa em voz alta quando o próprio alvo pedido é um caminho excluído.
+     *
+     * Caminho excluído *dentro* de uma varredura continua invisível, que é o desejado. Mas pedir
+     * explicitamente o diretório proibido e receber lista vazia faz o cliente concluir que ele está
+     * vazio e tentar de novo por outro ângulo — foi o que um avaliador em campo apontou.
+     */
+    private fun assertScopeAllowed(root: Path, start: Path, relativePath: String?, excluded: List<String>) {
+        if (relativePath.isNullOrBlank() || !isExcluded(root, start, excluded)) {
+            return
+        }
+        throw RepositoryReadException(
+            "Path '$relativePath' is excluded from this repository in the Prumo workspace, " +
+                "so Prumo does not read it.",
         )
     }
 
