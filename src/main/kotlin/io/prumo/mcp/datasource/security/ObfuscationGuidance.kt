@@ -1,5 +1,7 @@
 package io.prumo.mcp.datasource.security
 
+import io.prumo.mcp.datasource.application.QueryOutcome
+
 /**
  * Orientação entregue ao cliente de IA junto do resultado de uma consulta.
  *
@@ -18,7 +20,7 @@ object ObfuscationGuidance {
      * Só fala quando o resultado tocou dado pessoal: repetir o texto numa consulta que não o tocou
      * é ruído competindo com o dado.
      */
-    fun forResult(outcome: io.prumo.mcp.datasource.application.QueryOutcome): String? = when {
+    fun forResult(outcome: QueryOutcome): String? = when {
         outcome.hasObfuscatedColumn -> forObfuscatedResult()
         outcome.carriesUnprotectedPersonalData -> forUnprotectedResult()
         else -> null
