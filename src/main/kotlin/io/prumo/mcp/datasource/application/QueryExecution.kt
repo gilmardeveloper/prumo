@@ -46,7 +46,22 @@ data class QueryOutcome(
     val rowCount: Int,
     val truncated: Boolean,
     val durationMillis: Long,
-)
+    /** Verdadeiro quando o banco está configurado para esconder dado pessoal. */
+    val personalDataObfuscated: Boolean = true,
+) {
+    /** Alguma coluna do resultado saiu com dado pessoal escondido. */
+    val hasObfuscatedColumn: Boolean get() = columns.any { it.obfuscatedAs != PersonalDataKind.NONE }
+
+    /**
+     * O resultado trouxe coluna de dado pessoal sem proteção.
+     *
+     * Sem isto a IA não distingue "não havia dado pessoal" de "havia, e você o recebeu inteiro":
+     * nos dois casos toda coluna vem com categoria `NONE`.
+     */
+    val carriesUnprotectedPersonalData: Boolean
+        get() = !personalDataObfuscated &&
+            columns.any { PersonalDataObfuscator.classify(it.identifiers, null) != PersonalDataKind.NONE }
+}
 
 /**
  * Executa uma consulta de leitura.
@@ -191,6 +206,7 @@ class ReadOnlyQueryExecutor(
         }
 
         return QueryOutcome(
+            personalDataObfuscated = obfuscate,
             statementType = statementType,
             columns = columns,
             rows = values,

@@ -12,6 +12,18 @@ package io.prumo.mcp.datasource.security
  */
 object ObfuscationGuidance {
 
+    /**
+     * Orientação para um resultado de consulta, ou `null` quando não há o que dizer.
+     *
+     * Só fala quando o resultado tocou dado pessoal: repetir o texto numa consulta que não o tocou
+     * é ruído competindo com o dado.
+     */
+    fun forResult(outcome: io.prumo.mcp.datasource.application.QueryOutcome): String? = when {
+        outcome.hasObfuscatedColumn -> forObfuscatedResult()
+        outcome.carriesUnprotectedPersonalData -> forUnprotectedResult()
+        else -> null
+    }
+
     /** Orientação para um resultado em que alguma coluna saiu com dado pessoal escondido. */
     fun forObfuscatedResult(): String =
         "Personal data here is partially hidden. ${aggregateSentence()} " +

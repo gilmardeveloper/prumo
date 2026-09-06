@@ -7,6 +7,7 @@ import io.prumo.mcp.datasource.PostgresConnectionFactory
 import io.prumo.mcp.datasource.application.QueryOutcome
 import io.prumo.mcp.datasource.application.ReadOnlyQueryExecutor
 import io.prumo.mcp.datasource.security.DataMaskingPolicy
+import io.prumo.mcp.datasource.security.ObfuscationGuidance
 import io.prumo.mcp.datasource.domain.DataSourceProfile
 import io.prumo.mcp.datasource.postgres.PostgresIntrospector
 import io.prumo.mcp.datasource.postgres.TableDetail
@@ -31,6 +32,8 @@ data class AvailableDataSourceResponse(
     val description: String? = null,
     /** Verdadeiro quando o dado pessoal devolvido por uma consulta sai parcialmente escondido. */
     val personalDataObfuscated: Boolean = true,
+    /** O que esperar deste banco, antes da primeira consulta. */
+    val guidance: String,
 )
 
 @Serializable
@@ -119,6 +122,10 @@ data class QueryResultResponse(
     val rowCount: Int,
     val truncated: Boolean,
     val durationMillis: Long,
+    /** Estado da proteção de dado pessoal neste banco. */
+    val personalDataObfuscated: Boolean = true,
+    /** Como trabalhar com o que veio. Ausente quando o resultado não tocou dado pessoal. */
+    val guidance: String? = null,
 )
 
 @Serializable
@@ -156,6 +163,7 @@ object DatabaseReports {
                     defaultSchema = it.defaultSchema,
                     description = it.description,
                     personalDataObfuscated = it.obfuscatePersonalData,
+                    guidance = ObfuscationGuidance.forDatasource(it.obfuscatePersonalData),
                 )
             },
         )
@@ -184,6 +192,8 @@ object DatabaseReports {
 
     fun query(profile: DataSourceProfile, outcome: QueryOutcome): QueryResultResponse =
         QueryResultResponse(
+            personalDataObfuscated = outcome.personalDataObfuscated,
+            guidance = ObfuscationGuidance.forResult(outcome),
             datasourceId = profile.id,
             statementType = outcome.statementType.name,
             columns = outcome.columns.map { QueryColumnResponse(it.name, it.type, it.masked, it.obfuscatedAs.name) },
