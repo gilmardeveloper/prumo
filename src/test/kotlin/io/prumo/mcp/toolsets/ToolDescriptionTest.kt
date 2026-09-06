@@ -72,6 +72,30 @@ class ToolDescriptionTest {
         assertTrue(prepare.description.contains("boundary"), "prepare não explica o que é um workspace")
     }
 
+    /**
+     * Descrição é contrato lido por IA: uma garantia escrita ali vale tanto quanto uma no código.
+     *
+     * A tool de diff chegou a prometer que honrava os caminhos excluídos sem que o código os
+     * consultasse. Este teste liga as duas coisas: quem promete a exclusão precisa consultá-la.
+     */
+    @Test
+    fun `tool que promete honrar a exclusao consulta a exclusao no codigo`() {
+        val fonte = java.nio.file.Files.readString(
+            java.nio.file.Path.of("src/main/kotlin/io/prumo/mcp/toolsets/RepositoryToolset.kt"),
+        )
+        val prometem = tools.filter { tool ->
+            PROMESSA_DE_EXCLUSAO.any { tool.description.contains(it, ignoreCase = true) }
+        }
+
+        assertTrue(prometem.isNotEmpty(), "nenhuma descrição promete a exclusão; o teste perdeu o alvo")
+        val consultas = Regex("excludedPaths").findAll(fonte).count()
+        assertTrue(
+            consultas >= prometem.size,
+            "descrições que prometem a exclusão: ${prometem.map { it.name }}, " +
+                "mas o toolset consulta excludedPaths apenas $consultas vezes",
+        )
+    }
+
     @Test
     fun `toda tool tem descricao`() {
         val vazias = tools.filter { it.description.isBlank() }
@@ -88,6 +112,13 @@ class ToolDescriptionTest {
         )
 
         val INSTRUCAO = listOf("Use this tool", "Prefer it over", "Call it")
+
+        /** Formulações que afirmam ao cliente que a tool respeita os caminhos excluídos. */
+        val PROMESSA_DE_EXCLUSAO = listOf(
+            "paths excluded for this repository",
+            "excluded for this repository",
+            "paths the developer excluded",
+        )
 
         const val PREPARE = "prumo_workspace_prepare"
 

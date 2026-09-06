@@ -6,6 +6,21 @@ All notable changes to this project are documented here. The format follows
 
 ## [Unreleased]
 
+## [0.1.0-rc.10] - 2026-09-06
+
+### Fixed
+
+- **The diff tool never enforced excluded paths, and 0.1.0-rc.9 started claiming it did.** Exclusion
+  was imposed on reading a file, searching text and listing structure — the fourth repository tool
+  was missed. A patch carries the changed lines themselves, so an excluded file with pending changes
+  handed over by difference what the other tools refuse to hand over by reading. The rc.9 rewrite of
+  the tool descriptions asserted the tool "honours the paths excluded for this repository", which was
+  not true of the code: a guarantee written into a contract an AI reads is a guarantee, and this one
+  was empty. Changed files under an excluded path no longer appear, asking for the patch of an
+  excluded path is refused, and the match rule now lives in one place instead of being restated —
+  restating it is how exclusion was once bypassed by changing the case of a name. A test now fails
+  when a description promises the exclusion and the code does not consult it.
+
 ## [0.1.0-rc.9] - 2026-09-06
 
 ### Added
@@ -220,7 +235,8 @@ full cycle with a real AI client — are still open.
 - Repository role and workspace type explain themselves in the dialog: both describe the work to the
   AI client and enforce nothing, which access modes and policies do.
 
-[Unreleased]: https://github.com/gilmardeveloper/prumo/compare/v0.1.0-rc.9...HEAD
+[Unreleased]: https://github.com/gilmardeveloper/prumo/compare/v0.1.0-rc.10...HEAD
+[0.1.0-rc.10]: https://github.com/gilmardeveloper/prumo/compare/v0.1.0-rc.9...v0.1.0-rc.10
 [0.1.0-rc.9]: https://github.com/gilmardeveloper/prumo/compare/v0.1.0-rc.8...v0.1.0-rc.9
 [0.1.0-rc.8]: https://github.com/gilmardeveloper/prumo/compare/v0.1.0-rc.7...v0.1.0-rc.8
 [0.1.0-rc.7]: https://github.com/gilmardeveloper/prumo/compare/v0.1.0-rc.6...v0.1.0-rc.7
