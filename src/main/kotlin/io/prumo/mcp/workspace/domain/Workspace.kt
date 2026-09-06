@@ -89,6 +89,23 @@ data class RepositoryBinding(
         const val MAX_DESCRIPTION_LENGTH = 500
         const val MAX_EXCLUDED_PATHS = 100
 
+        /**
+         * Reduz um caminho digitado à forma que o casamento de exclusão espera.
+         *
+         * Troca barra invertida por barra e descarta barra inicial e final. A lista é sempre
+         * relativa à raiz do repositório, então `/FONTES/curl` e `FONTES/curl` nomeiam a mesma
+         * coisa, e só a segunda forma casa.
+         *
+         * @return a forma canônica, ou `null` para o que não tem leitura relativa: vazio, `..` e
+         *   unidade de disco do Windows.
+         */
+        fun normalizeExcludedPath(raw: String): String? {
+            val normalized = raw.trim().replace('\\', '/').trim('/').trim()
+            return normalized.takeIf {
+                it.isNotEmpty() && !it.contains("..") && !ABSOLUTE_LOOKING.containsMatchIn(it)
+            }
+        }
+
         /** Barra inicial, barra invertida inicial e unidade do Windows. */
         private val ABSOLUTE_LOOKING = Regex("""^([/\\]|[A-Za-z]:)""")
     }

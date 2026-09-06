@@ -6,6 +6,18 @@ All notable changes to this project are documented here. The format follows
 
 ## [Unreleased]
 
+### Fixed
+
+- **A repository with excluded paths was silently dropped instead of being bound.** The dialog said
+  the paths are read from the repository root, so writing `/FONTES/curl` is the natural thing to do —
+  and the domain refused any entry starting with a slash. The refusal surfaced nowhere: the dialog
+  closed on OK and the repository simply never appeared in the list, while the same repository bound
+  fine with only a description. A leading slash, a trailing slash and Windows backslashes are now
+  normalised away on entry, so `/FONTES/curl` and `FONTES/curl` name the same thing — which is what
+  the matcher already needed, since the stored form was the only one it could ever match. What has no
+  relative reading — `..` and a disk drive — is still refused, now with a message naming the path.
+  A binding the domain rejects for any other reason also reports it on screen instead of vanishing.
+
 ## [0.1.0-rc.7] - 2026-09-06
 
 ### Changed

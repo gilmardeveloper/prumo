@@ -221,11 +221,11 @@ class WorkspaceEditorDialog(
             return
         }
 
-        val binding = RepositoryBindingDialog(project, id, path).let { dialog ->
-            if (!dialog.showAndGet()) return
-            dialog.toBinding()
+        val dialog = RepositoryBindingDialog(project, id, path)
+        if (!dialog.showAndGet()) {
+            return
         }
-        repositories.addElement(binding)
+        repositories.addElement(bindingOrReport(dialog) ?: return)
     }
 
     private fun editRepository(index: Int) {
@@ -234,8 +234,26 @@ class WorkspaceEditorDialog(
         if (!dialog.showAndGet()) {
             return
         }
-        repositories.set(index, dialog.toBinding())
+        repositories.set(index, bindingOrReport(dialog) ?: return)
     }
+
+    /**
+     * Monta o vínculo, e diz na tela o que houve quando o domínio o recusa.
+     *
+     * Sem isto a recusa some com o repositório sem uma palavra: o diálogo fecha e a lista continua
+     * como estava, como se nada tivesse sido pedido.
+     */
+    private fun bindingOrReport(dialog: RepositoryBindingDialog): RepositoryBinding? =
+        try {
+            dialog.toBinding()
+        } catch (recusa: IllegalArgumentException) {
+            Messages.showErrorDialog(
+                project,
+                PrumoBundle.message("workspace.repository.invalid", recusa.message.orEmpty()),
+                "Prumo MCP",
+            )
+            null
+        }
 
     private fun removeRepository(index: Int) {
         val binding = repositories.get(index)
@@ -412,12 +430,35 @@ class RepositoryBindingDialog(
                     PrumoBundle.message("workspace.repository.section.excluded"),
                     null,
                 )?.trim().orEmpty()
-                if (digitado.isNotBlank() && !excluded.contains(digitado)) {
-                    excluded.addElement(digitado)
+                if (digitado.isNotBlank()) {
+                    addExcluded(digitado)
                 }
             }
             .setRemoveAction { list.selectedIndex.takeIf { it >= 0 }?.let(excluded::remove) }
             .createPanel()
+    }
+
+    /**
+     * Guarda o caminho na forma que o casamento de exclusão espera, ou explica por que não dá.
+     *
+     * Digitar `/FONTES/curl` é natural para quem pensa a partir da raiz do repositório, e a lista
+     * já é relativa a ela; o que o caminho não pode ser é ambíguo — subir de diretório ou nomear
+     * uma unidade de disco não tem leitura dentro do repositório.
+     */
+    private fun addExcluded(digitado: String) {
+        val canonico = RepositoryBinding.normalizeExcludedPath(digitado)
+        if (canonico == null) {
+            Messages.showErrorDialog(
+                project,
+                PrumoBundle.message("workspace.repository.excluded.invalid", digitado),
+                PrumoBundle.message("workspace.repository.section.excluded"),
+            )
+            return
+        }
+        val jaExiste = excluded.elements().toList().any { it.equals(canonico, ignoreCase = true) }
+        if (!jaExiste) {
+            excluded.addElement(canonico)
+        }
     }
 
     private companion object {
