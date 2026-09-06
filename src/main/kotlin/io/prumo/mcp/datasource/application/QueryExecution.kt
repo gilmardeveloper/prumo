@@ -27,7 +27,11 @@ data class QueryColumn(
     val name: String,
     val type: String,
     val masked: Boolean,
-    /** Categoria de dado pessoal aplicada ao valor. `NONE` quando o valor sai como veio do banco. */
+    /**
+     * Categoria de dado pessoal reconhecida na coluna. `NONE` quando o valor sai como veio do banco.
+     *
+     * A janela aplicada a um valor pode ser mais restritiva do que esta categoria, nunca menos.
+     */
     val obfuscatedAs: PersonalDataKind = PersonalDataKind.NONE,
 )
 

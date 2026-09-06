@@ -98,7 +98,11 @@ data class QueryColumnResponse(
     val type: String,
     val masked: Boolean,
     /**
-     * Categoria de dado pessoal aplicada ao valor desta coluna, ou `NONE`.
+     * Categoria de dado pessoal reconhecida nesta coluna, ou `NONE`.
+     *
+     * É a categoria da coluna, decidida pelo nome. A janela aplicada a um valor específico pode ser
+     * mais restritiva: valor cujo formato não confirma a categoria é tratado como número de registro
+     * genérico, e nunca menos protegido do que a categoria declarada.
      *
      * O valor sai parcialmente escondido; o nome e o tipo da coluna continuam íntegros. Valor
      * ofuscado não serve como chave: dois valores diferentes podem sair iguais.
