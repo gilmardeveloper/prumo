@@ -28,8 +28,9 @@ class WorkspaceToolset : McpToolset {
     @McpTool(name = GET_POLICY_TOOL)
     @McpDescription(
         "Use this tool to learn what this workspace allows, decided by the Prumo policy engine. " +
-            "Call it before attempting an operation that may be denied, so you do not spend a turn " +
-            "on a refusal.",
+            "Database actions are decided per bound database and list every one of them, so an " +
+            "action shown as allowed names the databases that allow it. Call it before attempting " +
+            "an operation that may be denied, so you do not spend a turn on a refusal.",
     )
     suspend fun getPolicy(): WorkspacePolicyResponse =
         prumoToolCall(GET_POLICY_TOOL, "workspace.get_policy", PolicyAction.READ_REPOSITORY) { call ->
