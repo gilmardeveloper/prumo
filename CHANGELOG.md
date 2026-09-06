@@ -6,6 +6,31 @@ All notable changes to this project are documented here. The format follows
 
 ## [Unreleased]
 
+## [0.1.0-rc.18] - 2026-09-06
+
+### Fixed
+
+- **A subquery alias switched the obfuscation off.** `SELECT upper(t.a) FROM (SELECT txt_email AS a
+  FROM ...) t` handed back the whole e-mail, and the same route gave up the middle of an ID number
+  and of a CPF — with no `obfuscatedAs` on the column at all. The driver reports no origin column for
+  an expression, and the only identifier left is the inner alias, which announces nothing. Aliases
+  are now resolved back to the column they rename, so an expression over a renamed column is
+  classified by what it actually reads.
+- **A view that renames a column left it unprotected.** `vw_servidor.nome_servidor` came back whole,
+  with no evasion technique at all — the plain `SELECT`. Views rename columns by nature, so the whole
+  class was exposed. The name patterns now cover the renamings a view typically introduces.
+- **Personal documents and LGPD-sensitive data were not recognised at all**: functional registration
+  number (which looks exactly like a CPF), professional and military documents, foreigner
+  registration, race and colour, disability flags, and free-text notes about the person. Race,
+  disability and free text are hidden whole rather than windowed — there is no meaningful part of
+  them to keep.
+- **The obfuscation state never reached the client.** `personalDataObfuscated` carried a default of
+  `true`, and the serializer omits a field equal to its default: the field appeared only when
+  protection was off, which is the opposite of useful. It has no default now, and a test inspects the
+  constructor so it cannot regain one.
+
+All four were found by blind field evaluators against the installed build.
+
 ## [0.1.0-rc.17] - 2026-09-06
 
 ### Added
@@ -349,7 +374,8 @@ full cycle with a real AI client — are still open.
 - Repository role and workspace type explain themselves in the dialog: both describe the work to the
   AI client and enforce nothing, which access modes and policies do.
 
-[Unreleased]: https://github.com/gilmardeveloper/prumo/compare/v0.1.0-rc.17...HEAD
+[Unreleased]: https://github.com/gilmardeveloper/prumo/compare/v0.1.0-rc.18...HEAD
+[0.1.0-rc.18]: https://github.com/gilmardeveloper/prumo/compare/v0.1.0-rc.17...v0.1.0-rc.18
 [0.1.0-rc.17]: https://github.com/gilmardeveloper/prumo/compare/v0.1.0-rc.16...v0.1.0-rc.17
 [0.1.0-rc.16]: https://github.com/gilmardeveloper/prumo/compare/v0.1.0-rc.15...v0.1.0-rc.16
 [0.1.0-rc.15]: https://github.com/gilmardeveloper/prumo/compare/v0.1.0-rc.14...v0.1.0-rc.15
