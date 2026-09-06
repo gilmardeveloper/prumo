@@ -105,8 +105,9 @@ naming a file outside the boundary would already be telling about it.
 ## Database
 
 ### `prumo_database_list_available`
-The databases bound to this workspace: id, name, engine, access mode, default schema. **Never** host,
-port, user, database name or credentials.
+The databases bound to this workspace: id, name, engine, access mode, default schema, the description
+the developer wrote, and whether personal-data obfuscation is on, with a sentence on what to expect
+from it. **Never** host, port, user, database name or credentials.
 
 ### `prumo_database_get_schema`
 Schemas with how many tables and views each holds. System schemas are omitted.
