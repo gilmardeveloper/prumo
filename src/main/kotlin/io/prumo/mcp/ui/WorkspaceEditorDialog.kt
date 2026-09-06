@@ -6,6 +6,7 @@ import com.intellij.openapi.project.Project
 import com.intellij.openapi.ui.DialogWrapper
 import com.intellij.ui.ToolbarDecorator
 import com.intellij.ui.components.JBList
+import com.intellij.ui.components.JBScrollPane
 import com.intellij.ui.dsl.builder.bindItem
 import com.intellij.ui.dsl.builder.bindSelected
 import com.intellij.ui.dsl.builder.bindText
@@ -23,6 +24,8 @@ import io.prumo.mcp.repository.RepositoryFingerprint
 import io.prumo.mcp.ui.datasource.DataSourceDialog
 import io.prumo.mcp.workspace.domain.AccessMode
 import io.prumo.mcp.workspace.domain.RepositoryBinding
+import java.awt.Dimension
+import java.awt.Toolkit
 import io.prumo.mcp.workspace.domain.RepositoryRole
 import io.prumo.mcp.workspace.domain.Workspace
 import io.prumo.mcp.workspace.domain.WorkspaceType
@@ -63,7 +66,27 @@ class WorkspaceEditorDialog(
         init()
     }
 
-    override fun createCenterPanel(): JComponent = panel {
+    override fun createCenterPanel(): JComponent = scrollable(form())
+
+    /**
+     * Envolve o formulario num painel rolavel limitado a parte da altura da tela.
+     *
+     * `DialogWrapper` dimensiona pelo tamanho preferido do conteudo e corta o que nao couber na
+     * tela, sem oferecer gesto para alcancar o excedente. O teto so entra em acao quando o
+     * formulario e mais alto que ele, entao tela grande continua sem barra.
+     */
+    private fun scrollable(form: JComponent): JComponent = JBScrollPane(form).apply {
+        border = JBUI.Borders.empty()
+        horizontalScrollBarPolicy = javax.swing.ScrollPaneConstants.HORIZONTAL_SCROLLBAR_NEVER
+        verticalScrollBar.unitIncrement = SCROLL_UNIT
+        val ceiling = (Toolkit.getDefaultToolkit().screenSize.height * MAX_HEIGHT_RATIO).toInt()
+        preferredSize = Dimension(
+            form.preferredSize.width + verticalScrollBar.preferredSize.width,
+            minOf(form.preferredSize.height, ceiling),
+        )
+    }
+
+    private fun form(): JComponent = panel {
         row(PrumoBundle.message("workspace.field.name")) {
             textField().bindText(::workspaceName).columns(34).focused()
         }
@@ -258,6 +281,11 @@ class WorkspaceEditorDialog(
 
     private fun datasourceRenderer() = javax.swing.ListCellRenderer<DataSourceProfile> { _, value, _, _, _ ->
         com.intellij.ui.components.JBLabel("${value.name}  —  PostgreSQL · ${value.accessMode}")
+    }
+
+    private companion object {
+        const val MAX_HEIGHT_RATIO = 0.75
+        const val SCROLL_UNIT = 16
     }
 }
 
