@@ -6,6 +6,37 @@ All notable changes to this project are documented here. The format follows
 
 ## [Unreleased]
 
+## [0.1.0-rc.20] - 2026-09-06
+
+### Fixed
+
+- **Serialising a whole row bypassed obfuscation entirely.** `SELECT row_to_json(t) FROM (SELECT
+  num_cpf, txt_nom_funcionario, txt_email FROM ...) t` returned CPF, full name and e-mail of the same
+  person, complete, in one query — and `SELECT * FROM tb_pessoa` wrapped that way returned all 88
+  columns, up to 1000 rows per call. The expression names no column, so nothing in it announced
+  personal data. A column produced by `row_to_json`, `to_jsonb`, `json_agg` or a row cast is now
+  hidden whole: there is no window that applies to a packed record.
+- **Set operators were classified by the first branch only.** `SELECT txt_sexo AS c FROM … UNION ALL
+  SELECT num_cpf FROM …` handed the CPF back complete, because the select list of the first branch
+  does not describe the second. With `UNION`, `EXCEPT` or `INTERSECT` present, positions can no
+  longer be mapped, so classification falls back to the identifiers of the whole statement.
+- **Addresses were never hidden.** Street, number, complement, postcode and district of 1.3 million
+  rows tied to a person came back complete. An address identifies someone on its own; there is no
+  inocuous part to keep, so it is hidden whole. The same for health data outside the disability
+  flags — blood group, rehabilitation, fitness reports — and free-text notes about the person.
+
+### Fixed — packs
+
+- **Two guarantees the authoring specification stated were never enforced.** A knowledge item could
+  point at `/etc/passwd` or climb out with `..` and the pack validated as `SAFE`, while the spec says
+  "Absolute paths are refused"; and a data source reference could be a full connection string with a
+  password in it, while the spec says "Never a connection string" and "Never put a password, token or
+  connection string inside a pack". Both are refused now, and the finding's evidence never repeats
+  the secret it found.
+
+Found by blind field evaluators. The repository boundary and the first-contact walkthrough came back
+with no findings at all.
+
 ## [0.1.0-rc.19] - 2026-09-06
 
 ### Fixed
@@ -385,7 +416,8 @@ full cycle with a real AI client — are still open.
 - Repository role and workspace type explain themselves in the dialog: both describe the work to the
   AI client and enforce nothing, which access modes and policies do.
 
-[Unreleased]: https://github.com/gilmardeveloper/prumo/compare/v0.1.0-rc.19...HEAD
+[Unreleased]: https://github.com/gilmardeveloper/prumo/compare/v0.1.0-rc.20...HEAD
+[0.1.0-rc.20]: https://github.com/gilmardeveloper/prumo/compare/v0.1.0-rc.19...v0.1.0-rc.20
 [0.1.0-rc.19]: https://github.com/gilmardeveloper/prumo/compare/v0.1.0-rc.18...v0.1.0-rc.19
 [0.1.0-rc.18]: https://github.com/gilmardeveloper/prumo/compare/v0.1.0-rc.17...v0.1.0-rc.18
 [0.1.0-rc.17]: https://github.com/gilmardeveloper/prumo/compare/v0.1.0-rc.16...v0.1.0-rc.17

@@ -24,6 +24,8 @@ enum class PersonalDataKind {
     SENSITIVE_ATTRIBUTE,
     /** Texto livre que pode conter qualquer coisa sobre a pessoa. */
     FREE_TEXT,
+    /** Endereço: identifica a pessoa sozinho, e o número da casa não tem parte inócua. */
+    ADDRESS,
 }
 
 /**
@@ -112,6 +114,7 @@ object PersonalDataObfuscator {
             PersonalDataKind.BANK_ACCOUNT -> digitWindow(value, lead = 0, trail = 4, checkDigits = 0)
             PersonalDataKind.SENSITIVE_ATTRIBUTE -> hideCompletely(value)
             PersonalDataKind.FREE_TEXT -> hideCompletely(value)
+            PersonalDataKind.ADDRESS -> hideCompletely(value)
             PersonalDataKind.NONE -> value
         }
     }
@@ -206,6 +209,7 @@ object PersonalDataObfuscator {
             PersonalDataKind.BANK_ACCOUNT -> digits > 0
             PersonalDataKind.SENSITIVE_ATTRIBUTE -> true
             PersonalDataKind.FREE_TEXT -> true
+            PersonalDataKind.ADDRESS -> true
             PersonalDataKind.REGISTRY_NUMBER -> true
             PersonalDataKind.NONE -> true
         }
@@ -299,6 +303,15 @@ object PersonalDataObfuscator {
             "carteira_profissional", "documento_militar", "reservista", "registro_nacional_estrangeiro",
             "rne", "id_funcional", "matricula_funcional",
         ) to PersonalDataKind.REGISTRY_NUMBER,
-        listOf("observacao", "obs_livre", "anotacao", "descricao_pessoal") to PersonalDataKind.FREE_TEXT,
+        listOf(
+            "logradouro", "endereco", "complemento", "cep", "bairro", "num_casa", "numero_residencia",
+        ) to PersonalDataKind.ADDRESS,
+        listOf(
+            "grupo_sanguineo", "tipo_sanguineo", "reab_readap", "readaptacao", "aptidao", "atestado",
+        ) to PersonalDataKind.SENSITIVE_ATTRIBUTE,
+        listOf(
+            "observacao", "obs_livre", "anotacao", "descricao_pessoal", "historico_funcional",
+            "dsc_historico", "justificativa",
+        ) to PersonalDataKind.FREE_TEXT,
     )
 }

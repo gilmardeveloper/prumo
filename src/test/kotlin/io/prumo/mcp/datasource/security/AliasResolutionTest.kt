@@ -83,6 +83,26 @@ class AliasResolutionTest {
     }
 
     @Test
+    fun `endereco e escondido por inteiro`() {
+        listOf("txt_logradouro", "txt_cep", "txt_complemento", "txt_bairro").forEach { coluna ->
+            val kind = PersonalDataObfuscator.classify(coluna, "RUA DAS FLORES")
+            assertEquals(PersonalDataKind.ADDRESS, kind, "'$coluna' não foi reconhecido")
+            assertEquals(PersonalDataObfuscator.HIDDEN_VALUE, PersonalDataObfuscator.obfuscate(kind, "RUA X"))
+        }
+    }
+
+    @Test
+    fun `dado de saude fora da lista de deficiencia tambem e reconhecido`() {
+        listOf("isn_grupo_sanguineo", "txt_reab_readap", "dsc_atestado").forEach { coluna ->
+            assertNotEquals(
+                PersonalDataKind.NONE,
+                PersonalDataObfuscator.classify(coluna, "A+"),
+                "'$coluna' seguia aberto",
+            )
+        }
+    }
+
+    @Test
     fun `texto livre sobre a pessoa e escondido por inteiro`() {
         val kind = PersonalDataObfuscator.classify("txt_observacao_recadastramento", "mora com a mãe")
 

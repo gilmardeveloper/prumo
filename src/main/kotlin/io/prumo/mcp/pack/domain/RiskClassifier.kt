@@ -43,6 +43,7 @@ object RiskClassifier {
         val findings = buildList {
             manifest.tools.forEach { tool ->
                 addAll(undeclaredCapabilities(manifest, tool))
+                addAll(secretFindings(tool))
                 tool.sql?.let { addAll(sqlFindings(tool, it)) }
                 tool.commands.forEach { (platform, command) ->
                     addAll(commandFindings(tool, platform, command.joinToString(" ")))
@@ -68,6 +69,41 @@ object RiskClassifier {
                 explanation = "The tool needs ${capability.name} but the pack did not declare it.",
                 evidence = capability.name,
                 location = "tool:${tool.id}",
+            )
+        }
+    }
+
+    /**
+     * Segredo dentro do pack é recusa, não alerta.
+     *
+     * O pack viaja para outra máquina e para outro desenvolvedor: uma senha escrita aqui é uma senha
+     * publicada. A referência ao banco é um identificador lógico, resolvido no destino.
+     */
+    private fun secretFindings(tool: PackTool): List<RiskFinding> = buildList {
+        val reference = tool.datasourceRef
+        if (reference != null && CONNECTION_STRING.containsMatchIn(reference)) {
+            add(
+                RiskFinding(
+                    level = RiskLevel.BLOCKED,
+                    rule = "datasource-ref-is-connection-string",
+                    explanation = "The data source reference is a connection string, not a logical id. " +
+                        "A pack travels to another machine, and this one carries how to reach a database.",
+                    evidence = reference.take(EVIDENCE_LENGTH).substringBefore(':'),
+                    location = "tool:${tool.id}",
+                ),
+            )
+        }
+        val secretIn = listOfNotNull(tool.sql, reference).firstOrNull { SECRET.containsMatchIn(it) }
+        if (secretIn != null) {
+            add(
+                RiskFinding(
+                    level = RiskLevel.BLOCKED,
+                    rule = "secret-inside-pack",
+                    explanation = "The pack carries what looks like a password, token or key. Nothing " +
+                        "secret can travel inside a pack.",
+                    evidence = SECRET.find(secretIn)?.groupValues?.getOrNull(1).orEmpty(),
+                    location = "tool:${tool.id}",
+                ),
             )
         }
     }
@@ -112,6 +148,15 @@ object RiskClassifier {
     )
 
     /** Regra por trecho literal: o comando contém alguma destas formas. */
+    /** Esquema de conexão em lugar de identificador lógico. */
+    private val CONNECTION_STRING = Regex("""^\s*(jdbc:|postgres(ql)?://|mysql://|sqlserver://)""", RegexOption.IGNORE_CASE)
+
+    /** Nome de campo de segredo seguido de valor. O grupo 1 é só o nome, nunca o valor. */
+    private val SECRET = Regex(
+        """(password|passwd|senha|secret|api[_-]?key|token|access[_-]?key)\s*[=:]\s*\S""",
+        RegexOption.IGNORE_CASE,
+    )
+
     private fun anyOf(vararg fragments: String): (String) -> Boolean =
         { command -> fragments.any { command.contains(it) } }
 

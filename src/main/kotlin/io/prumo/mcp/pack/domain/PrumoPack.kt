@@ -107,6 +107,18 @@ data class KnowledgeItem(
     init {
         require(id.matches(IDENTIFIER)) { "Invalid knowledge id '$id'." }
         require(file.isNotBlank()) { "Knowledge item '$id' must point to a file." }
+        require(!ABSOLUTE_LOOKING.containsMatchIn(file)) {
+            "Knowledge item '$id' points to an absolute path: '$file'. A pack travels to other " +
+                "machines, so the file must be inside the pack."
+        }
+        require(!file.split('/', '\\').contains("..")) {
+            "Knowledge item '$id' escapes the pack with '..': '$file'."
+        }
+    }
+
+    private companion object {
+        /** Barra inicial, barra invertida inicial e unidade do Windows. */
+        val ABSOLUTE_LOOKING = Regex("""^([/\\]|[A-Za-z]:)""")
     }
 }
 
