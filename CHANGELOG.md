@@ -6,6 +6,19 @@ All notable changes to this project are documented here. The format follows
 
 ## [Unreleased]
 
+## [0.1.0-rc.7] - 2026-09-06
+
+### Changed
+
+- **Configuring a workspace whose name is already taken now offers to overwrite it.** The dialog
+  used to end at an error saying the name exists, with no way forward from there: the only exit was
+  to pick a different name. Prumo now asks, states what overwriting destroys — bound repositories,
+  documentation, databases, exclusions and policies — and starts the new workspace from scratch when
+  confirmed. Cancelling reopens the form with the typed name, so choosing another name is still one
+  step. The database passwords the old workspace kept in the IDE password safe are erased with it;
+  without that, a datasource later created under the same id would silently inherit a password
+  nobody typed.
+
 ## [0.1.0-rc.6] - 2026-09-06
 
 ### Changed
@@ -143,7 +156,8 @@ full cycle with a real AI client — are still open.
 - Repository role and workspace type explain themselves in the dialog: both describe the work to the
   AI client and enforce nothing, which access modes and policies do.
 
-[Unreleased]: https://github.com/gilmardeveloper/prumo/compare/v0.1.0-rc.6...HEAD
+[Unreleased]: https://github.com/gilmardeveloper/prumo/compare/v0.1.0-rc.7...HEAD
+[0.1.0-rc.7]: https://github.com/gilmardeveloper/prumo/compare/v0.1.0-rc.6...v0.1.0-rc.7
 [0.1.0-rc.6]: https://github.com/gilmardeveloper/prumo/compare/v0.1.0-rc.5...v0.1.0-rc.6
 [0.1.0-rc.5]: https://github.com/gilmardeveloper/prumo/compare/v0.1.0-rc.4...v0.1.0-rc.5
 [0.1.0-rc.4]: https://github.com/gilmardeveloper/prumo/compare/v0.1.0-rc.3...v0.1.0-rc.4
