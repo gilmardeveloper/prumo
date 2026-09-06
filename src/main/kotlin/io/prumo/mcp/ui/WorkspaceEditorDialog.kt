@@ -3,9 +3,15 @@ package io.prumo.mcp.ui
 import com.intellij.openapi.fileChooser.FileChooser
 import com.intellij.openapi.fileChooser.FileChooserDescriptor
 import com.intellij.openapi.project.Project
+import com.intellij.openapi.ui.ComboBox
 import com.intellij.openapi.ui.DialogWrapper
+import com.intellij.openapi.ui.ValidationInfo
+import com.intellij.ui.SimpleListCellRenderer
 import com.intellij.ui.ToolbarDecorator
 import com.intellij.ui.components.JBList
+import com.intellij.ui.components.JBScrollPane
+import com.intellij.ui.components.JBTextArea
+import com.intellij.ui.components.JBTextField
 import com.intellij.ui.dsl.builder.bindItem
 import com.intellij.ui.dsl.builder.bindSelected
 import com.intellij.ui.dsl.builder.bindText
@@ -23,6 +29,8 @@ import io.prumo.mcp.repository.RepositoryFingerprint
 import io.prumo.mcp.ui.datasource.DataSourceDialog
 import io.prumo.mcp.workspace.domain.AccessMode
 import io.prumo.mcp.workspace.domain.RepositoryBinding
+import java.awt.Dimension
+import java.awt.Toolkit
 import io.prumo.mcp.workspace.domain.RepositoryRole
 import io.prumo.mcp.workspace.domain.Workspace
 import io.prumo.mcp.workspace.domain.WorkspaceType
@@ -63,12 +71,35 @@ class WorkspaceEditorDialog(
         init()
     }
 
-    override fun createCenterPanel(): JComponent = panel {
+    override fun createCenterPanel(): JComponent = scrollable(form())
+
+    /**
+     * Envolve o formulario num painel rolavel limitado a parte da altura da tela.
+     *
+     * `DialogWrapper` dimensiona pelo tamanho preferido do conteudo e corta o que nao couber na
+     * tela, sem oferecer gesto para alcancar o excedente. O teto so entra em acao quando o
+     * formulario e mais alto que ele, entao tela grande continua sem barra.
+     */
+    private fun scrollable(form: JComponent): JComponent = JBScrollPane(form).apply {
+        border = JBUI.Borders.empty()
+        horizontalScrollBarPolicy = javax.swing.ScrollPaneConstants.HORIZONTAL_SCROLLBAR_NEVER
+        verticalScrollBar.unitIncrement = SCROLL_UNIT
+        val ceiling = (Toolkit.getDefaultToolkit().screenSize.height * MAX_HEIGHT_RATIO).toInt()
+        preferredSize = Dimension(
+            form.preferredSize.width + verticalScrollBar.preferredSize.width,
+            minOf(form.preferredSize.height, ceiling),
+        )
+    }
+
+    private fun form(): JComponent = panel {
         row(PrumoBundle.message("workspace.field.name")) {
             textField().bindText(::workspaceName).columns(34).focused()
         }
         row(PrumoBundle.message("workspace.field.type")) {
-            comboBox(WorkspaceType.entries).bindItem(
+            comboBox(
+                WorkspaceType.entries,
+                SimpleListCellRenderer.create("") { PrumoBundle.message(it.labelKey) },
+            ).bindItem(
                 { workspaceType },
                 { workspaceType = it ?: WorkspaceType.STANDALONE },
             )
@@ -249,15 +280,28 @@ class WorkspaceEditorDialog(
     )
 
     private fun repositoryRenderer() = javax.swing.ListCellRenderer<RepositoryBinding> { _, value, _, _, _ ->
-        com.intellij.ui.components.JBLabel("${value.name}  —  ${value.role} · ${value.accessMode}")
+        com.intellij.ui.components.JBLabel(
+            value.name + "  —  " + PrumoBundle.message(value.role.labelKey) + " · " +
+                PrumoBundle.message(value.accessMode.labelKey),
+        )
     }
 
     private fun documentationRenderer() = javax.swing.ListCellRenderer<DocumentationSource> { _, value, _, _, _ ->
-        com.intellij.ui.components.JBLabel("${value.name}  —  ${value.kind} · ${value.authority}")
+        com.intellij.ui.components.JBLabel(
+            value.name + "  —  " + PrumoBundle.message(value.kind.labelKey) + " · " +
+                PrumoBundle.message(value.authority.labelKey),
+        )
     }
 
     private fun datasourceRenderer() = javax.swing.ListCellRenderer<DataSourceProfile> { _, value, _, _, _ ->
-        com.intellij.ui.components.JBLabel("${value.name}  —  PostgreSQL · ${value.accessMode}")
+        com.intellij.ui.components.JBLabel(
+            value.name + "  —  PostgreSQL · " + PrumoBundle.message(value.accessMode.labelKey),
+        )
+    }
+
+    private companion object {
+        const val MAX_HEIGHT_RATIO = 0.75
+        const val SCROLL_UNIT = 16
     }
 }
 
@@ -268,9 +312,25 @@ class RepositoryBindingDialog(
     private val existing: RepositoryBinding? = null,
 ) : DialogWrapper(project) {
 
-    private var role: RepositoryRole = existing?.role ?: RepositoryRole.REFERENCE
-    private var accessMode: AccessMode = existing?.accessMode ?: AccessMode.READ_ONLY
-    private var branchPolicy: String = existing?.branchPolicy.orEmpty()
+    private val roleBox = ComboBox(RepositoryRole.entries.toTypedArray()).apply {
+        selectedItem = existing?.role ?: RepositoryRole.REFERENCE
+        renderer = SimpleListCellRenderer.create("") { PrumoBundle.message(it.labelKey) }
+    }
+
+    private val accessModeBox = ComboBox(AccessMode.entries.toTypedArray()).apply {
+        selectedItem = existing?.accessMode ?: AccessMode.READ_ONLY
+        renderer = SimpleListCellRenderer.create("") { PrumoBundle.message(it.labelKey) }
+    }
+
+    private val branchPolicyField = JBTextField(existing?.branchPolicy.orEmpty())
+
+    private val descriptionArea = JBTextArea(existing?.description.orEmpty(), DESCRIPTION_ROWS, DESCRIPTION_COLUMNS)
+        .apply { lineWrap = true; wrapStyleWord = true }
+
+    private val role: RepositoryRole get() = roleBox.selectedItem as? RepositoryRole ?: RepositoryRole.REFERENCE
+    private val accessMode: AccessMode get() = accessModeBox.selectedItem as? AccessMode ?: AccessMode.READ_ONLY
+    private val branchPolicy: String get() = branchPolicyField.text.trim()
+    private val description: String get() = descriptionArea.text.trim()
 
     init {
         title = PrumoBundle.message("workspace.repository.dialog.title")
@@ -279,19 +339,32 @@ class RepositoryBindingDialog(
 
     override fun createCenterPanel(): JComponent = panel {
         row(PrumoBundle.message("workspace.repository.field.repository")) { label(path.fileName?.toString() ?: id) }
-        row(PrumoBundle.message("workspace.repository.field.role")) {
-            comboBox(RepositoryRole.entries).bindItem({ role }, { role = it ?: RepositoryRole.REFERENCE })
-        }
+        row(PrumoBundle.message("workspace.repository.field.role")) { cell(roleBox) }
         row { comment(PrumoBundle.message("workspace.repository.roleHint"), maxLineLength = 62) }
-        row(PrumoBundle.message("workspace.repository.field.access")) {
-            comboBox(AccessMode.entries).bindItem({ accessMode }, { accessMode = it ?: AccessMode.READ_ONLY })
-        }
+        row(PrumoBundle.message("workspace.repository.field.access")) { cell(accessModeBox) }
         row(PrumoBundle.message("workspace.repository.field.branchPolicy")) {
-            textField().bindText(::branchPolicy).columns(24)
+            cell(branchPolicyField).columns(24)
         }
+        row(PrumoBundle.message("workspace.repository.field.description")) {
+            cell(JBScrollPane(descriptionArea))
+        }
+        row { comment(PrumoBundle.message("workspace.repository.descriptionHint"), maxLineLength = 62) }
         row {
             comment(PrumoBundle.message("workspace.repository.hint"))
         }
+    }
+
+    override fun doValidate(): ValidationInfo? = when {
+        description.length > RepositoryBinding.MAX_DESCRIPTION_LENGTH -> ValidationInfo(
+            PrumoBundle.message(
+                "workspace.repository.validation.description",
+                RepositoryBinding.MAX_DESCRIPTION_LENGTH,
+                description.length,
+            ),
+            descriptionArea,
+        )
+
+        else -> null
     }
 
     fun toBinding(): RepositoryBinding {
@@ -305,7 +378,13 @@ class RepositoryBindingDialog(
             accessMode = accessMode,
             branchPolicy = branchPolicy.ifBlank { null },
             fingerprint = RepositoryFingerprint.forDirectory(path).value,
+            description = description.ifBlank { null },
         )
+    }
+
+    private companion object {
+        const val DESCRIPTION_ROWS = 4
+        const val DESCRIPTION_COLUMNS = 44
     }
 }
 

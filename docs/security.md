@@ -1,95 +1,104 @@
-# Security model
+# Modelo de segurança
 
-This document states what Prumo protects, how, and — as importantly — what it does not protect
-against. A security claim without its limits is marketing.
+**Português (Brasil)** · [English](security.en.md)
 
-## Threat model
+Este documento diz o que o Prumo protege, como, e — igualmente importante — contra o que ele **não**
+protege. Afirmação de segurança sem os seus limites é propaganda.
 
-Prumo sits between an AI client and a developer's machine. The actors are:
+## Modelo de ameaça
 
-| Actor | Assumed to be | Threat considered |
+O Prumo fica entre um cliente de IA e a máquina de quem desenvolve. Os atores são:
+
+| Ator | Presumido como | Ameaça considerada |
 |---|---|---|
-| The AI client | Non-malicious but **unpredictable**: it composes calls, retries, and follows text it read somewhere | Reading or changing what it was not meant to; leaking content of one workspace into another |
-| Prompt content and repository content | **Untrusted input** | Instructions embedded in a file, a table or a document that try to redirect the assistant |
-| A Prumo Pack from a colleague | **Untrusted code**, installed deliberately | Destructive commands, credential theft, reaching another workspace, download-and-execute |
-| The developer | Trusted, but human | Accepting something they did not read, misconfiguring a boundary |
+| O cliente de IA | Não malicioso, mas **imprevisível**: compõe chamadas, tenta de novo e segue texto que leu em algum lugar | Ler ou alterar o que não devia; vazar conteúdo de um workspace para dentro de outro |
+| Conteúdo de prompt e de repositório | **Entrada não confiável** | Instrução embutida num arquivo, numa tabela ou num documento tentando redirecionar o assistente |
+| Um pacote do Prumo vindo de um colega | **Código não confiável**, instalado deliberadamente | Comando destrutivo, roubo de credencial, alcance a outro workspace, baixar-e-executar |
+| A pessoa que desenvolve | Confiável, mas humana | Aceitar algo que não leu, configurar mal uma fronteira |
 
-Out of scope: an attacker with control of the machine, a malicious IDE plugin running alongside
-Prumo, or a compromised JetBrains distribution. If any of those hold, nothing in this document helps.
+Fora de escopo: um atacante com controle da máquina, um plugin malicioso rodando ao lado do Prumo, ou
+uma distribuição comprometida da JetBrains. Se qualquer um desses for verdade, nada neste documento
+ajuda.
 
-## Guarantees, and how each is enforced
+## Garantias, e como cada uma é imposta
 
-**Workspace isolation.** A workspace never references another. Storage is addressed by workspace id,
-so there is no query that walks from one workspace to another's repositories, documentation, data
-sources, packs or audit trail. Isolation comes from the shape of the access, not from a check
-someone can forget to call.
+**Isolamento de workspace.** Um workspace nunca referencia outro. O armazenamento é endereçado por
+identificador de workspace, então não existe consulta que caminhe de um workspace até os
+repositórios, a documentação, os bancos, os pacotes ou a auditoria de outro. O isolamento nasce do
+formato do acesso, não de uma verificação que alguém possa esquecer de chamar.
 
-**Path containment.** A client never sends an absolute path: it sends `repositoryId` plus a relative
-path. Resolution is validated twice — over the normalized path and, when the target exists, over the
-real filesystem path — because normalization alone does not see symlinks, junctions or mount points.
-The `.git` directory is never read as project content.
+**Contenção de caminho.** O cliente nunca envia caminho absoluto: envia `repositoryId` mais um
+caminho relativo. A resolução é validada duas vezes — sobre o caminho normalizado e, quando o alvo
+existe, sobre o caminho real no sistema de arquivos — porque normalizar sozinho não enxerga link
+simbólico, junction nem ponto de montagem. O diretório `.git` nunca é lido como conteúdo do projeto.
 
-**Read-only repositories.** `READ_ONLY` is a property of the binding, checked by the policy engine
-before any operation. The MVP's repository surface is read-only in its entirety, and a test pins the
-registered tool names so that adding a writing tool is a visible change.
+**Repositórios somente-leitura.** `READ_ONLY` é propriedade do vínculo, conferida pelo motor de
+políticas antes de qualquer operação. A superfície de repositório do MVP é inteira de leitura, e um
+teste fixa os nomes das tools registradas, de modo que acrescentar uma tool de escrita seja uma
+mudança visível.
 
-**Read-only databases, in layers.** In order: (1) the read-only credential you configure in
-PostgreSQL — the real barrier; (2) the JDBC connection and session marked read-only; (3) an explicit
-`SET TRANSACTION READ ONLY`, applied even when the data source is bound as `READ_WRITE`, because
-`execute_readonly` is read-only by definition; (4) statement classification over the parsed syntax
-tree, accepting only `SELECT`, `WITH … SELECT` and `EXPLAIN` without `ANALYZE`; (5) a row ceiling
-and a query timeout; (6) a sanitized audit entry. The transaction is always rolled back.
+**Bancos somente-leitura, em camadas.** Na ordem: (1) a credencial de leitura que você configura no
+PostgreSQL — a barreira de verdade; (2) a conexão JDBC e a sessão marcadas como somente-leitura; (3)
+um `SET TRANSACTION READ ONLY` explícito, aplicado mesmo quando o banco está vinculado como
+`READ_WRITE`, porque `execute_readonly` é de leitura por definição; (4) classificação do statement
+sobre a árvore sintática, aceitando só `SELECT`, `WITH … SELECT` e `EXPLAIN` sem `ANALYZE`; (5) teto
+de linhas e tempo máximo de consulta; (6) registro de auditoria saneado. A transação sempre termina
+em rollback.
 
-**Credential protection.** Passwords live in the IDE password safe, keyed by workspace and data
-source. They travel in `CharArray` and are wiped after use. They never appear in a profile, a JSON
-file, a JDBC URL, a log line, an audit entry or an error message. The only moment a password becomes
-a `String` is the `Properties` map the JDBC API requires, inside a function that clears it.
+**Proteção da credencial.** As senhas ficam no cofre da IDE, endereçadas por workspace e banco.
+Trafegam em `CharArray` e são zeradas depois do uso. Nunca aparecem num perfil, num arquivo JSON,
+numa URL JDBC, numa linha de log, num registro de auditoria ou numa mensagem de erro. O único momento
+em que uma senha vira `String` é o mapa `Properties` que a API JDBC exige, dentro de uma função que o
+limpa.
 
-**Secrets in query results.** A column whose name announces a secret — `password`, `senha`, `token`,
-`api_key`, and others — comes back masked with **no configuration required**. You may mask more
-columns; you cannot unmask those.
+**Segredo em resultado de consulta.** Coluna cujo nome anuncia segredo — `password`, `senha`,
+`token`, `api_key`, entre outros — volta mascarada **sem configuração alguma**. Você pode mascarar
+mais colunas; não pode desmascarar essas.
 
-**Nothing written inside your repositories.** Every artifact Prumo produces goes to an operating
-system directory. A test proves that installing a pack writes nothing into a project directory.
+**Nada escrito dentro dos seus repositórios.** Todo artefato que o Prumo produz vai para um diretório
+do sistema operacional. Um teste prova que instalar um pacote não escreve nada dentro do diretório de
+um projeto.
 
-**Pack consent.** A pack is never active before a human accepts it. The consent screen shows origin,
-version, checksum, the capabilities in plain language, every finding with the exact snippet that
-produced it, and the scripts in full. Destructive findings require item-by-item acknowledgement,
-never pre-checked. A `BLOCKED` pack has no accept button and no parameter that installs it.
+**Consentimento para pacote.** Um pacote nunca fica ativo antes de uma pessoa aceitar. A tela de
+consentimento mostra origem, versão, checksum, as capacidades em linguagem simples, cada achado com o
+trecho exato que o produziu, e os scripts por inteiro. Achado destrutivo exige reconhecimento item a
+item, nunca pré-marcado. Pacote `BLOCKED` não tem botão de aceitar nem parâmetro que o instale.
 
-**Script confinement.** Commands are argument lists, never shell strings. The working directory is
-inside the pack. The environment is not inherited from the IDE — a minimal `PATH` plus what the pack
-declared. Standard input is closed, output is capped, the timeout kills the process tree.
+**Confinamento de script.** Os comandos são listas de argumentos, nunca strings de shell. O diretório
+de trabalho fica dentro do pacote. O ambiente não é herdado da IDE — um `PATH` mínimo mais o que o
+pacote declarou. A entrada padrão é fechada, a saída tem teto, e o tempo máximo mata a árvore de
+processos.
 
-**Audit without duplication.** The trail records tool, workspace, repository, data source, pack,
-statement type, row count, outcome and duration. It never records file content, query results, SQL
-text or parameter values: an audit that copies the data becomes a second copy of what it was meant
-to protect.
+**Auditoria sem duplicação.** A trilha registra tool, workspace, repositório, banco, pacote, tipo de
+statement, contagem de linhas, desfecho e duração. Nunca registra conteúdo de arquivo, resultado de
+consulta, texto SQL ou valor de parâmetro: auditoria que copia o dado vira uma segunda cópia daquilo
+que ela deveria proteger.
 
-## What Prumo does *not* protect against
+## Contra o que o Prumo **não** protege
 
-- **Static analysis is not proof.** The risk classifier detects known destructive patterns. A script
-  written to obfuscate what it does will pass. Treat it as a spotlight, not a wall.
-- **Script confinement is not an OS sandbox.** The process runs as your user, with your permissions.
-  A command with an absolute path reaches the whole disk. Portable filesystem sandboxing does not
-  exist in the JVM; the barrier before it is your reading of the consent screen.
-- **A read-only credential is your responsibility.** Prumo's layers reduce the blast radius of a
-  mistake; they do not turn a superuser connection into a safe one.
-- **The AI client can still be socially engineered** by content it reads. Prumo limits *what* it can
-  reach, not what it concludes.
-- **PDF is catalogued, not parsed.** Nothing inside a PDF is analysed.
+- **Análise estática não é prova.** O classificador de risco detecta padrões destrutivos conhecidos.
+  Um script escrito para ofuscar o que faz vai passar. Trate-o como holofote, não como muro.
+- **O confinamento de script não é uma sandbox do sistema operacional.** O processo roda como o seu
+  usuário, com as suas permissões. Um comando com caminho absoluto alcança o disco inteiro. Sandbox
+  portátil de sistema de arquivos não existe na JVM; a barreira anterior a isso é a sua leitura da
+  tela de consentimento.
+- **Uma credencial somente-leitura é responsabilidade sua.** As camadas do Prumo reduzem o alcance do
+  estrago de um engano; não transformam uma conexão de superusuário numa conexão segura.
+- **O cliente de IA continua sujeito a engenharia social** pelo conteúdo que lê. O Prumo limita *o
+  que* ele alcança, não o que ele conclui.
+- **PDF é catalogado, não interpretado.** Nada dentro de um PDF é analisado.
 
-## Reporting a vulnerability
+## Relatar uma vulnerabilidade
 
-See [SECURITY.md](../SECURITY.md).
+Veja o [SECURITY.md](../SECURITY.md).
 
-## Verifying the claims
+## Conferir as afirmações
 
-Every guarantee above is a named test:
+Cada garantia acima é um teste com nome:
 
 ```bash
 ./gradlew test -PsecurityOnly
 ```
 
-`SecurityCoverageTest` maps each principle to the tests that sustain it and fails if one is removed.
-A failing security test blocks delivery; it is never recorded as a pending item.
+O `SecurityCoverageTest` mapeia cada princípio aos testes que o sustentam e falha se um deles for
+removido. Teste de segurança vermelho bloqueia a entrega; nunca é registrado como pendência.

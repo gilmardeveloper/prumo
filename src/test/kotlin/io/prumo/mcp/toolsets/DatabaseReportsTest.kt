@@ -97,7 +97,7 @@ class DatabaseReportsTest {
             id = "consumidor",
             name = "consumidor",
             localPath = "C:/repos/consumidor",
-            role = RepositoryRole.TARGET,
+            role = RepositoryRole.PRIMARY,
             accessMode = AccessMode.READ_WRITE,
         )
         return WorkspaceContext(

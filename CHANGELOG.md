@@ -6,6 +6,33 @@ All notable changes to this project are documented here. The format follows
 
 ## [Unreleased]
 
+## [0.1.0-rc.2] - 2026-09-05
+
+### Added
+
+- Free-text `description` per bound repository, written by the developer and handed to the AI client
+  alongside the role, so the assistant knows what each repository is and which of its rules matter.
+- Interface labels in Portuguese for workspace type, repository role, access mode, documentation kind
+  and document authority. The MCP surface is unchanged: roles and access modes still travel as
+  `PRIMARY` and `READ_ONLY`.
+- A settings entry in the tool window menu, so the interface language is reachable without hunting
+  through the IDE settings tree.
+
+### Changed
+
+- The `TARGET` repository role was consolidated into `PRIMARY`, which now means what is being built,
+  including the open project. A role stored in a workspace file that the enum no longer has is
+  resolved by a dedicated serializer instead of failing the whole workspace: `TARGET` reads as
+  `PRIMARY`, anything else unknown reads as `REFERENCE`.
+- Portuguese is now the default language of every document in the repository, with the English
+  version beside it as `<NAME>.en.md` and a reciprocal language link under each title. The MCP
+  surface stays English-only.
+
+### Fixed
+
+- The workspace editor scrolls instead of clipping: on a screen shorter than the form, the last
+  policies were unreachable with no gesture to get to them.
+
 ## [0.1.0-rc.1] - 2026-09-05
 
 Release candidate of the MVP. Feature complete and verified by the automated suite; the acceptance
@@ -49,5 +76,6 @@ full cycle with a real AI client — are still open.
 - Repository role and workspace type explain themselves in the dialog: both describe the work to the
   AI client and enforce nothing, which access modes and policies do.
 
-[Unreleased]: https://github.com/gilmardeveloper/prumo/compare/v0.1.0-rc.1...HEAD
+[Unreleased]: https://github.com/gilmardeveloper/prumo/compare/v0.1.0-rc.2...HEAD
+[0.1.0-rc.2]: https://github.com/gilmardeveloper/prumo/compare/v0.1.0-rc.1...v0.1.0-rc.2
 [0.1.0-rc.1]: https://github.com/gilmardeveloper/prumo/releases/tag/v0.1.0-rc.1

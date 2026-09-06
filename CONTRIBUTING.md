@@ -1,51 +1,62 @@
-# Contributing
+# Como contribuir
 
-Thank you for considering a contribution. This project is deliberately opinionated about process,
-because the product's argument is rigour: a sloppy repository would invalidate it.
+**Português (Brasil)** · [English](CONTRIBUTING.en.md)
 
-## Before you write code
+Obrigado por considerar contribuir. Este projeto é deliberadamente rigoroso quanto ao processo,
+porque o argumento do produto é o rigor: um repositório desleixado o invalidaria.
 
-Open an issue describing the problem before the solution. A change that arrives without a stated
-problem is hard to review and harder to keep.
+## Antes de escrever código
 
-## Build and test
+Abra uma issue descrevendo o problema antes da solução. Uma mudança que chega sem problema declarado
+é difícil de revisar e mais difícil ainda de manter.
+
+## Compilar e testar
 
 ```bash
-# JAVA_HOME must point at a JDK 25 installation
-./gradlew build              # compiles, runs the tests, packages the plugin
-./gradlew test               # the full suite
-./gradlew test -PsecurityOnly # only the tests that sustain the inviolable principles
-./gradlew verifyPlugin       # static verification against IDEA Community and Ultimate
-./gradlew runIde -PsandboxProject="<path to a project>"   # sandbox IDE with a project open
+# JAVA_HOME precisa apontar para uma instalação do JDK 25
+./gradlew build              # compila, roda os testes e empacota o plugin
+./gradlew test               # a suíte completa
+./gradlew test -PsecurityOnly # só os testes que sustentam os princípios invioláveis
+./gradlew verifyPlugin       # verificação estática contra IDEA Community e Ultimate
+./gradlew runIde -PsandboxProject="<caminho de um projeto>"   # IDE de sandbox com um projeto aberto
 ```
 
-Database tests start a real PostgreSQL through Testcontainers. Without Docker they declare
-themselves skipped, and the rest of the suite still runs.
+Os testes de banco sobem um PostgreSQL real por Testcontainers. Sem Docker eles se declaram pulados,
+e o resto da suíte continua valendo.
 
-## The rules that are not negotiable
+## As regras que não se negociam
 
-- **A failing security test blocks delivery.** It is never marked as a pending item, and it is never
-  weakened to make a build green.
-- **Nothing is written inside a user's repository.** Ever.
-- **No secret in code, log, audit entry, error message or test fixture.**
-- **Fail closed.** Ambiguous context, unresolved workspace or unparseable input ends in an explicit
-  error, not in a best-effort guess.
-- **The MCP surface stays in English.** Tool names, descriptions and client-facing errors are a
-  contract read by an AI. Interface text is translated; the contract is not.
-- **Static analysis is not sold as proof.** If you extend the risk classifier, keep the documentation
-  honest about what it cannot catch.
+- **Teste de segurança vermelho bloqueia a entrega.** Nunca vira pendência, e nunca é enfraquecido
+  para deixar um build verde.
+- **Nada é escrito dentro do repositório de quem usa.** Nunca.
+- **Segredo nenhum em código, log, registro de auditoria, mensagem de erro ou fixture de teste.**
+- **Falhar fechado.** Contexto ambíguo, workspace não resolvido ou entrada que o parser não reconhece
+  terminam em erro explícito, não em palpite.
+- **A superfície MCP permanece em inglês.** Nome de tool, descrição e erro devolvido ao cliente são
+  contrato lido por uma IA. O texto de interface é traduzido; o contrato não.
+- **Análise estática não é vendida como prova.** Ao estender o classificador de risco, mantenha a
+  documentação honesta sobre o que ele não alcança.
 
-## Code style
+## Documentação em duas línguas
 
-- Kotlin, four spaces, the surrounding code's naming and layer conventions.
-- Comments explain **why**, not what. If a line needs a comment to say what it does, rewrite the line.
-- No dead code, no stray `TODO`, no commented-out blocks.
-- Every new behaviour that does not depend on the IDE comes with a test that does not need one.
+O português é o padrão de todo documento do repositório; o inglês fica ao lado, no mesmo nome com o
+sufixo `.en.md`. As duas versões trazem, logo abaixo do título, o link recíproco de idioma. Alteração
+numa língua acontece na outra no mesmo pull request — documento traduzido pela metade é pior que
+documento numa língua só.
 
-## Commits and pull requests
+## Estilo de código
 
-- [Conventional Commits](https://www.conventionalcommits.org/): `feat:`, `fix:`, `test:`, `docs:`,
-  `refactor:`, `chore:`. The message says why the change exists, not which files it touched.
-- No `wip` or `adjustments` commits in the history.
-- A pull request describes the problem, the decision taken, and how it was verified. If you changed
-  something that affects security, say which test proves it.
+- Kotlin, quatro espaços, a nomenclatura e as convenções de camada do código vizinho.
+- Comentário explica **por quê**, não o quê. Se uma linha precisa de comentário para dizer o que faz,
+  reescreva a linha.
+- Sem código morto, sem `TODO` solto, sem trecho comentado.
+- Todo comportamento novo que não dependa da IDE vem com teste que também não dependa.
+
+## Commits e pull requests
+
+- Mensagem em português, uma linha, direta: o mínimo para entender o que foi feito. Sem prefixo de
+  convenção (`feat:`, `fix:`, `chore:`) e sem corpo elaborado.
+- Bom: `Cria o painel do Prumo na IDE` · `Apaga a senha da memória depois de usar`.
+- Sem commit `wip` nem `ajustes` no histórico.
+- O pull request descreve o problema, a decisão tomada e como foi verificada. Se você mexeu em algo
+  que afeta segurança, diga qual teste prova.
