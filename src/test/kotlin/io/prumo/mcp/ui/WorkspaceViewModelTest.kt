@@ -85,6 +85,21 @@ class WorkspaceViewModelTest {
     }
 
     @Test
+    fun `os packs instalados chegam a tela, e a ausencia deles tambem`() {
+        val semPack = WorkspaceViewModel.from(
+            WorkspaceResolution.Resolved(WorkspaceContext(workspace, target)),
+        ) as WorkspaceViewModel.Configured
+        val comPack = WorkspaceViewModel.from(
+            WorkspaceResolution.Resolved(WorkspaceContext(workspace, target)),
+            installedPacks = listOf(WorkspaceViewModel.PackRow("folha-tools", "Payroll tools", "1.0.0")),
+        ) as WorkspaceViewModel.Configured
+
+        assertEquals(emptyList<WorkspaceViewModel.PackRow>(), semPack.installedPacks)
+        assertEquals("folha-tools", comPack.installedPacks.single().packId)
+        assertEquals("1.0.0", comPack.installedPacks.single().version)
+    }
+
+    @Test
     fun `a fila de aprovacao so aparece quando ha proposta esperando`() {
         val vazio = WorkspaceViewModel.from(
             WorkspaceResolution.Resolved(WorkspaceContext(workspace, target)),

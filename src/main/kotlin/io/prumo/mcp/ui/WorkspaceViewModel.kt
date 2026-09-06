@@ -18,7 +18,15 @@ sealed interface WorkspaceViewModel {
         val policies: List<PolicyRow>,
         /** Quantos packs propostos por cliente MCP esperam decisão do desenvolvedor. */
         val pendingPacks: Int = 0,
+        /** Os packs já instalados neste workspace, na ordem em que a tela os mostra. */
+        val installedPacks: List<PackRow> = emptyList(),
     ) : WorkspaceViewModel
+
+    data class PackRow(
+        val packId: String,
+        val title: String,
+        val version: String,
+    )
 
     data class RepositoryRow(
         val name: String,
@@ -37,7 +45,11 @@ sealed interface WorkspaceViewModel {
 
     companion object {
 
-        fun from(resolution: WorkspaceResolution, pendingPacks: Int = 0): WorkspaceViewModel = when (resolution) {
+        fun from(
+            resolution: WorkspaceResolution,
+            pendingPacks: Int = 0,
+            installedPacks: List<PackRow> = emptyList(),
+        ): WorkspaceViewModel = when (resolution) {
             is WorkspaceResolution.NotConfigured -> NotConfigured(resolution.projectName)
 
             is WorkspaceResolution.Ambiguous -> Ambiguous(
@@ -61,6 +73,7 @@ sealed interface WorkspaceViewModel {
                         )
                     },
                     pendingPacks = pendingPacks,
+                    installedPacks = installedPacks,
                     policies = listOf(
                         PolicyRow("policy.referenceWrite", context.policies.referenceWrite),
                         PolicyRow("policy.databaseWrite", context.policies.databaseWrite),
