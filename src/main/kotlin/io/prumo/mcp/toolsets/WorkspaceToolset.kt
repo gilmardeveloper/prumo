@@ -15,9 +15,10 @@ class WorkspaceToolset : McpToolset {
 
     @McpTool(name = GET_CONTEXT_TOOL)
     @McpDescription(
-        "Returns the Prumo workspace bound to the current project: its name, type, the repository " +
-            "the project belongs to and how much documentation is attached. Only the current " +
-            "workspace is ever visible.",
+        "Use this tool to learn which Prumo workspace the open project belongs to: its name, " +
+            "type, the repository the project sits in and how much documentation is attached. Call " +
+            "prumo_workspace_prepare first for the full picture. Only the current workspace is " +
+            "ever visible.",
     )
     suspend fun getContext(): WorkspaceContextResponse =
         prumoToolCall(GET_CONTEXT_TOOL, "workspace.get_context", PolicyAction.READ_REPOSITORY) { call ->
@@ -26,9 +27,9 @@ class WorkspaceToolset : McpToolset {
 
     @McpTool(name = GET_POLICY_TOOL)
     @McpDescription(
-        "Returns what this workspace allows, decided by the Prumo policy engine. Database actions " +
-            "are evaluated without a specific datasource. Read it before attempting an operation " +
-            "that may be denied.",
+        "Use this tool to learn what this workspace allows, decided by the Prumo policy engine. " +
+            "Call it before attempting an operation that may be denied, so you do not spend a turn " +
+            "on a refusal.",
     )
     suspend fun getPolicy(): WorkspacePolicyResponse =
         prumoToolCall(GET_POLICY_TOOL, "workspace.get_policy", PolicyAction.READ_REPOSITORY) { call ->
@@ -37,9 +38,11 @@ class WorkspaceToolset : McpToolset {
 
     @McpTool(name = GET_REPOSITORIES_TOOL)
     @McpDescription(
-        "Lists the repositories bound to the current workspace with their role and access mode. " +
-            "Use the returned repositoryId to address a repository: Prumo never accepts absolute " +
-            "paths from the client.",
+        "Use this tool to list the repositories of this workspace with their role, access mode, " +
+            "the developer's description of each one and the paths excluded from it. The " +
+            "repositoryId returned here is how every other Prumo tool addresses a repository: " +
+            "absolute paths are never accepted. Call prumo_workspace_prepare first if you have " +
+            "not yet.",
     )
     suspend fun getRepositories(): RepositoriesResponse =
         prumoToolCall(GET_REPOSITORIES_TOOL, "workspace.get_repositories", PolicyAction.READ_REPOSITORY) { call ->
@@ -48,9 +51,10 @@ class WorkspaceToolset : McpToolset {
 
     @McpTool(name = GET_DOCUMENTATION_SOURCES_TOOL)
     @McpDescription(
-        "Lists the documentation attached to the current workspace, its authority level and " +
-            "whether Prumo can read it as text. Catalogued formats such as PDF are reported as " +
-            "known but not extractable.",
+        "Use this tool to find the documentation the developer attached to this workspace: " +
+            "specifications, manuals and glossaries that carry more authority than the code. It " +
+            "returns each source with its authority level and whether Prumo can read it as text. " +
+            "Catalogued formats such as PDF are reported as known but not extractable.",
     )
     suspend fun getDocumentationSources(): DocumentationSourcesResponse =
         prumoToolCall(
@@ -63,9 +67,12 @@ class WorkspaceToolset : McpToolset {
 
     @McpTool(name = PREPARE_TOOL)
     @McpDescription(
-        "Validates the current workspace and returns READY, WARNING or ERROR with one check per " +
-            "repository and documentation source. Read-only: it never runs git pull, checkout, " +
-            "reset or any other mutation.",
+        "Call this first, before reading anything in this project. A Prumo workspace is the " +
+            "boundary an AI client may work within: which repositories, which documentation and " +
+            "which databases are in reach, and what is allowed. This tool names every one of them " +
+            "and returns READY, WARNING or ERROR with one check per repository and documentation " +
+            "source, so you know what exists before you ask for it. Read-only: it never runs git " +
+            "pull, checkout, reset or any other mutation.",
     )
     suspend fun prepare(): WorkspacePreparationResponse =
         prumoToolCall(PREPARE_TOOL, "workspace.prepare", PolicyAction.READ_REPOSITORY) { call ->

@@ -50,6 +50,28 @@ class ToolDescriptionTest {
         assertTrue(semInstrucao.isEmpty(), "descrição sem instrução de uso: ${semInstrucao.map { it.name }}")
     }
 
+    /**
+     * O servidor da IDE não transmite texto de apresentação: entre a conexão e a primeira chamada,
+     * o cliente recebe do Prumo apenas nomes e descrições. Se nenhuma delas apontar o ponto de
+     * partida, ele não existe para quem chega sem contexto.
+     */
+    @Test
+    fun `as tools de entrada apontam o ponto de partida`() {
+        val entrada = tools.filter { it.name in ENTRY_POINTS }
+        val semRota = entrada.filterNot { it.description.contains(PREPARE) }
+
+        assertTrue(entrada.isNotEmpty(), "nenhuma tool de entrada encontrada")
+        assertTrue(semRota.isEmpty(), "tool de entrada sem rota para $PREPARE: ${semRota.map { it.name }}")
+    }
+
+    @Test
+    fun `o ponto de partida se apresenta como tal`() {
+        val prepare = tools.single { it.name == PREPARE }
+
+        assertTrue(prepare.description.contains("Call this first"), "prepare não se anuncia como primeiro passo")
+        assertTrue(prepare.description.contains("boundary"), "prepare não explica o que é um workspace")
+    }
+
     @Test
     fun `toda tool tem descricao`() {
         val vazias = tools.filter { it.description.isBlank() }
@@ -66,6 +88,14 @@ class ToolDescriptionTest {
         )
 
         val INSTRUCAO = listOf("Use this tool", "Prefer it over", "Call it")
+
+        const val PREPARE = "prumo_workspace_prepare"
+
+        /** Tools por onde um cliente sem contexto chega ao Prumo. */
+        val ENTRY_POINTS = setOf(
+            "prumo_workspace_get_context",
+            "prumo_workspace_get_repositories",
+        )
 
         /**
          * Tools que competem por uma necessidade que a família nativa também atende, e por isso
