@@ -3,6 +3,7 @@ package io.prumo.mcp.datasource
 import io.prumo.mcp.datasource.application.ReadOnlyQueryExecutor
 import io.prumo.mcp.datasource.domain.DataSourceProfile
 import io.prumo.mcp.datasource.security.PersonalDataKind
+import io.prumo.mcp.datasource.security.PersonalDataObfuscator
 import io.prumo.mcp.pack.execution.PackQueryRunner
 import io.prumo.mcp.workspace.domain.AccessMode
 import org.junit.jupiter.api.Assertions.assertEquals
@@ -47,6 +48,41 @@ class ObfuscationReachTest {
         )
 
         assertEquals(false, profile.obfuscatePersonalData)
+    }
+
+    /**
+     * Interruptor sem controle na tela é interruptor que não existe.
+     *
+     * A primeira versão gravou o campo no domínio, respeitou-o na execução e publicou-o para a IA,
+     * mas não colocou a caixa de seleção no formulário: ficava sempre ligado, sem como desligar.
+     */
+    @Test
+    fun `o formulario do banco oferece o interruptor e o le do perfil`() {
+        val fonte = java.nio.file.Files.readString(
+            java.nio.file.Path.of("src/main/kotlin/io/prumo/mcp/ui/datasource/DataSourceDialog.kt"),
+        )
+
+        assertTrue(fonte.contains("datasource.field.obfuscate"), "o formulário não oferece o interruptor")
+        assertTrue(
+            fonte.contains("existing?.obfuscatePersonalData"),
+            "o formulário não lê o estado gravado: reabrir o banco perderia a escolha",
+        )
+        assertTrue(
+            fonte.contains("obfuscatePersonalData = obfuscatePersonalData"),
+            "o formulário não grava a escolha no perfil",
+        )
+    }
+
+    @Test
+    fun `desligado, o dado pessoal sai exatamente como esta no banco`() {
+        val kind = PersonalDataObfuscator.classify("num_cpf", "12345678901")
+
+        assertEquals("123***789**", PersonalDataObfuscator.obfuscate(kind, "12345678901"))
+        assertEquals(
+            "12345678901",
+            PersonalDataObfuscator.obfuscate(PersonalDataKind.NONE, "12345678901"),
+            "com o interruptor desligado a coluna vira NONE e o valor atravessa intacto",
+        )
     }
 
     /**

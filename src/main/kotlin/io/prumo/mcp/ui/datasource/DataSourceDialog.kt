@@ -9,6 +9,7 @@ import com.intellij.ui.SimpleListCellRenderer
 import com.intellij.ui.components.JBLabel
 import com.intellij.ui.components.JBPasswordField
 import com.intellij.ui.components.JBTextField
+import com.intellij.ui.components.JBCheckBox
 import com.intellij.ui.components.JBScrollPane
 import com.intellij.ui.components.JBTextArea
 import com.intellij.ui.dsl.builder.columns
@@ -66,6 +67,11 @@ class DataSourceDialog(
         renderer = SimpleListCellRenderer.create("") { PrumoBundle.message(it.labelKey) }
     }
 
+    private val obfuscateBox = JBCheckBox(
+        PrumoBundle.message("datasource.field.obfuscate"),
+        existing?.obfuscatePersonalData ?: true,
+    )
+
     private val sslModeBox = ComboBox(SslMode.entries.toTypedArray())
         .apply { selectedItem = existing?.sslMode ?: SslMode.PREFER }
 
@@ -79,6 +85,7 @@ class DataSourceDialog(
     private val description: String get() = descriptionArea.text.trim()
     private val accessMode: AccessMode get() = accessModeBox.selectedItem as? AccessMode ?: AccessMode.READ_ONLY
     private val sslMode: SslMode get() = sslModeBox.selectedItem as? SslMode ?: SslMode.PREFER
+    private val obfuscatePersonalData: Boolean get() = obfuscateBox.isSelected
 
     /** Porta ilegível vira zero, que a validação recusa junto com qualquer valor fora da faixa. */
     private val port: Int get() = portField.text.trim().toIntOrNull() ?: 0
@@ -102,6 +109,8 @@ class DataSourceDialog(
         row(PrumoBundle.message("datasource.field.defaultSchema")) { cell(defaultSchemaField).columns(20) }
         row(PrumoBundle.message("datasource.field.description")) { cell(JBScrollPane(descriptionArea)) }
         row { comment(PrumoBundle.message("datasource.descriptionHint"), maxLineLength = 62) }
+        row { cell(obfuscateBox) }
+        row { comment(PrumoBundle.message("datasource.obfuscateHint"), maxLineLength = 62) }
 
         row {
             button(PrumoBundle.message("datasource.test")) { testConnection() }
@@ -178,6 +187,7 @@ class DataSourceDialog(
             sslMode = sslMode,
             defaultSchema = defaultSchema.ifBlank { null },
             description = description.ifBlank { null },
+            obfuscatePersonalData = obfuscatePersonalData,
         )
     }
 
