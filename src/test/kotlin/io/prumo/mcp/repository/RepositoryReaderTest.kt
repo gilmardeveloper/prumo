@@ -136,4 +136,22 @@ class RepositoryReaderTest {
         assertTrue(failure.message.orEmpty().contains("not a directory"))
         assertFalse(failure.message.orEmpty().contains(root.toString()))
     }
+
+    /**
+     * A garantia escrita diz que o `.git` nunca e lido como conteudo. A busca e a listagem ja
+     * filtravam; a leitura de arquivo nao, e e ali que mora a URL do remote com token.
+     */
+    @Test
+    fun `leitura de arquivo recusa o diretorio git`(@TempDir root: Path) {
+        val git = Files.createDirectories(root.resolve(".git"))
+        Files.writeString(git.resolve("config"), "[remote origin] url = https://user:token@host/org/app.git")
+
+        val falha = assertThrows<RepositoryReadException> {
+            RepositoryReader.readFile(root, ".git/config")
+        }
+
+        assertTrue(falha.message.orEmpty().contains(".git"), falha.message.orEmpty())
+        assertFalse(falha.message.orEmpty().contains("token"), "a recusa nao pode ecoar o conteudo")
+    }
+
 }

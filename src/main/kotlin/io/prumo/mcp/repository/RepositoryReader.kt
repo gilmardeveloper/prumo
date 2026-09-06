@@ -63,6 +63,11 @@ object RepositoryReader {
         require(maxLines >= 1) { "maxLines must be 1 or greater." }
 
         val file = PathSecurityValidator.resolve(root, relativePath)
+        if (isInsideGitDirectory(root, file)) {
+            throw RepositoryReadException(
+                "Path '$relativePath' is inside the repository's .git directory, which Prumo never reads as content.",
+            )
+        }
         if (!file.isRegularFile()) {
             throw RepositoryReadException("File '$relativePath' does not exist in this repository.")
         }

@@ -153,4 +153,22 @@ class DataMaskingPolicyTest {
         assertEquals("[masked]", DataMaskingPolicy.NONE.apply("senha", "secreta"))
         assertEquals("Maria", DataMaskingPolicy.NONE.apply("nome", "Maria"))
     }
+
+    /**
+     * Um typo nao pode ser reportado como recusa de categoria: quem le "so SELECT e aceito" depois
+     * de ter escrito um SELECT reescreve a consulta carregando o mesmo erro.
+     */
+    @Test
+    fun `erro de sintaxe se distingue de recusa de categoria`() {
+        val sintaxe = SqlStatementClassifier.classify("SELECT 1 FRON servidor") as SqlClassification.Denied
+        val categoria = SqlStatementClassifier.classify("DELETE FROM servidor") as SqlClassification.Denied
+
+        assertEquals(SqlStatementType.UNPARSEABLE, sintaxe.type)
+        assertTrue(sintaxe.reason.contains("syntax problem"), sintaxe.reason)
+        assertFalse(sintaxe.reason.contains("Only read statements"), sintaxe.reason)
+
+        assertEquals(SqlStatementType.WRITE, categoria.type)
+        assertTrue(categoria.reason.contains("Only read statements"), categoria.reason)
+    }
+
 }

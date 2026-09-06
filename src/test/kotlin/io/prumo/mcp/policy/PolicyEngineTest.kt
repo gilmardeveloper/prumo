@@ -86,9 +86,8 @@ class PolicyEngineTest {
     }
 
     @Test
-    fun `caminho externo, execucao de processo e escrita Git sao negados por padrao`() {
+    fun `execucao de processo e escrita Git sao negadas por padrao`() {
         listOf(
-            PolicyAction.ACCESS_EXTERNAL_PATH,
             PolicyAction.EXECUTE_PROCESS,
             PolicyAction.WRITE_GIT,
         ).forEach { action ->

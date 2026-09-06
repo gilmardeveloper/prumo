@@ -74,6 +74,36 @@ statement, contagem de linhas, desfecho e duração. Nunca registra conteúdo de
 consulta, texto SQL ou valor de parâmetro: auditoria que copia o dado vira uma segunda cópia daquilo
 que ela deveria proteger.
 
+## O que o Prumo governa, e o que ele não governa
+
+O Prumo impõe fronteira às **ferramentas do Prumo**. O servidor MCP da IDE não é dele: é da
+plataforma, e serve outras famílias de ferramentas ao mesmo cliente, com fronteiras próprias e mais
+largas.
+
+Medido em campo, contra uma instalação real: as ferramentas da própria IDE recusam por **destino** —
+o que está fora de "project, library, and SDK roots" —, e raiz de biblioteca e de SDK ficam fora do
+projeto. Elas devolveram conteúdo de `C:\Program Files\Java\jdk-25` e do repositório Maven do
+usuário por caminhos com `..`, que o Prumo recusa por **forma**, antes de olhar o destino. Na mesma
+lista há ferramenta de executar comando de terminal.
+
+O alcance efetivo de um cliente conectado é, portanto, a **união** das famílias, não a interseção, e
+quem define o teto é a mais permissiva. O que o Prumo garante é que **através das tools dele** nada
+fora do workspace é alcançado, e que repositório de referência, documentação e banco só existem por
+ele. Quem precisa de um limite para a sessão inteira precisa desligar as outras famílias no cliente
+de IA, e isso está fora do alcance deste plugin.
+
+## O limite do mascaramento
+
+A máscara decide pela **coluna de origem**, lida do metadado do driver, e não pelo apelido que o
+cliente escolheu: `SELECT senha AS num_matricula` volta mascarado. Coluna calculada não tem coluna de
+origem no metadado, então uma consulta que encoste em nome sensível mascara também as calculadas —
+sobra máscara, e essa é a direção aceita.
+
+O que a máscara **não** faz é impedir inferência. Uma consulta que use a coluna sensível num
+predicado — `WHERE senha = 'tentativa'` — devolve linhas ou não devolve, e isso confirma o valor sem
+nunca exibi-lo. Mascarar é sobre o que sai, não sobre o que se deduz. A barreira contra isso é a
+credencial somente-leitura com alcance mínimo, não o Prumo.
+
 ## Contra o que o Prumo **não** protege
 
 - **Análise estática não é prova.** O classificador de risco detecta padrões destrutivos conhecidos.

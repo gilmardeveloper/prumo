@@ -4,6 +4,9 @@ import io.prumo.mcp.datasource.DataSourceAccessException
 import io.prumo.mcp.datasource.PostgresConnectionFactory
 import io.prumo.mcp.datasource.domain.DataSourceProfile
 import io.prumo.mcp.datasource.security.DataMaskingPolicy
+import io.prumo.mcp.datasource.security.MaskingRule
+import io.prumo.mcp.datasource.security.SensitiveColumnScanner
+import org.postgresql.PGResultSetMetaData
 import io.prumo.mcp.datasource.security.SqlClassification
 import io.prumo.mcp.datasource.security.SqlStatementClassifier
 import io.prumo.mcp.datasource.security.SqlStatementType
@@ -66,7 +69,7 @@ class ReadOnlyQueryExecutor(
                     statement.queryTimeout = queryTimeoutSeconds
                     statement.maxRows = limit + 1
                     statement.executeQuery(sql).use { rows ->
-                        read(rows, limit, masking, classification.type, startedAt)
+                        read(rows, limit, masking, classification.type, startedAt, sql)
                     }
                 }
             }
@@ -97,14 +100,21 @@ class ReadOnlyQueryExecutor(
         masking: DataMaskingPolicy,
         statementType: SqlStatementType,
         startedAt: Long,
+        sql: String,
     ): QueryOutcome {
         val metadata = rows.metaData
+        val touchesSecret by lazy { SensitiveColumnScanner.touchesSensitiveColumn(sql, masking) }
         val columns = (1..metadata.columnCount).map { index ->
-            val name = metadata.getColumnLabel(index) ?: metadata.getColumnName(index)
+            val label = metadata.getColumnLabel(index).orEmpty()
+            val origin = baseColumnName(metadata, index)
+            val name = label.ifBlank { origin }
+            // Coluna calculada nao tem coluna de origem; so a leitura do statement denuncia a origem.
+            val computed = origin.isBlank()
             QueryColumn(
                 name = name,
                 type = metadata.getColumnTypeName(index) ?: "unknown",
-                masked = masking.ruleFor(name) != io.prumo.mcp.datasource.security.MaskingRule.ALLOW,
+                masked = masking.ruleFor(listOf(label, origin)) == MaskingRule.MASK ||
+                    (computed && touchesSecret),
             )
         }
 
@@ -117,7 +127,8 @@ class ReadOnlyQueryExecutor(
             }
             values.add(
                 columns.mapIndexed { index, column ->
-                    masking.apply(column.name, cellOf(rows, index + 1, metadata.getColumnType(index + 1)))
+                    val value = cellOf(rows, index + 1, metadata.getColumnType(index + 1))
+                    if (column.masked && value != null) DataMaskingPolicy.MASKED else value
                 },
             )
         }
@@ -137,6 +148,20 @@ class ReadOnlyQueryExecutor(
      *
      * Conteúdo binário vira rótulo; texto acima de [MAX_CELL_LENGTH] é cortado com reticências.
      */
+    /**
+     * Nome da coluna de origem, indiferente ao apelido que o cliente escolheu.
+     *
+     * `getColumnName` do driver PostgreSQL devolve o apelido, igual a `getColumnLabel`, então não
+     * serve para decidir mascaramento. `PGResultSetMetaData.getBaseColumnName` devolve a coluna de
+     * verdade, e vazio quando a coluna é calculada. Driver que não exponha a API cai no nome comum,
+     * e a decisão fica a cargo do rótulo e da varredura do statement.
+     */
+    private fun baseColumnName(metadata: java.sql.ResultSetMetaData, index: Int): String =
+        when (metadata) {
+            is PGResultSetMetaData -> runCatching { metadata.getBaseColumnName(index) }.getOrNull().orEmpty()
+            else -> metadata.getColumnName(index).orEmpty()
+        }
+
     private fun cellOf(rows: ResultSet, index: Int, sqlType: Int): String? = when (sqlType) {
         Types.BINARY, Types.VARBINARY, Types.LONGVARBINARY, Types.BLOB ->
             if (rows.getBytes(index) == null) null else BINARY
