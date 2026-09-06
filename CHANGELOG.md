@@ -6,6 +6,15 @@ All notable changes to this project are documented here. The format follows
 
 ## [Unreleased]
 
+## [0.1.0-rc.6] - 2026-09-06
+
+### Changed
+
+- Asking for an excluded directory by name now answers with the refusal instead of an empty listing.
+  An excluded path inside a wider scan stays invisible, which is the point; but a client that asks
+  for the forbidden folder head-on and receives `[]` concludes it is empty and tries another angle.
+  A field evaluator reported exactly that. The same applies to a search scoped to an excluded path.
+
 ## [0.1.0-rc.5] - 2026-09-06
 
 ### Fixed
@@ -134,7 +143,8 @@ full cycle with a real AI client — are still open.
 - Repository role and workspace type explain themselves in the dialog: both describe the work to the
   AI client and enforce nothing, which access modes and policies do.
 
-[Unreleased]: https://github.com/gilmardeveloper/prumo/compare/v0.1.0-rc.5...HEAD
+[Unreleased]: https://github.com/gilmardeveloper/prumo/compare/v0.1.0-rc.6...HEAD
+[0.1.0-rc.6]: https://github.com/gilmardeveloper/prumo/compare/v0.1.0-rc.5...v0.1.0-rc.6
 [0.1.0-rc.5]: https://github.com/gilmardeveloper/prumo/compare/v0.1.0-rc.4...v0.1.0-rc.5
 [0.1.0-rc.4]: https://github.com/gilmardeveloper/prumo/compare/v0.1.0-rc.3...v0.1.0-rc.4
 [0.1.0-rc.3]: https://github.com/gilmardeveloper/prumo/compare/v0.1.0-rc.2...v0.1.0-rc.3

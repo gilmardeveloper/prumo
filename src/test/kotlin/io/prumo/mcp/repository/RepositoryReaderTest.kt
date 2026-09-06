@@ -246,4 +246,26 @@ class RepositoryReaderTest {
         assertTrue(busca.matches.isEmpty(), busca.matches.toString())
     }
 
+
+    /**
+     * Pedir o proibido de frente merece resposta, nao lista vazia: um avaliador relatou que o
+     * silencio faz o cliente concluir que a pasta esta vazia e tentar de novo por outro angulo.
+     */
+    @Test
+    fun `pedir explicitamente o caminho excluido responde em voz alta`(@TempDir root: Path) {
+        val repo = repository(root)
+        root.resolve("docs").createDirectories()
+        root.resolve("docs/BUILD.md").writeText("como compilar")
+
+        val listagem = assertThrows<RepositoryReadException> {
+            RepositoryReader.listDirectory(repo, "docs", 2, 300, listOf("docs"))
+        }
+        assertTrue(listagem.message.orEmpty().contains("excluded"), listagem.message.orEmpty())
+
+        val busca = assertThrows<RepositoryReadException> {
+            RepositoryReader.searchText(repo, "compilar", scope = "docs", excluded = listOf("docs"))
+        }
+        assertTrue(busca.message.orEmpty().contains("excluded"), busca.message.orEmpty())
+    }
+
 }
