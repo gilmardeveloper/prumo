@@ -6,6 +6,18 @@ All notable changes to this project are documented here. The format follows
 
 ## [Unreleased]
 
+## [0.1.0-rc.28] - 2026-09-06
+
+### Added
+
+- **An installed pack can be removed.** Importing, exporting and installing all had a way in, and
+  taking one back out had none: `PackStore.remove` was written and tested and no part of the product
+  called it — the same gap the exporter had before 0.1.0-rc.24. Accepting a pack was a one-way door,
+  which is the wrong shape for a consent screen. **Remove…** now sits beside the other two, asks
+  before acting, and says what removal destroys: the pack's tools stop existing for AI clients and
+  its knowledge documents leave the workspace, while repositories and databases are untouched and an
+  exported file can be imported again.
+
 ## [0.1.0-rc.27] - 2026-09-06
 
 ### Fixed
@@ -532,6 +544,7 @@ full cycle with a real AI client — are still open.
   AI client and enforce nothing, which access modes and policies do.
 
 [Unreleased]: https://github.com/gilmardeveloper/prumo/compare/v0.1.0-rc.21...HEAD
+[0.1.0-rc.28]: https://github.com/gilmardeveloper/prumo/compare/v0.1.0-rc.27...v0.1.0-rc.28
 [0.1.0-rc.27]: https://github.com/gilmardeveloper/prumo/compare/v0.1.0-rc.26...v0.1.0-rc.27
 [0.1.0-rc.26]: https://github.com/gilmardeveloper/prumo/compare/v0.1.0-rc.25...v0.1.0-rc.26
 [0.1.0-rc.25]: https://github.com/gilmardeveloper/prumo/compare/v0.1.0-rc.24...v0.1.0-rc.25
