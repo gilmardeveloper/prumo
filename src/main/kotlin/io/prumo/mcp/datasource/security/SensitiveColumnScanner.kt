@@ -19,6 +19,15 @@ object SensitiveColumnScanner {
     private val IDENTIFIER = Regex("[A-Za-z_][A-Za-z0-9_]*")
 
     /** `<coluna> AS <apelido>`, com a coluna possivelmente qualificada por tabela. */
+    /** Operador que combina o resultado de mais de um `SELECT`. */
+    private val SET_OPERATOR = Regex("""\b(union|except|intersect)\b""", RegexOption.IGNORE_CASE)
+
+    /** Função que empacota a linha inteira, ou conversão de um apelido de linha para texto. */
+    private val ROW_SERIALIZER = Regex(
+        """\b(row_to_json|to_json|to_jsonb|jsonb_agg|json_agg|json_build_object)\s*\(|::\s*(text|json|jsonb)""",
+        RegexOption.IGNORE_CASE,
+    )
+
     private val ALIAS = Regex(
         """(?:[A-Za-z_][A-Za-z0-9_]*\.)?([A-Za-z_][A-Za-z0-9_]*)\s+as\s+([A-Za-z_][A-Za-z0-9_]*)""",
         RegexOption.IGNORE_CASE,
@@ -78,6 +87,27 @@ object SensitiveColumnScanner {
         }
         return SAFE_AGGREGATES.any { normalized.startsWith(it) }
     }
+
+    /**
+     * O statement combina resultados com `UNION`, `EXCEPT` ou `INTERSECT`.
+     *
+     * A lista de seleção do primeiro braço não descreve os demais: `SELECT txt_sexo … UNION ALL
+     * SELECT num_cpf …` entrega o CPF sob a classificação da primeira coluna. Havendo operador de
+     * conjunto, nenhuma posição pode ser mapeada com confiança.
+     */
+    fun combinesResultSets(sql: String): Boolean = SET_OPERATOR.containsMatchIn(sql)
+
+    /**
+     * A coluna serializa uma linha inteira, e não um campo.
+     *
+     * `row_to_json(t)`, `to_jsonb(t)` e `t::text` empacotam todas as colunas da origem num único
+     * valor: nenhum nome de coluna sobra na expressão, e o conteúdo é o registro completo.
+     */
+    fun serializesWholeRow(item: String): Boolean = ROW_SERIALIZER.containsMatchIn(item)
+
+    /** Itens da lista de seleção por posição, ou `null` quando a lista não pôde ser mapeada. */
+    fun selectItemsOrNull(sql: String, columnCount: Int): List<String>? =
+        selectItems(sql)?.takeIf { it.size == columnCount }
 
     /**
      * Mapeia cada apelido do statement à coluna que ele renomeia.

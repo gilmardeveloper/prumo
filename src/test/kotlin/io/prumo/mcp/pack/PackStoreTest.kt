@@ -116,17 +116,24 @@ class PackStoreTest {
     }
 
     @Test
-    fun `manifesto que aponta para fora do pack e recusado`(@TempDir root: Path) {
-        val store = PackStore(storage(root))
-        val escapando = manifest(
-            knowledge = listOf(
-                KnowledgeItem("fuga", LocalizedText("Fuga"), "../../../../etc/passwd"),
-            ),
-        )
-        store.save("folha-2026", escapando)
+    /**
+     * O domínio recusa o caminho de fuga na construção do item, então o manifesto sequer chega ao
+     * store. A defesa em profundidade do store continua exercitada logo abaixo, por um caminho que o
+     * domínio não tem como recusar.
+     */
+    fun `item de conhecimento que aponta para fora do pack e recusado na origem`(@TempDir root: Path) {
+        assertThrows<IllegalArgumentException> {
+            KnowledgeItem("fuga", LocalizedText("Fuga"), "../../../../etc/passwd")
+        }
+    }
 
-        assertThrows<PathAccessDeniedException> {
-            store.readKnowledge("folha-2026", "folha-conhecimento", "fuga")
+    @Test
+    fun `item inexistente nao alcanca o disco`(@TempDir root: Path) {
+        val store = PackStore(storage(root))
+        store.save("folha-2026", manifest())
+
+        assertThrows<PackAccessException> {
+            store.readKnowledge("folha-2026", "folha-conhecimento", "../../fuga")
         }
     }
 

@@ -155,6 +155,10 @@ class ReadOnlyQueryExecutor(
         val touchesSecret by lazy { SensitiveColumnScanner.touchesSensitiveColumn(sql, masking) }
         val statementIdentifiers by lazy { SensitiveColumnScanner.allIdentifiers(sql) }
         val aliasOrigins = SensitiveColumnScanner.aliasOrigins(sql)
+        // Operador de conjunto: a lista do primeiro braço não descreve os demais.
+        val combinesResults = SensitiveColumnScanner.combinesResultSets(sql)
+        val selectItems = SensitiveColumnScanner.selectItemsOrNull(sql, metadata.columnCount)
+            .takeUnless { combinesResults }
         val columns = (1..metadata.columnCount).map { index ->
             val label = metadata.getColumnLabel(index).orEmpty()
             val origin = baseColumnName(metadata, index)
@@ -167,7 +171,13 @@ class ReadOnlyQueryExecutor(
             // Sem mapeamento confiavel da lista de selecao, uma coluna calculada so pode ser
             // reconhecida pelos identificadores do statement inteiro.
             val expression = expressionIdentifiers?.getOrNull(index - 1)
-                ?: if (computed) statementIdentifiers else emptyList()
+                .takeUnless { combinesResults }
+                ?: if (computed || combinesResults) statementIdentifiers else emptyList()
+            // Serialização de linha inteira não cita coluna: o valor é o registro completo, e
+            // nenhuma janela se aplica a ele.
+            val serializesRow = selectItems?.getOrNull(index - 1)
+                ?.let(SensitiveColumnScanner::serializesWholeRow)
+                ?: (computed && SensitiveColumnScanner.serializesWholeRow(sql))
             // Um apelido de subconsulta esconde a coluna que ele renomeia; resolvê-lo de volta é o
             // que impede a expressão sobre o apelido de sair sem classificação.
             val identifiers = (listOf(label, origin) + expression)
@@ -179,11 +189,12 @@ class ReadOnlyQueryExecutor(
                 type = metadata.getColumnTypeName(index) ?: "unknown",
                 masked = masked,
                 identifiers = identifiers,
-                derived = computed,
-                obfuscatedAs = if (masked || !obfuscate || index in safeAggregates) {
-                    PersonalDataKind.NONE
-                } else {
-                    PersonalDataObfuscator.classify(identifiers, null)
+                derived = computed || serializesRow,
+                obfuscatedAs = when {
+                    masked || !obfuscate -> PersonalDataKind.NONE
+                    serializesRow -> PersonalDataKind.FREE_TEXT
+                    index in safeAggregates -> PersonalDataKind.NONE
+                    else -> PersonalDataObfuscator.classify(identifiers, null)
                 },
             )
         }
