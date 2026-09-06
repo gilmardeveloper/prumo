@@ -140,7 +140,10 @@ class PackToolset : McpToolset {
     @McpTool(name = LIST_TOOL)
     @McpDescription(
         "Lists the Prumo Packs installed in the current workspace, with the capabilities each one " +
-            "declared. Packs are user-provided resources, not part of the product.",
+            "declared. Packs are user-provided resources, not part of the product. A pack you have " +
+            "submitted does not appear here until the developer accepts it in the IDE, so an empty " +
+            "list right after a submission is expected — submitting again only queues a duplicate. " +
+            "To write one, start from prumo_pack_get_authoring_spec.",
     )
     suspend fun list(
         @McpDescription("BCP-47 language tag for the pack titles, for example pt-BR. Defaults to English.")

@@ -45,7 +45,10 @@ class PackAuthoringToolset : McpToolset {
     @McpTool(name = VALIDATE_TOOL)
     @McpDescription(
         "Checks a pack draft and returns what is wrong, where, and how to fix it. Installs nothing " +
-            "and changes nothing: call it as many times as needed until the draft is valid.",
+            "and changes nothing: call it as many times as needed until the draft is valid. The check " +
+            "covers structure, declared capabilities and risk — it never runs the SQL or the command " +
+            "a tool carries, so a valid draft can still hold a query that fails or scans a whole " +
+            "table. Try each statement with the database tools before submitting.",
     )
     suspend fun validatePack(
         @McpDescription("The pack draft, as the JSON exchange file.")
