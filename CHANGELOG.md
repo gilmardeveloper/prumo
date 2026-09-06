@@ -6,6 +6,17 @@ All notable changes to this project are documented here. The format follows
 
 ## [Unreleased]
 
+### Changed
+
+- **Configuring a workspace whose name is already taken now offers to overwrite it.** The dialog
+  used to end at an error saying the name exists, with no way forward from there: the only exit was
+  to pick a different name. Prumo now asks, states what overwriting destroys — bound repositories,
+  documentation, databases, exclusions and policies — and starts the new workspace from scratch when
+  confirmed. Cancelling reopens the form with the typed name, so choosing another name is still one
+  step. The database passwords the old workspace kept in the IDE password safe are erased with it;
+  without that, a datasource later created under the same id would silently inherit a password
+  nobody typed.
+
 ## [0.1.0-rc.6] - 2026-09-06
 
 ### Changed
