@@ -6,6 +6,26 @@ All notable changes to this project are documented here. The format follows
 
 ## [Unreleased]
 
+## [0.1.0-rc.17] - 2026-09-06
+
+### Added
+
+- **Query results now say how to work with what they return.** A result that touched personal data
+  carries one sentence: which aggregates come back complete, and that a hidden value is not a key —
+  two rows sharing one may be different people, which is the most expensive mistake an AI could make
+  with this data. The database listing says, before the first query, whether that database protects
+  or not. Nothing is said when the result touched no personal data: the text would be noise
+  competing with the rows.
+- **A result carrying unprotected personal data now says so.** With obfuscation off every column
+  reports category `NONE`, which is indistinguishable from a query that touched no personal data at
+  all. The AI had no way to tell "there was none" from "there was, and you got it whole".
+
+The guidance is generated from the same list that decides which aggregates return complete values,
+so it cannot drift from the code — a tool description in this product once asserted a guarantee the
+code did not keep. It states what to do and never what to avoid: naming the constructs where the
+protection is strictest would hand the bypass to someone who had not looked for it. A test fails if
+either property is lost. Guidance complements the locks; it never replaces them.
+
 ## [0.1.0-rc.16] - 2026-09-06
 
 ### Changed
@@ -329,7 +349,8 @@ full cycle with a real AI client — are still open.
 - Repository role and workspace type explain themselves in the dialog: both describe the work to the
   AI client and enforce nothing, which access modes and policies do.
 
-[Unreleased]: https://github.com/gilmardeveloper/prumo/compare/v0.1.0-rc.16...HEAD
+[Unreleased]: https://github.com/gilmardeveloper/prumo/compare/v0.1.0-rc.17...HEAD
+[0.1.0-rc.17]: https://github.com/gilmardeveloper/prumo/compare/v0.1.0-rc.16...v0.1.0-rc.17
 [0.1.0-rc.16]: https://github.com/gilmardeveloper/prumo/compare/v0.1.0-rc.15...v0.1.0-rc.16
 [0.1.0-rc.15]: https://github.com/gilmardeveloper/prumo/compare/v0.1.0-rc.14...v0.1.0-rc.15
 [0.1.0-rc.14]: https://github.com/gilmardeveloper/prumo/compare/v0.1.0-rc.13...v0.1.0-rc.14

@@ -137,6 +137,26 @@ What masking does **not** do is prevent inference. A query using the sensitive c
 displaying it. Masking is about what leaves, not about what can be deduced. The barrier against that
 is a least-privilege read-only credential, not Prumo.
 
+## The guidance handed to the AI
+
+A query result that touched personal data carries a sentence on how to work with what came back:
+which aggregates return complete values, and that a hidden value is **not a key** — two rows sharing
+one may be different people. The database listing says, before the first query, whether that database
+protects or not.
+
+Two decisions hold this up:
+
+- **The guidance is generated from the list that decides the behaviour**, not written alongside it.
+  Adding a function to the list changes the text with it. A tool description in this product once
+  asserted a guarantee the code did not keep, and this is the defence against repeating that.
+- **The guidance says what to do, never what to avoid.** Naming the constructs where the protection
+  is strictest would hand the bypass to someone who had not looked for it.
+
+**Guidance complements, never guarantees.** This project has seen in the field that prose is a
+request, not a rule: one AI honoured an exclusion written in a repository description, another
+ignored it and listed everything. Every protection described here lives in code and is covered by a
+test.
+
 ## What Prumo does *not* protect against
 
 - **Static analysis is not proof.** The risk classifier detects known destructive patterns. A script

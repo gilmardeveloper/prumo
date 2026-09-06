@@ -144,6 +144,25 @@ predicado — `WHERE senha = 'tentativa'` — devolve linhas ou não devolve, e 
 nunca exibi-lo. Mascarar é sobre o que sai, não sobre o que se deduz. A barreira contra isso é a
 credencial somente-leitura com alcance mínimo, não o Prumo.
 
+## A orientação entregue à IA
+
+A resposta de uma consulta que tocou dado pessoal carrega uma frase dizendo como trabalhar com o que
+veio: que agregação volta completa, e que valor escondido **não é chave** — dois registros com o
+mesmo valor escondido podem ser pessoas diferentes. A listagem de bancos diz, antes da primeira
+consulta, se aquele banco protege ou não.
+
+Duas decisões sustentam isso:
+
+- **A orientação é gerada a partir da lista que decide o comportamento**, não escrita ao lado dela.
+  Acrescentar uma função à lista muda o texto junto. Neste produto uma descrição de tool já afirmou
+  uma garantia que o código não cumpria, e essa é a defesa contra repetir.
+- **A orientação diz o que fazer, nunca o que evitar.** Enumerar as construções em que a proteção é
+  mais restritiva entregaria o caminho de contorno a quem não o tivesse procurado.
+
+**Orientação é complemento, nunca garantia.** Este projeto já constatou em campo que texto em prosa é
+pedido, não regra: uma IA respeitou uma exclusão escrita na descrição de um repositório, outra
+ignorou e listou tudo. Toda proteção descrita aqui vive em código e está coberta por teste.
+
 ## Contra o que o Prumo **não** protege
 
 - **Análise estática não é prova.** O classificador de risco detecta padrões destrutivos conhecidos.

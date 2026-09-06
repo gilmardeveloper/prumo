@@ -11,6 +11,7 @@ import io.prumo.mcp.pack.domain.PackToolKind
 import io.prumo.mcp.pack.execution.PackQueryRunner
 import io.prumo.mcp.pack.execution.PackToolRunner
 import io.prumo.mcp.policy.PolicyAction
+import io.prumo.mcp.datasource.security.ObfuscationGuidance
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import kotlinx.serialization.Serializable
@@ -68,6 +69,8 @@ data class PackToolRunResponse(
     val rowCount: Int = 0,
     val truncated: Boolean = false,
     val durationMillis: Long = 0,
+    /** Como trabalhar com o que veio. Ausente quando o resultado não tocou dado pessoal. */
+    val guidance: String? = null,
 )
 
 @Serializable
@@ -230,6 +233,7 @@ class PackToolset : McpToolset {
                             toolId = toolId,
                             kind = tool.kind.name,
                             columns = outcome.columns.map { QueryColumnResponse(it.name, it.type, it.masked, it.obfuscatedAs.name) },
+                            guidance = ObfuscationGuidance.forResult(outcome),
                             rows = outcome.rows,
                             rowCount = outcome.rowCount,
                             truncated = outcome.truncated,

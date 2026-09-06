@@ -110,8 +110,9 @@ arquivo aberto não pertence a repositório algum deste workspace, a resposta é
 ## Banco de dados
 
 ### `prumo_database_list_available`
-Os bancos vinculados a este workspace: id, nome, motor, modo de acesso e schema padrão. **Nunca**
-host, porta, usuário, nome do banco ou credencial.
+Os bancos vinculados a este workspace: id, nome, motor, modo de acesso, schema padrão, a descrição
+que o desenvolvedor escreveu e se a ofuscação de dado pessoal está ligada, com uma frase sobre o que
+esperar dali. **Nunca** host, porta, usuário, nome do banco ou credencial.
 
 ### `prumo_database_get_schema`
 Schemas com quantas tabelas e views cada um guarda. Schemas de sistema ficam de fora.
