@@ -6,6 +6,26 @@ All notable changes to this project are documented here. The format follows
 
 ## [Unreleased]
 
+## [0.1.0-rc.22] - 2026-09-06
+
+### Fixed
+
+- **A pack file with no checksum installed as if it matched.** The check accepted a blank field, so
+  a pack edited by hand with the `checksum` line emptied went through, and the consent screen showed
+  the recalculated checksum as if it confirmed something. The documentation of `install` said it
+  refused a file changed after packaging. It now refuses a file that carries no checksum too, and
+  the consent screen says which of the two happened. The checksum is not a signature — whoever edits
+  a pack can recompute it — but a missing one is no longer read as a match.
+- **The pack working directory was assembled by hand.** `PackToolRunner` built
+  `packs/<packId>/work` from the raw identifier, duplicating a path the store already validates.
+  Nothing failed today, because the manifest is loaded first and that is where the validation
+  happened; a reordering or a new caller would have reintroduced path traversal. The root now comes
+  from the store, which refuses any identifier outside `^[A-Za-z0-9_-]{1,64}$`.
+- **A machine with no home directory lost every interface message.** Resolving the language
+  preference reaches the operating system directories, and with `user.home`, `HOME` and `USERPROFILE`
+  all absent that resolution throws — taking down even the error messages that would explain the
+  problem. The failure is logged and the interface falls back to the IDE language.
+
 ## [0.1.0-rc.21] - 2026-09-06
 
 ### Documentation
@@ -430,6 +450,7 @@ full cycle with a real AI client — are still open.
   AI client and enforce nothing, which access modes and policies do.
 
 [Unreleased]: https://github.com/gilmardeveloper/prumo/compare/v0.1.0-rc.21...HEAD
+[0.1.0-rc.22]: https://github.com/gilmardeveloper/prumo/compare/v0.1.0-rc.21...v0.1.0-rc.22
 [0.1.0-rc.21]: https://github.com/gilmardeveloper/prumo/compare/v0.1.0-rc.20...v0.1.0-rc.21
 [0.1.0-rc.20]: https://github.com/gilmardeveloper/prumo/compare/v0.1.0-rc.19...v0.1.0-rc.20
 [0.1.0-rc.19]: https://github.com/gilmardeveloper/prumo/compare/v0.1.0-rc.18...v0.1.0-rc.19

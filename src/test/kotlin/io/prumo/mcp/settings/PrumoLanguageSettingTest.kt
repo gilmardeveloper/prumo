@@ -49,6 +49,22 @@ class PrumoLanguageSettingTest {
     }
 
     @Test
+    fun `ambiente sem diretorio do usuario nao derruba o texto da interface`() {
+        val language = PrumoLanguageSetting.languageOf {
+            error("Prumo MCP could not determine the user home directory.")
+        }
+
+        assertEquals(PrumoLanguage.SYSTEM, language)
+    }
+
+    @Test
+    fun `com a area de configuracao no lugar, a preferencia gravada e respeitada`(@TempDir root: Path) {
+        setting(root).update(PrumoLanguage.ENGLISH)
+
+        assertEquals(PrumoLanguage.ENGLISH, PrumoLanguageSetting.languageOf { setting(root) })
+    }
+
+    @Test
     fun `a preferencia e gravada fora de qualquer repositorio, na area de configuracao`(@TempDir root: Path) {
         setting(root).update(PrumoLanguage.ENGLISH)
 

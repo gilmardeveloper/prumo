@@ -121,6 +121,15 @@ class PackStoreTest {
      * store. A defesa em profundidade do store continua exercitada logo abaixo, por um caminho que o
      * domínio não tem como recusar.
      */
+    fun `identificador de pack fora do formato nao vira caminho`(@TempDir root: Path) {
+        val store = PackStore(storage(root))
+
+        listOf("../fora", "a/b", "c:\temp", "", "com espaco").forEach { id ->
+            assertThrows<IllegalArgumentException>("aceitou '$id'") { store.rootOf("folha-2026", id) }
+        }
+    }
+
+    @Test
     fun `item de conhecimento que aponta para fora do pack e recusado na origem`(@TempDir root: Path) {
         assertThrows<IllegalArgumentException> {
             KnowledgeItem("fuga", LocalizedText("Fuga"), "../../../../etc/passwd")
