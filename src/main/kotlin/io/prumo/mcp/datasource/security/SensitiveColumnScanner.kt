@@ -45,6 +45,24 @@ object SensitiveColumnScanner {
     }
 
     /**
+     * Identificadores citados por cada item da lista de seleção, na ordem das colunas de saída.
+     *
+     * Serve à coluna calculada, cujo metadado JDBC não denuncia a origem: `substr(num_cpf, 1, 9)`
+     * chega com rótulo `substr` e sem coluna de origem, e só a leitura da expressão revela de que
+     * coluna o valor derivou.
+     *
+     * @return um conjunto de identificadores por posição, ou `null` quando a lista não pôde ser
+     *   mapeada com segurança.
+     */
+    fun identifiersByPosition(sql: String, columnCount: Int): List<List<String>>? {
+        val items = selectItems(sql) ?: return null
+        if (items.size != columnCount || items.any { it.trim() == "*" || it.trim().endsWith(".*") }) {
+            return null
+        }
+        return items.map { item -> IDENTIFIER.findAll(item).map { it.value }.toList() }
+    }
+
+    /**
      * Divide a lista de seleção do `SELECT` mais externo nos seus itens de topo.
      *
      * @return os itens, ou `null` quando o statement não é um `SELECT` de lista reconhecível.

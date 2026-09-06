@@ -113,6 +113,9 @@ Três decisões sustentam isso:
 
 - **Dígito verificador nunca é exibido.** Ele é função dos demais dígitos: não acrescenta informação
   de negócio, e permite conferir um palpite vindo de outra fonte.
+- **A coluna é reconhecida por todos os nomes que a identificam** — o rótulo da consulta, a coluna
+  de origem e, na coluna calculada, os identificadores da própria expressão. Um apelido não desliga
+  a proteção.
 - **Ofusca-se o dado, nunca o metadado.** Nome de coluna, tipo, comentário, constraint e índice saem
   íntegros. A IA precisa entender a estrutura por inteiro para escrever consulta correta; o que ela
   não precisa é do documento da pessoa.

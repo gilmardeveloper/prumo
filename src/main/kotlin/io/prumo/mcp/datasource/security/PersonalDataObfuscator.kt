@@ -49,11 +49,27 @@ object PersonalDataObfuscator {
      * não tem o formato correspondente, o valor é tratado como [PersonalDataKind.REGISTRY_NUMBER] —
      * a janela mais restritiva entre as numéricas — em vez de ser liberado.
      */
-    fun classify(columnName: String, value: String?): PersonalDataKind {
-        val normalized = columnName.lowercase(Locale.ROOT)
-        val declared = NAME_PATTERNS.firstOrNull { (fragments, _) ->
-            fragments.any { normalized.contains(it) }
-        }?.second ?: return PersonalDataKind.NONE
+    fun classify(columnName: String, value: String?): PersonalDataKind = classify(listOf(columnName), value)
+
+    /**
+     * Classifica considerando todos os nomes que identificam a coluna.
+     *
+     * Uma coluna chega ao cliente por dois nomes: o rótulo escolhido na consulta e a coluna de
+     * origem no banco. Decidir só pelo rótulo faz `SELECT num_cpf AS codigo` entregar o documento em
+     * claro — o mesmo apelido que já derrubara a máscara de segredo antes. Qualquer um dos nomes que
+     * anuncie dado pessoal decide, e o mais específico vence.
+     */
+    fun classify(columnNames: Collection<String>, value: String?): PersonalDataKind {
+        val declared = columnNames
+            .asSequence()
+            .filter { it.isNotBlank() }
+            .mapNotNull { name ->
+                val normalized = name.lowercase(Locale.ROOT)
+                NAME_PATTERNS.firstOrNull { (fragments, _) -> fragments.any { normalized.contains(it) } }
+            }
+            .minByOrNull { NAME_PATTERNS.indexOf(it) }
+            ?.second
+            ?: return PersonalDataKind.NONE
 
         if (value.isNullOrBlank()) {
             return declared

@@ -105,6 +105,9 @@ Three decisions hold this up:
 
 - **A check digit is never shown.** It is a function of the other digits: it adds no business
   information, and it lets a guess from another source be verified.
+- **A column is recognised by every name that identifies it** — the query label, the origin column
+  and, for a computed column, the identifiers in its own expression. An alias does not switch the
+  protection off.
 - **The data is obfuscated, never the metadata.** Column name, type, comment, constraint and index
   come back intact. The AI needs the full structure to write correct SQL; what it does not need is
   the person's document.
