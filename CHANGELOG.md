@@ -6,6 +6,23 @@ All notable changes to this project are documented here. The format follows
 
 ## [Unreleased]
 
+## [0.1.0-rc.23] - 2026-09-06
+
+### Fixed
+
+- **A name fragment matched inside another word, hiding data that is not personal.** `remuneracao`
+  contains `raca`, so on a payroll database every `vlr_remuneracao_*` column came back `[hidden]`,
+  classified as sensitive personal data — 124 columns across 91 tables and views in a real database,
+  including the pay values the analysis exists to read. `operacao` and `administracao` carry the same
+  three letters. The same flaw sat in the secret mask, where `secret` matched inside `secretaria`:
+  the department column of a state payroll would have come back `[masked]`. A fragment now matches as
+  a segment of the column name — plural and numbering accepted, so `senhas` and `senha2` are still
+  secrets — and never as a piece of a longer word. Both classifiers share one matcher, so the rule
+  cannot drift apart again; the short-fragment rule from 0.1.0-rc.14, which kept `rg` out of `orgao`,
+  is now what every fragment follows.
+
+Found in field validation against the installed build, on the user's own database.
+
 ## [0.1.0-rc.22] - 2026-09-06
 
 ### Fixed
@@ -450,6 +467,7 @@ full cycle with a real AI client — are still open.
   AI client and enforce nothing, which access modes and policies do.
 
 [Unreleased]: https://github.com/gilmardeveloper/prumo/compare/v0.1.0-rc.21...HEAD
+[0.1.0-rc.23]: https://github.com/gilmardeveloper/prumo/compare/v0.1.0-rc.22...v0.1.0-rc.23
 [0.1.0-rc.22]: https://github.com/gilmardeveloper/prumo/compare/v0.1.0-rc.21...v0.1.0-rc.22
 [0.1.0-rc.21]: https://github.com/gilmardeveloper/prumo/compare/v0.1.0-rc.20...v0.1.0-rc.21
 [0.1.0-rc.20]: https://github.com/gilmardeveloper/prumo/compare/v0.1.0-rc.19...v0.1.0-rc.20

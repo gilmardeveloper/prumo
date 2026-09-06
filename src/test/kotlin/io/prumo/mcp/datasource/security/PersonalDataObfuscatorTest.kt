@@ -155,6 +155,29 @@ class PersonalDataObfuscatorTest {
         assertEquals(PersonalDataKind.REGISTRY_NUMBER, PersonalDataObfuscator.classify("isn_orgao_rg", "12"))
     }
 
+    /**
+     * Fragmento longo também não casa no meio de um segmento.
+     *
+     * `remuneracao` contém `raca`, e numa folha de pagamento isso escondia por inteiro o valor que a
+     * análise existe para ler. `operacao` e `administracao` carregam o mesmo trecho.
+     */
+    @Test
+    fun `fragmento longo nao casa dentro de outra palavra`() {
+        assertEquals(PersonalDataKind.NONE, PersonalDataObfuscator.classify("vlr_remuneracao_mes_anterior", "3200.00"))
+        assertEquals(PersonalDataKind.NONE, PersonalDataObfuscator.classify("txt_tipo_operacao", "INCLUSAO"))
+        assertEquals(PersonalDataKind.NONE, PersonalDataObfuscator.classify("cod_administracao", "1"))
+        assertEquals(PersonalDataKind.NONE, PersonalDataObfuscator.classify("dsc_cidade", "Fortaleza"))
+    }
+
+    @Test
+    fun `o plural e a numeracao do fragmento continuam casando`() {
+        assertEquals(PersonalDataKind.EMAIL, PersonalDataObfuscator.classify("txt_email2", "a@b.com"))
+        assertEquals(PersonalDataKind.SENSITIVE_ATTRIBUTE, PersonalDataObfuscator.classify("cod_raca_cor", "1"))
+        assertEquals(PersonalDataKind.ADDRESS, PersonalDataObfuscator.classify("dsc_enderecos", "Rua A, 10"))
+        assertEquals(PersonalDataKind.PHONE, PersonalDataObfuscator.classify("num_telefones", "85999998888"))
+        assertEquals(PersonalDataKind.CPF, PersonalDataObfuscator.classify("num_cpfs", "12345678901"))
+    }
+
     @Test
     fun `fragmento curto continua valendo como segmento inteiro`() {
         assertEquals(PersonalDataKind.REGISTRY_NUMBER, PersonalDataObfuscator.classify("txt_rg", "2012356"))

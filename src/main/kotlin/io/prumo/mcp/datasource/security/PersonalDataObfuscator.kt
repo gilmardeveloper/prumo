@@ -75,7 +75,7 @@ object PersonalDataObfuscator {
             .filterNot { isBooleanFlag(it) }
             .mapNotNull { name ->
                 val normalized = name.lowercase(Locale.ROOT)
-                NAME_PATTERNS.firstOrNull { (fragments, _) -> fragments.any { matches(normalized, it) } }
+                NAME_PATTERNS.firstOrNull { (fragments, _) -> fragments.any { ColumnNameMatcher.matches(normalized, it) } }
             }
             .minByOrNull { NAME_PATTERNS.indexOf(it) }
             ?.second
@@ -216,20 +216,6 @@ object PersonalDataObfuscator {
     }
 
     /**
-     * Casa o fragmento contra o nome da coluna.
-     *
-     * Fragmento curto casa apenas como segmento inteiro, entre separadores: `rg` como substring
-     * transforma `isn_orgao_rg` e `isn_orgao_origem` em documento, porque `orgao` contém `rg`.
-     * Fragmento longo é específico o bastante para casar em qualquer posição.
-     */
-    private fun matches(columnName: String, fragment: String): Boolean =
-        if (fragment.length > SHORT_FRAGMENT) {
-            columnName.contains(fragment)
-        } else {
-            columnName.split(*SEPARATORS).any { it == fragment }
-        }
-
-    /**
      * Coluna booleana nunca carrega documento.
      *
      * `flg_utilizar_nome_social` guarda um indicador, não o nome social de ninguém.
@@ -257,8 +243,6 @@ object PersonalDataObfuscator {
     @Suppress("UNUSED_PARAMETER")
     private fun hideCompletely(value: String): String = HIDDEN_VALUE
 
-    private const val SHORT_FRAGMENT = 3
-    private val SEPARATORS = charArrayOf('_', '-', '.', ' ')
     private val BOOLEAN_PREFIXES = listOf("flg_", "is_", "has_", "ind_", "bol_")
 
     private const val CPF_DIGITS = 11
