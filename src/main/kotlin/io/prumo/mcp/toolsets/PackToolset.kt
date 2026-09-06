@@ -229,7 +229,7 @@ class PackToolset : McpToolset {
                             packId = packId,
                             toolId = toolId,
                             kind = tool.kind.name,
-                            columns = outcome.columns.map { QueryColumnResponse(it.name, it.type, it.masked) },
+                            columns = outcome.columns.map { QueryColumnResponse(it.name, it.type, it.masked, it.obfuscatedAs.name) },
                             rows = outcome.rows,
                             rowCount = outcome.rowCount,
                             truncated = outcome.truncated,

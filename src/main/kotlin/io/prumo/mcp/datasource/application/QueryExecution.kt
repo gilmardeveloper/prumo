@@ -4,6 +4,8 @@ import io.prumo.mcp.datasource.DataSourceAccessException
 import io.prumo.mcp.datasource.PostgresConnectionFactory
 import io.prumo.mcp.datasource.domain.DataSourceProfile
 import io.prumo.mcp.datasource.security.DataMaskingPolicy
+import io.prumo.mcp.datasource.security.PersonalDataKind
+import io.prumo.mcp.datasource.security.PersonalDataObfuscator
 import io.prumo.mcp.datasource.security.MaskingRule
 import io.prumo.mcp.datasource.security.SensitiveColumnScanner
 import org.postgresql.PGResultSetMetaData
@@ -25,6 +27,8 @@ data class QueryColumn(
     val name: String,
     val type: String,
     val masked: Boolean,
+    /** Categoria de dado pessoal aplicada ao valor. `NONE` quando o valor sai como veio do banco. */
+    val obfuscatedAs: PersonalDataKind = PersonalDataKind.NONE,
 )
 
 data class QueryOutcome(
@@ -69,7 +73,15 @@ class ReadOnlyQueryExecutor(
                     statement.queryTimeout = queryTimeoutSeconds
                     statement.maxRows = limit + 1
                     statement.executeQuery(sql).use { rows ->
-                        read(rows, limit, masking, classification.type, startedAt, sql)
+                        read(
+                            rows = rows,
+                            limit = limit,
+                            masking = masking,
+                            obfuscate = profile.obfuscatePersonalData,
+                            statementType = classification.type,
+                            startedAt = startedAt,
+                            sql = sql,
+                        )
                     }
                 }
             }
@@ -94,10 +106,18 @@ class ReadOnlyQueryExecutor(
         }
     }
 
+    /**
+     * Monta o resultado aplicando máscara e ofuscação.
+     *
+     * É o único ponto em que valor de célula sai para o cliente, e por isso o único lugar seguro
+     * para aplicar a proteção: os dois caminhos de consulta — o Core Toolkit e o de packs — chegam
+     * aqui, e um deles herda a política por omissão.
+     */
     private fun read(
         rows: ResultSet,
         limit: Int,
         masking: DataMaskingPolicy,
+        obfuscate: Boolean,
         statementType: SqlStatementType,
         startedAt: Long,
         sql: String,
@@ -115,11 +135,17 @@ class ReadOnlyQueryExecutor(
             val computed = origin.isBlank()
             val computedFromSecret =
                 if (sensitivePositions == null) touchesSecret else index in sensitivePositions
+            val masked = masking.ruleFor(listOf(label, origin)) == MaskingRule.MASK ||
+                (computed && computedFromSecret)
             QueryColumn(
                 name = name,
                 type = metadata.getColumnTypeName(index) ?: "unknown",
-                masked = masking.ruleFor(listOf(label, origin)) == MaskingRule.MASK ||
-                    (computed && computedFromSecret),
+                masked = masked,
+                obfuscatedAs = if (masked || !obfuscate) {
+                    PersonalDataKind.NONE
+                } else {
+                    PersonalDataObfuscator.classify(name, null)
+                },
             )
         }
 
@@ -133,7 +159,14 @@ class ReadOnlyQueryExecutor(
             values.add(
                 columns.mapIndexed { index, column ->
                     val value = cellOf(rows, index + 1, metadata.getColumnType(index + 1))
-                    if (column.masked && value != null) DataMaskingPolicy.MASKED else value
+                    when {
+                        column.masked && value != null -> DataMaskingPolicy.MASKED
+                        column.obfuscatedAs == PersonalDataKind.NONE -> value
+                        else -> PersonalDataObfuscator.obfuscate(
+                            PersonalDataObfuscator.classify(column.name, value),
+                            value,
+                        )
+                    }
                 },
             )
         }

@@ -93,6 +93,13 @@ data class QueryColumnResponse(
     val name: String,
     val type: String,
     val masked: Boolean,
+    /**
+     * Categoria de dado pessoal aplicada ao valor desta coluna, ou `NONE`.
+     *
+     * O valor sai parcialmente escondido; o nome e o tipo da coluna continuam íntegros. Valor
+     * ofuscado não serve como chave: dois valores diferentes podem sair iguais.
+     */
+    val obfuscatedAs: String = "NONE",
 )
 
 @Serializable
@@ -169,7 +176,7 @@ object DatabaseReports {
         QueryResultResponse(
             datasourceId = profile.id,
             statementType = outcome.statementType.name,
-            columns = outcome.columns.map { QueryColumnResponse(it.name, it.type, it.masked) },
+            columns = outcome.columns.map { QueryColumnResponse(it.name, it.type, it.masked, it.obfuscatedAs.name) },
             rows = outcome.rows,
             rowCount = outcome.rowCount,
             truncated = outcome.truncated,
@@ -257,7 +264,10 @@ class DatabaseToolset : McpToolset {
         "Runs one read-only SQL statement against a bound database and returns the rows. Only " +
             "SELECT, WITH … SELECT and EXPLAIN without ANALYZE are accepted: anything that writes " +
             "is refused before reaching the database, and the transaction is read-only anyway. " +
-            "Columns whose name announces a secret come back masked.",
+            "Columns whose name announces a secret come back masked, and personal data — CPF, phone, " +
+            "name, e-mail and other documents — comes back partially hidden, enough to stop you " +
+            "reconstructing it. Column names, types and comments are never altered, so the " +
+            "structure stays fully readable.",
     )
     suspend fun executeReadonly(
         @McpDescription("Data source id from prumo_database_list_available.")

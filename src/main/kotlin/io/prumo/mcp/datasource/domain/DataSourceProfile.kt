@@ -33,6 +33,13 @@ data class DataSourceProfile(
     val accessMode: AccessMode = AccessMode.READ_ONLY,
     val sslMode: SslMode = SslMode.PREFER,
     val defaultSchema: String? = null,
+    /**
+     * Ofusca parcialmente o dado pessoal devolvido por uma consulta.
+     *
+     * Nasce ligado: um banco recém-vinculado protege sem depender de alguém lembrar de ativar. Não
+     * afeta metadado — estrutura, tipo e comentário continuam íntegros.
+     */
+    val obfuscatePersonalData: Boolean = true,
 ) {
     init {
         require(id.matches(IDENTIFIER)) { "Invalid datasource id '$id'." }
