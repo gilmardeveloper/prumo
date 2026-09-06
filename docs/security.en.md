@@ -111,8 +111,9 @@ Three decisions hold this up:
 - **Obfuscation happens on the way out**, after the database has resolved the query. Joins, grouping,
   filtering and ordering keep operating on the real value.
 
-The switch lives on the database binding and is **on by default**: a freshly bound database protects
-without anyone remembering to enable it.
+The switch lives on the database binding form and is **on by default**: a freshly bound database
+protects without anyone remembering to enable it. Turned off, personal data is handed to the AI
+exactly as stored — the password and token mask still applies, being a separate guarantee.
 
 The limit is known: an obfuscated value is **not a key**. Two values that differ only in the hidden
 digits come back identical, and equality on the way out does not prove equality at the source.

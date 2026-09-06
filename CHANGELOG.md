@@ -6,6 +6,19 @@ All notable changes to this project are documented here. The format follows
 
 ## [Unreleased]
 
+## [0.1.0-rc.11] - 2026-09-06
+
+### Fixed
+
+- **The personal-data obfuscation switch had no control on screen.** 0.1.0-rc.9 added the field to
+  the database binding, honoured it when running a query and published its state to the AI client —
+  but never put the checkbox on the form, so it was always on with no way to turn it off. A switch
+  with no control is not a switch. The database binding dialog now offers it, reads the stored
+  choice when reopened, and saves it; turning it off hands personal data to the AI exactly as stored.
+  Passwords and tokens stay masked either way — that is a separate guarantee, and this switch does
+  not reach it. A test now fails if the form stops offering the switch, stops reading the stored
+  value, or stops saving it.
+
 ## [0.1.0-rc.10] - 2026-09-06
 
 ### Fixed
@@ -235,7 +248,8 @@ full cycle with a real AI client — are still open.
 - Repository role and workspace type explain themselves in the dialog: both describe the work to the
   AI client and enforce nothing, which access modes and policies do.
 
-[Unreleased]: https://github.com/gilmardeveloper/prumo/compare/v0.1.0-rc.10...HEAD
+[Unreleased]: https://github.com/gilmardeveloper/prumo/compare/v0.1.0-rc.11...HEAD
+[0.1.0-rc.11]: https://github.com/gilmardeveloper/prumo/compare/v0.1.0-rc.10...v0.1.0-rc.11
 [0.1.0-rc.10]: https://github.com/gilmardeveloper/prumo/compare/v0.1.0-rc.9...v0.1.0-rc.10
 [0.1.0-rc.9]: https://github.com/gilmardeveloper/prumo/compare/v0.1.0-rc.8...v0.1.0-rc.9
 [0.1.0-rc.8]: https://github.com/gilmardeveloper/prumo/compare/v0.1.0-rc.7...v0.1.0-rc.8

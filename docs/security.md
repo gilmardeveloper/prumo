@@ -119,8 +119,10 @@ Três decisões sustentam isso:
 - **A ofuscação acontece na saída**, depois de o banco ter resolvido a consulta. Junção, agrupamento,
   filtro e ordenação continuam operando sobre o valor real.
 
-O interruptor fica no vínculo do banco e **nasce ligado**: um banco recém-vinculado protege sem
-depender de alguém lembrar de ativar.
+O interruptor fica no vínculo do banco, na tela de cadastro, e **nasce ligado**: um banco
+recém-vinculado protege sem depender de alguém lembrar de ativar. Desligado, o dado pessoal é
+entregue à IA exatamente como está no banco — a máscara de senha e token continua valendo, por
+ser outra garantia.
 
 O limite é conhecido: valor ofuscado **não é chave**. Dois valores que diferem apenas nos dígitos
 escondidos saem iguais, e igualdade na saída não prova igualdade na origem.
