@@ -1,5 +1,8 @@
 package io.prumo.mcp.ui
 
+import com.intellij.openapi.actionSystem.DefaultActionGroup
+import com.intellij.openapi.options.ShowSettingsUtil
+import com.intellij.openapi.project.DumbAwareAction
 import com.intellij.openapi.project.Project
 import com.intellij.openapi.project.ProjectManager
 import com.intellij.openapi.wm.ToolWindow
@@ -12,6 +15,7 @@ import com.intellij.ui.dsl.builder.panel
 import com.intellij.util.ui.JBUI
 import io.prumo.mcp.i18n.PrumoBundle
 import io.prumo.mcp.ide.PrumoWorkspaceService
+import io.prumo.mcp.settings.PrumoLanguageConfigurable
 import javax.swing.JComponent
 import javax.swing.JPanel
 
@@ -32,15 +36,24 @@ class PrumoToolWindowFactory : ToolWindowFactory {
     }
 
     override fun createToolWindowContent(project: Project, toolWindow: ToolWindow) {
+        toolWindow.setAdditionalGearActions(DefaultActionGroup(settingsAction(project)))
         toolWindow.contentManager.addContent(content(project))
     }
+
+    /** Caminho visível para a preferência de idioma, que de outro modo só existe em *Settings*. */
+    private fun settingsAction(project: Project) =
+        DumbAwareAction.create(PrumoBundle.message("toolwindow.settings")) {
+            ShowSettingsUtil.getInstance().showSettingsDialog(project, PrumoLanguageConfigurable::class.java)
+        }
 
     companion object {
         private const val TOOL_WINDOW_ID = "Prumo MCP"
 
         /**
-         * Remonta o painel dos projetos abertos depois que o idioma muda. Sem isso a tela montada
-         * antes da troca permaneceria na língua anterior até a IDE reiniciar.
+         * Remonta o painel dos projetos abertos.
+         *
+         * O painel é montado uma vez, quando a janela nasce. Sem remontar, gravar o workspace ou
+         * trocar o idioma deixa na tela o conteúdo anterior até a IDE reiniciar.
          */
         fun refreshOpenProjects() {
             ProjectManager.getInstance().openProjects.forEach { project ->

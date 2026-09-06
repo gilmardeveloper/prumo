@@ -32,6 +32,18 @@ data class RepositoryFingerprint(
             gitRemote?.let(::fromGitRemote) ?: fromLocalDirectory(localPath)
 
         /**
+         * Identidade da árvore Git que contém [directory], ou do próprio diretório sem Git.
+         *
+         * Vincular uma subpasta de um repositório é vincular aquele repositório, e quem responde
+         * pela identidade é a raiz. Resolver de um jeito ao gravar o vínculo e de outro ao
+         * conferi-lo faz a conferência acusar mudança onde nada mudou.
+         */
+        fun forDirectory(directory: Path): RepositoryFingerprint {
+            val root = GitRepositoryProbe.findRepositoryRoot(directory) ?: return fromLocalDirectory(directory)
+            return of(GitRepositoryProbe.readOriginRemote(root), root)
+        }
+
+        /**
          * Reduz as formas de endereçar o mesmo repositório a uma só: `host/organizacao/nome`.
          *
          * `git@github.com:org/app.git`, `https://github.com/org/app.git` e

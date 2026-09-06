@@ -240,10 +240,7 @@ object WorkspacePreparation {
                     "repository, so its identity depends on the directory name.",
             )
 
-        val current = RepositoryFingerprint.of(
-            GitRepositoryProbe.readOriginRemote(repositoryRoot),
-            repositoryRoot,
-        )
+        val current = RepositoryFingerprint.forDirectory(repositoryRoot)
         val recorded = binding.fingerprint
         if (recorded != null && recorded != current.value) {
             return PreparationCheck(

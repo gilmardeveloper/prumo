@@ -73,6 +73,7 @@ class WorkspaceEditorDialog(
                 { workspaceType = it ?: WorkspaceType.STANDALONE },
             )
         }
+        row { comment(PrumoBundle.message("workspace.typeHint"), maxLineLength = 72) }
 
         group(PrumoBundle.message("workspace.section.repositories")) {
             row {
@@ -281,6 +282,7 @@ class RepositoryBindingDialog(
         row(PrumoBundle.message("workspace.repository.field.role")) {
             comboBox(RepositoryRole.entries).bindItem({ role }, { role = it ?: RepositoryRole.REFERENCE })
         }
+        row { comment(PrumoBundle.message("workspace.repository.roleHint"), maxLineLength = 62) }
         row(PrumoBundle.message("workspace.repository.field.access")) {
             comboBox(AccessMode.entries).bindItem({ accessMode }, { accessMode = it ?: AccessMode.READ_ONLY })
         }
@@ -293,7 +295,7 @@ class RepositoryBindingDialog(
     }
 
     fun toBinding(): RepositoryBinding {
-        val remote = io.prumo.mcp.repository.GitRepositoryProbe.readOriginRemote(path)
+        val remote = io.prumo.mcp.repository.GitRepositoryProbe.readRemoteFor(path)
         return RepositoryBinding(
             id = id,
             name = path.fileName?.toString() ?: id,
@@ -302,7 +304,7 @@ class RepositoryBindingDialog(
             role = role,
             accessMode = accessMode,
             branchPolicy = branchPolicy.ifBlank { null },
-            fingerprint = RepositoryFingerprint.of(remote, path).value,
+            fingerprint = RepositoryFingerprint.forDirectory(path).value,
         )
     }
 }

@@ -5,6 +5,8 @@ import org.junit.jupiter.api.Assertions.assertNotEquals
 import org.junit.jupiter.api.Assertions.assertNull
 import org.junit.jupiter.api.Tag
 import org.junit.jupiter.api.Test
+import org.junit.jupiter.api.io.TempDir
+import java.nio.file.Files
 import java.nio.file.Path
 
 @Tag("security")
@@ -61,6 +63,33 @@ class RepositoryFingerprintTest {
 
         assertEquals(before, after)
         assertEquals(RepositoryFingerprint.Source.LOCAL_DIRECTORY, after.source)
+    }
+
+    /**
+     * Vincular uma subpasta é vincular o repositório que a contém. Gravar o vínculo por um caminho e
+     * conferi-lo por outro fazia a conferência acusar mudança de identidade num vínculo intacto.
+     */
+    @Test
+    fun `subpasta de repositorio Git tem a identidade da raiz`(@TempDir raiz: Path) {
+        val git = Files.createDirectory(raiz.resolve(".git"))
+        Files.writeString(
+            git.resolve("config"),
+            "[remote \"origin\"]" + System.lineSeparator() +
+                "	url = https://git.exemplo.gov.br/time/folha.git" + System.lineSeparator(),
+        )
+        val subpasta = Files.createDirectories(raiz.resolve("modulo/FONTES"))
+
+        val daSubpasta = RepositoryFingerprint.forDirectory(subpasta)
+
+        assertEquals(RepositoryFingerprint.forDirectory(raiz), daSubpasta)
+        assertEquals(RepositoryFingerprint.Source.GIT_REMOTE, daSubpasta.source)
+    }
+
+    @Test
+    fun `diretorio sem Git continua identificado pelo proprio nome`(@TempDir raiz: Path) {
+        val solto = Files.createDirectory(raiz.resolve("sistema-legado"))
+
+        assertEquals(RepositoryFingerprint.of(null, solto), RepositoryFingerprint.forDirectory(solto))
     }
 
     @Test

@@ -76,6 +76,7 @@ object ConfigureWorkspaceAction {
                 updatedAt = now,
             ),
         )
+        PrumoToolWindowFactory.refreshOpenProjects()
     }
 
     /**
@@ -93,6 +94,7 @@ object ConfigureWorkspaceAction {
         val dialog = WorkspaceEditorDialog(project, context.workspace, context.currentRepository.id)
         if (dialog.showAndGet()) {
             service.store.save(dialog.toWorkspace(Instant.now().toString()))
+            PrumoToolWindowFactory.refreshOpenProjects()
         }
     }
 

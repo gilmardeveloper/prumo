@@ -28,6 +28,13 @@ object GitRepositoryProbe {
         return null
     }
 
+    /**
+     * Remote da árvore Git que contém [directory], subindo até a raiz.
+     *
+     * [readOriginRemote] exige a raiz; um repositório vinculado a uma subpasta não a tem à mão.
+     */
+    fun readRemoteFor(directory: Path): String? = findRepositoryRoot(directory)?.let(::readOriginRemote)
+
     fun readOriginRemote(repositoryRoot: Path): String? {
         val config = resolveGitDirectory(repositoryRoot)?.resolve("config") ?: return null
         if (!Files.isRegularFile(config)) {
