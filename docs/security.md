@@ -127,6 +127,10 @@ recém-vinculado protege sem depender de alguém lembrar de ativar. Desligado, o
 entregue à IA exatamente como está no banco — a máscara de senha e token continua valendo, por
 ser outra garantia.
 
+Valor derivado de expressão — `substr`, `string_agg`, concatenação — é escondido por inteiro, e não
+pela janela: a janela cairia sobre o recorte, e iterar o recorte reconstruiria o documento. Onde o
+valor não tem o formato da categoria, esconde-se tudo. A regra é falhar fechado.
+
 O limite é conhecido: valor ofuscado **não é chave**. Dois valores que diferem apenas nos dígitos
 escondidos saem iguais, e igualdade na saída não prova igualdade na origem.
 

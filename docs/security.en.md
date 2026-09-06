@@ -118,6 +118,11 @@ The switch lives on the database binding form and is **on by default**: a freshl
 protects without anyone remembering to enable it. Turned off, personal data is handed to the AI
 exactly as stored — the password and token mask still applies, being a separate guarantee.
 
+A value produced by an expression — `substr`, `string_agg`, concatenation — is hidden whole rather
+than windowed: the window would land on the fragment, and iterating the fragment would rebuild the
+document. Where a value does not match its category's shape, everything is hidden. The rule is to
+fail closed.
+
 The limit is known: an obfuscated value is **not a key**. Two values that differ only in the hidden
 digits come back identical, and equality on the way out does not prove equality at the source.
 

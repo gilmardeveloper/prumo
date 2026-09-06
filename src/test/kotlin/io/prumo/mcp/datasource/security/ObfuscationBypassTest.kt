@@ -78,6 +78,36 @@ class ObfuscationBypassTest {
         assertTrue(SensitiveColumnScanner.allIdentifiers(sql).any { it == "num_cpf" })
     }
 
+    /**
+     * Recortar um pedaço do documento e ofuscar o pedaço não protege: a janela cai sobre o recorte,
+     * e iterar o deslocamento reconstrói o original. Valor derivado de expressão é escondido inteiro.
+     */
+    @Test
+    fun `pedaco recortado de dado pessoal e escondido por inteiro`() {
+        val kind = PersonalDataKind.EMAIL
+
+        assertEquals("******", PersonalDataObfuscator.obfuscate(kind, "elle.l", derived = true))
+        assertEquals("*****", PersonalDataObfuscator.obfuscate(PersonalDataKind.REGISTRY_NUMBER, "20910", derived = true))
+    }
+
+    @Test
+    fun `valor sem o formato da categoria e escondido, nao liberado`() {
+        assertEquals("******", PersonalDataObfuscator.obfuscate(PersonalDataKind.EMAIL, "elle.l"))
+        assertEquals(
+            "**************************",
+            PersonalDataObfuscator.obfuscate(PersonalDataKind.CPF, "isabelle.lpontes@gmail.com"),
+        )
+    }
+
+    @Test
+    fun `a coluna real continua com a janela util`() {
+        assertEquals("123***789**", PersonalDataObfuscator.obfuscate(PersonalDataKind.CPF, "12345678901"))
+        assertEquals(
+            "jo********@seplag.ce.gov.br",
+            PersonalDataObfuscator.obfuscate(PersonalDataKind.EMAIL, "joao.silva@seplag.ce.gov.br"),
+        )
+    }
+
     @Test
     fun `o valor nunca sai igual ao original por nenhuma das vias`() {
         val original = "12345678901"
