@@ -44,6 +44,10 @@ object SensitiveColumnScanner {
             .toSet()
     }
 
+    /** Todos os identificadores citados no statement, para o recuo em que nada mais é confiável. */
+    fun allIdentifiers(sql: String): List<String> =
+        IDENTIFIER.findAll(sql).map { it.value }.distinct().toList()
+
     /**
      * Identificadores citados por cada item da lista de seleção, na ordem das colunas de saída.
      *
