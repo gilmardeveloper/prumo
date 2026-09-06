@@ -136,6 +136,7 @@ class ReadOnlyQueryExecutor(
         // sensivel se o statement encostar em segredo em qualquer ponto.
         val sensitivePositions = SensitiveColumnScanner.sensitivePositions(sql, masking, metadata.columnCount)
         val expressionIdentifiers = SensitiveColumnScanner.identifiersByPosition(sql, metadata.columnCount)
+        val safeAggregates = SensitiveColumnScanner.safeAggregatePositions(sql, metadata.columnCount)
         val touchesSecret by lazy { SensitiveColumnScanner.touchesSensitiveColumn(sql, masking) }
         val statementIdentifiers by lazy { SensitiveColumnScanner.allIdentifiers(sql) }
         val columns = (1..metadata.columnCount).map { index ->
@@ -158,7 +159,7 @@ class ReadOnlyQueryExecutor(
                 masked = masked,
                 identifiers = identifiers,
                 derived = computed,
-                obfuscatedAs = if (masked || !obfuscate) {
+                obfuscatedAs = if (masked || !obfuscate || index in safeAggregates) {
                     PersonalDataKind.NONE
                 } else {
                     PersonalDataObfuscator.classify(identifiers, null)

@@ -6,6 +6,23 @@ All notable changes to this project are documented here. The format follows
 
 ## [Unreleased]
 
+## [0.1.0-rc.16] - 2026-09-06
+
+### Changed
+
+- **Counting is no longer treated as personal data.** `count(num_cpf)` came back as `32**10` — a
+  count, masked as though it were a document. So did `length(num_cpf)`, and an age-bracket breakdown
+  came back with its labels blanked and its counts intact, which reads as a valid table and is not
+  one: an evaluator only found the first bucket meant "born in the future" after rewriting the query.
+  Hiding an aggregate protects nobody — when the column is mandatory the number is deducible anyway —
+  and it made a real analysis take three or four attempts per query. `count`, `sum`, `avg`, `stddev`
+  and `length` over a personal column now come back whole. `min`, `max`, `string_agg` and `array_agg`
+  stay protected: they are aggregates that hand back a value from the rows. A projected personal
+  column beside a count stays hidden, which is the line that matters — statistics are answerable,
+  the nominal list is not.
+
+Found by a blind evaluator asked to do an ordinary analysis task, not to attack anything.
+
 ## [0.1.0-rc.15] - 2026-09-06
 
 ### Fixed
@@ -312,7 +329,8 @@ full cycle with a real AI client — are still open.
 - Repository role and workspace type explain themselves in the dialog: both describe the work to the
   AI client and enforce nothing, which access modes and policies do.
 
-[Unreleased]: https://github.com/gilmardeveloper/prumo/compare/v0.1.0-rc.15...HEAD
+[Unreleased]: https://github.com/gilmardeveloper/prumo/compare/v0.1.0-rc.16...HEAD
+[0.1.0-rc.16]: https://github.com/gilmardeveloper/prumo/compare/v0.1.0-rc.15...v0.1.0-rc.16
 [0.1.0-rc.15]: https://github.com/gilmardeveloper/prumo/compare/v0.1.0-rc.14...v0.1.0-rc.15
 [0.1.0-rc.14]: https://github.com/gilmardeveloper/prumo/compare/v0.1.0-rc.13...v0.1.0-rc.14
 [0.1.0-rc.13]: https://github.com/gilmardeveloper/prumo/compare/v0.1.0-rc.12...v0.1.0-rc.13

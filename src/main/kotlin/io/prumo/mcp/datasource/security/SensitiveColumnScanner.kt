@@ -44,6 +44,35 @@ object SensitiveColumnScanner {
             .toSet()
     }
 
+    /**
+     * Posições cujo item de seleção é uma agregação que não devolve o valor de origem.
+     *
+     * `count`, `sum`, `avg` e `length` produzem um número sobre o conjunto: nenhum deles carrega o
+     * documento de ninguém, e escondê-los inutiliza a análise sem proteger nada — uma contagem de
+     * CPF preenchido é resposta de qualidade de cadastro, não dado pessoal.
+     *
+     * `min`, `max`, `string_agg` e `array_agg` ficam de fora de propósito: devolvem valores de
+     * origem, mesmo sendo agregações.
+     */
+    fun safeAggregatePositions(sql: String, columnCount: Int): Set<Int> {
+        val items = selectItems(sql) ?: return emptySet()
+        if (items.size != columnCount) {
+            return emptySet()
+        }
+        return items.withIndex()
+            .filter { (_, item) -> isSafeAggregate(item) }
+            .map { (index, _) -> index + 1 }
+            .toSet()
+    }
+
+    private fun isSafeAggregate(item: String): Boolean {
+        val normalized = item.trim().lowercase(Locale.ROOT)
+        if (VALUE_RETURNING.any { normalized.contains(it) }) {
+            return false
+        }
+        return SAFE_AGGREGATES.any { normalized.startsWith(it) }
+    }
+
     /** Todos os identificadores citados no statement, para o recuo em que nada mais é confiável. */
     fun allIdentifiers(sql: String): List<String> =
         IDENTIFIER.findAll(sql).map { it.value }.distinct().toList()
@@ -149,4 +178,13 @@ object SensitiveColumnScanner {
     private fun isIdentifierPart(char: Char): Boolean = char.isLetterOrDigit() || char == '_'
 
     private val BOUNDARIES = listOf("from", "where", "group", "order", "limit", "having", "union", "offset")
+
+    /** Agregações e funções que produzem um número sobre o conjunto, nunca um valor de origem. */
+    private val SAFE_AGGREGATES = listOf(
+        "count(", "sum(", "avg(", "stddev", "variance", "var_", "length(", "char_length(",
+        "octet_length(", "bit_length(",
+    )
+
+    /** Agregações que devolvem um valor de origem, e por isso não são seguras. */
+    private val VALUE_RETURNING = listOf("min(", "max(", "string_agg(", "array_agg(", "json_agg(")
 }
