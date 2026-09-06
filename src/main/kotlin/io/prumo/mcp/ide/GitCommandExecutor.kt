@@ -57,11 +57,29 @@ class GitCommandExecutor(private val project: Project) {
         return result.output
     }
 
-    /** A saída de erro do Git cita o diretório; o cliente recebe o papel do repositório. */
+    /**
+     * A falha do Git chega ao cliente traduzida, curta e sem o caminho da máquina.
+     *
+     * Fora de repositório o Git responde com a própria tela de ajuda do comando — dezenas de linhas
+     * que, num cliente de IA, só queimam contexto e escondem a causa. O caso conhecido vira frase
+     * própria, e o desconhecido é cortado no teto.
+     */
     private fun sanitize(message: String, root: Path): String {
         val normalized = message.ifBlank { "the command finished with an error." }
+        if (NOT_A_REPOSITORY.containsMatchIn(normalized)) {
+            return "the bound directory is not a Git repository."
+        }
         return listOf(root.toString(), root.toString().replace('\\', '/'))
             .fold(normalized) { text, path -> text.replace(path, "<repository>") }
+            .lineSequence()
+            .firstOrNull { it.isNotBlank() }
+            .orEmpty()
             .trim()
+            .let { if (it.length > MAX_MESSAGE) it.take(MAX_MESSAGE) + "…" else it }
     }
+
 }
+
+private const val MAX_MESSAGE = 300
+
+private val NOT_A_REPOSITORY = Regex("not a git repository", RegexOption.IGNORE_CASE)

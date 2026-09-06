@@ -68,6 +68,35 @@ statement type, row count, outcome and duration. It never records file content, 
 text or parameter values: an audit that copies the data becomes a second copy of what it was meant
 to protect.
 
+## What Prumo governs, and what it does not
+
+Prumo bounds **Prumo's tools**. The IDE's MCP server is not Prumo's: it belongs to the platform, and
+it serves other tool families to the same client, with their own and wider boundaries.
+
+Measured in the field against a real installation: the IDE's own tools refuse by **destination** —
+what falls outside "project, library, and SDK roots" — and library and SDK roots live outside the
+project. They returned content from `C:\Program Files\Java\jdk-25` and from the user's Maven
+repository through `..` paths, which Prumo refuses by **form**, before looking at the destination.
+The same list includes a tool that runs terminal commands.
+
+The effective reach of a connected client is therefore the **union** of the families, not the
+intersection, and the most permissive one sets the ceiling. What Prumo guarantees is that **through
+its own tools** nothing outside the workspace is reached, and that the reference repository, the
+documentation and the database exist only through it. Bounding a whole session means disabling the
+other families in the AI client, and that is outside this plugin's reach.
+
+## The limit of masking
+
+Masking decides by the **originating column**, read from the driver metadata, and not by the alias
+the client chose: `SELECT senha AS num_matricula` comes back masked. A computed column has no
+originating column in the metadata, so a query that touches a sensitive name also masks the computed
+ones — masking too much, which is the accepted direction.
+
+What masking does **not** do is prevent inference. A query using the sensitive column in a predicate
+— `WHERE senha = 'guess'` — either returns rows or does not, and that confirms the value without ever
+displaying it. Masking is about what leaves, not about what can be deduced. The barrier against that
+is a least-privilege read-only credential, not Prumo.
+
 ## What Prumo does *not* protect against
 
 - **Static analysis is not proof.** The risk classifier detects known destructive patterns. A script

@@ -6,6 +6,37 @@ All notable changes to this project are documented here. The format follows
 
 ## [Unreleased]
 
+## [0.1.0-rc.3] - 2026-09-06
+
+Found by three blind agents driving the real MCP transport against a live IDE, without knowledge of
+the plugin or the project.
+
+### Fixed
+
+- **Masking could be undone with an alias.** Column masking decided by the output label, so
+  `SELECT senha AS num_matricula` returned the secret in clear, and `length(senha)` leaked its size.
+  It now decides by the originating column read from the driver metadata, and a query that touches a
+  sensitive name also masks its computed columns.
+- **The `.git` directory was readable.** Listing and search filtered it; file reading did not, and
+  that is where a remote URL with an embedded token lives. All three repository tools now refuse it.
+- **A typo was reported as a policy refusal.** An unparseable statement answered "only SELECT … are
+  accepted", which reads as a rejected statement type. It now carries the parser's own complaint and
+  says the problem is syntax.
+- **A Git failure dumped its help screen.** Outside a repository, Git answers with dozens of usage
+  lines that reached the MCP client whole. Known cases become one sentence; the rest is capped.
+
+### Removed
+
+- The `ACCESS_EXTERNAL_PATH` policy, which was evaluated, stored and published as granted while no
+  tool ever consulted it. Path containment is categorical by design and is not meant to be loosened
+  by configuration. Workspaces holding the old field keep opening; the field is ignored.
+
+### Changed
+
+- `docs/security.md` states two limits it did not state: Prumo bounds Prumo's tools, while the IDE's
+  MCP server serves other families with wider boundaries — the client's effective reach is their
+  union; and masking protects the output, not against inference through a predicate.
+
 ## [0.1.0-rc.2] - 2026-09-05
 
 ### Added
@@ -76,6 +107,7 @@ full cycle with a real AI client — are still open.
 - Repository role and workspace type explain themselves in the dialog: both describe the work to the
   AI client and enforce nothing, which access modes and policies do.
 
-[Unreleased]: https://github.com/gilmardeveloper/prumo/compare/v0.1.0-rc.2...HEAD
+[Unreleased]: https://github.com/gilmardeveloper/prumo/compare/v0.1.0-rc.3...HEAD
+[0.1.0-rc.3]: https://github.com/gilmardeveloper/prumo/compare/v0.1.0-rc.2...v0.1.0-rc.3
 [0.1.0-rc.2]: https://github.com/gilmardeveloper/prumo/compare/v0.1.0-rc.1...v0.1.0-rc.2
 [0.1.0-rc.1]: https://github.com/gilmardeveloper/prumo/releases/tag/v0.1.0-rc.1

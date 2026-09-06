@@ -66,7 +66,6 @@ class WorkspaceEditorDialog(
 
     private val referenceWriteBox = policyBox("workspace.policy.referenceWrite", original.policies.referenceWrite)
     private val databaseWriteBox = policyBox("workspace.policy.databaseWrite", original.policies.databaseWrite)
-    private val externalPathAccessBox = policyBox("workspace.policy.externalPathAccess", original.policies.externalPathAccess)
     private val processExecutionBox = policyBox("workspace.policy.processExecution", original.policies.processExecution)
     private val gitWriteBox = policyBox("workspace.policy.gitWrite", original.policies.gitWrite)
 
@@ -139,7 +138,6 @@ class WorkspaceEditorDialog(
         group(PrumoBundle.message("workspace.section.policies")) {
             row { cell(referenceWriteBox) }
             row { cell(databaseWriteBox) }
-            row { cell(externalPathAccessBox) }
             row { cell(processExecutionBox) }
             row { cell(gitWriteBox) }
             row {
@@ -275,7 +273,6 @@ class WorkspaceEditorDialog(
         policies = WorkspacePolicies(
             referenceWrite = referenceWriteBox.isSelected,
             databaseWrite = databaseWriteBox.isSelected,
-            externalPathAccess = externalPathAccessBox.isSelected,
             processExecution = processExecutionBox.isSelected,
             gitWrite = gitWriteBox.isSelected,
         ),

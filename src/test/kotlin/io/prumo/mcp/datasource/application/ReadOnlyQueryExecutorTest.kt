@@ -157,6 +157,53 @@ class ReadOnlyQueryExecutorTest {
         assertTrue(semGroupBy.message.orEmpty().contains("GROUP BY"), semGroupBy.message.orEmpty())
     }
 
+    /**
+     * A mascara precisa seguir a origem do dado. Decidir pelo rotulo de saida deixava o cliente
+     * desfaze-la com um `AS`, e a garantia escrita diz que nao se pode desmascarar essas colunas.
+     */
+    @Test
+    fun `apelido inocente nao desmascara coluna de segredo`() {
+        assumeTrue(dockerAvailable, "Docker nao esta disponivel nesta maquina")
+
+        val outcome = executor().execute(
+            workspaceId,
+            profile(AccessMode.READ_ONLY),
+            "SELECT senha AS num_matricula FROM servidor ORDER BY id",
+        )
+
+        assertTrue(outcome.columns.single().masked, outcome.columns.toString())
+        assertTrue(outcome.rows.all { it.single() == "[masked]" }, outcome.rows.toString())
+        assertFalse(outcome.rows.any { it.contains("trocar123") }, "o valor real nao pode aparecer")
+    }
+
+    @Test
+    fun `expressao sobre coluna de segredo tambem volta mascarada`() {
+        assumeTrue(dockerAvailable, "Docker nao esta disponivel nesta maquina")
+
+        val outcome = executor().execute(
+            workspaceId,
+            profile(AccessMode.READ_ONLY),
+            "SELECT length(senha) AS n FROM servidor ORDER BY id",
+        )
+
+        assertTrue(outcome.columns.single().masked, outcome.columns.toString())
+        assertTrue(outcome.rows.all { it.single() == "[masked]" }, outcome.rows.toString())
+    }
+
+    @Test
+    fun `coluna comum com apelido comum continua legivel`() {
+        assumeTrue(dockerAvailable, "Docker nao esta disponivel nesta maquina")
+
+        val outcome = executor().execute(
+            workspaceId,
+            profile(AccessMode.READ_ONLY),
+            "SELECT nome AS titular FROM servidor ORDER BY id",
+        )
+
+        assertFalse(outcome.columns.single().masked)
+        assertEquals(listOf("Ana", "Bruno", "Carla"), outcome.rows.map { it.single() })
+    }
+
     private fun executor(timeoutSeconds: Int = 15): ReadOnlyQueryExecutor {
         val credentials = InMemoryCredentialProvider()
         credentials.store(CredentialKey(workspaceId, "folha"), container.username, container.password.toCharArray())

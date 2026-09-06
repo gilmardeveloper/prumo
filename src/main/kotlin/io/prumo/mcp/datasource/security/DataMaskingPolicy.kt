@@ -33,6 +33,10 @@ data class DataMaskingPolicy(
             ?: MaskingRule.ALLOW
     }
 
+    /** Mascara se **qualquer** um dos nomes que identificam a coluna anunciar segredo. */
+    fun ruleFor(columnNames: Collection<String>): MaskingRule =
+        if (columnNames.any { ruleFor(it) == MaskingRule.MASK }) MaskingRule.MASK else MaskingRule.ALLOW
+
     fun apply(columnName: String, value: String?): String? =
         when (ruleFor(columnName)) {
             MaskingRule.MASK -> if (value == null) null else MASKED

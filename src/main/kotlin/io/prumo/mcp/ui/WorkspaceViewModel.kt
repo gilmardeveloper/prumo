@@ -64,7 +64,6 @@ sealed interface WorkspaceViewModel {
                     policies = listOf(
                         PolicyRow("policy.referenceWrite", context.policies.referenceWrite),
                         PolicyRow("policy.databaseWrite", context.policies.databaseWrite),
-                        PolicyRow("policy.externalPathAccess", context.policies.externalPathAccess),
                         PolicyRow("policy.processExecution", context.policies.processExecution),
                         PolicyRow("policy.gitWrite", context.policies.gitWrite),
                     ),
