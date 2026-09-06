@@ -46,6 +46,9 @@ object PersonalDataObfuscator {
 
     private const val HIDDEN = '*'
 
+    /** Marcador de valor escondido por inteiro. Tamanho fixo: o comprimento real é informação. */
+    const val HIDDEN_VALUE = "[hidden]"
+
     /**
      * Decide a categoria de uma coluna pelo nome, confirmando pelo formato do valor.
      *
@@ -237,13 +240,18 @@ object PersonalDataObfuscator {
     }
 
     /**
-     * Esconde o valor inteiro, preservando só o comprimento.
+     * Esconde o valor por um marcador de tamanho fixo.
      *
      * É o desfecho de todo caso em que a janela posicional não se aplica: valor sem o formato
-     * esperado, curto demais para acomodar a janela, ou derivado de uma expressão. Deixar passar o
-     * que não se sabe recortar seria falhar aberto.
+     * esperado, curto demais para acomodar a janela, ou derivado de uma expressão.
+     *
+     * O marcador não acompanha o comprimento do valor de propósito. Repetir um asterisco por
+     * caractere entrega o comprimento, que é canal lateral: distingue registros, restringe o espaço
+     * de busca e, sobre uma expressão escolhida por quem consulta, devolve o resultado que a máscara
+     * deveria esconder.
      */
-    private fun hideCompletely(value: String): String = HIDDEN.toString().repeat(value.length)
+    @Suppress("UNUSED_PARAMETER")
+    private fun hideCompletely(value: String): String = HIDDEN_VALUE
 
     private const val SHORT_FRAGMENT = 3
     private val SEPARATORS = charArrayOf('_', '-', '.', ' ')

@@ -86,17 +86,30 @@ class ObfuscationBypassTest {
     fun `pedaco recortado de dado pessoal e escondido por inteiro`() {
         val kind = PersonalDataKind.EMAIL
 
-        assertEquals("******", PersonalDataObfuscator.obfuscate(kind, "elle.l", derived = true))
-        assertEquals("*****", PersonalDataObfuscator.obfuscate(PersonalDataKind.REGISTRY_NUMBER, "20910", derived = true))
+        assertEquals(PersonalDataObfuscator.HIDDEN_VALUE, PersonalDataObfuscator.obfuscate(kind, "elle.l", derived = true))
+        assertEquals(PersonalDataObfuscator.HIDDEN_VALUE, PersonalDataObfuscator.obfuscate(PersonalDataKind.REGISTRY_NUMBER, "20910", derived = true))
     }
 
     @Test
     fun `valor sem o formato da categoria e escondido, nao liberado`() {
-        assertEquals("******", PersonalDataObfuscator.obfuscate(PersonalDataKind.EMAIL, "elle.l"))
+        assertEquals(PersonalDataObfuscator.HIDDEN_VALUE, PersonalDataObfuscator.obfuscate(PersonalDataKind.EMAIL, "elle.l"))
         assertEquals(
-            "**************************",
+            PersonalDataObfuscator.HIDDEN_VALUE,
             PersonalDataObfuscator.obfuscate(PersonalDataKind.CPF, "isabelle.lpontes@gmail.com"),
         )
+    }
+
+    /**
+     * Repetir um asterisco por caractere entrega o comprimento do valor, que distingue registros e
+     * restringe o espaço de busca. Sobre uma expressão escolhida por quem consulta — `char_length`,
+     * por exemplo —, o comprimento é o próprio resultado que a máscara deveria esconder.
+     */
+    @Test
+    fun `o comprimento do valor escondido nao vaza`() {
+        val curto = PersonalDataObfuscator.obfuscate(PersonalDataKind.FREE_TEXT, "ab")
+        val longo = PersonalDataObfuscator.obfuscate(PersonalDataKind.FREE_TEXT, "a".repeat(400))
+
+        assertEquals(curto, longo, "o marcador acompanhou o comprimento do valor")
     }
 
     @Test
