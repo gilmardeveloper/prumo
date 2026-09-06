@@ -10,6 +10,7 @@ import io.prumo.mcp.pack.authoring.PackValidator
 import io.prumo.mcp.pack.authoring.SubmissionQueue
 import io.prumo.mcp.pack.authoring.ValidationReport
 import io.prumo.mcp.pack.exchange.PackImporter
+import io.prumo.mcp.pack.exchange.PackOrigin
 import io.prumo.mcp.policy.PolicyAction
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
@@ -85,7 +86,7 @@ class PackAuthoringToolset : McpToolset {
                 )
             }
 
-            val preview = PackImporter.preview(draft)
+            val preview = PackImporter.preview(draft, PackOrigin.DRAFT)
             val queue = SubmissionQueue(PrumoWorkspaceService.getInstance().storage)
             val submission = withContext(Dispatchers.IO) {
                 queue.submit(
