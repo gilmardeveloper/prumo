@@ -42,7 +42,9 @@ class PackUiPanelsTest {
     @Test
     fun `todo painel que instala ou descarta pack remonta a tela`() {
         panels.filter { (_, source) ->
-            source.contains("PackImporter.install") || source.contains("SubmissionQueue(") 
+            source.contains("PackImporter.install") ||
+                source.contains("SubmissionQueue(") ||
+                source.contains(".remove(")
         }.forEach { (name, source) ->
             assertTrue(
                 source.contains("refreshOpenProjects"),

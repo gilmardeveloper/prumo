@@ -158,6 +158,31 @@ class PackStoreTest {
     }
 
     @Test
+    fun `remover um pack nao alcanca os vizinhos nem outro workspace`(@TempDir root: Path) {
+        val store = PackStore(storage(root))
+        install(store, "folha-2026", manifest(), "conteudo")
+        install(store, "folha-2026", manifest(id = "outro-pack"), "conteudo")
+        install(store, "outro-workspace", manifest(), "conteudo")
+
+        store.remove("folha-2026", "folha-conhecimento")
+
+        assertEquals(listOf("outro-pack"), store.list("folha-2026").map { it.id })
+        assertEquals(listOf("folha-conhecimento"), store.list("outro-workspace").map { it.id })
+    }
+
+    @Test
+    fun `remover com identificador fora do formato nao apaga nada`(@TempDir root: Path) {
+        val store = PackStore(storage(root))
+        install(store, "folha-2026", manifest(), "conteudo")
+
+        listOf("../folha-2026", "..", "a/b").forEach { id ->
+            assertThrows<IllegalArgumentException>("aceitou '$id'") { store.remove("folha-2026", id) }
+        }
+
+        assertEquals(1, store.list("folha-2026").size)
+    }
+
+    @Test
     fun `remover o pack nao deixa residuo`(@TempDir root: Path) {
         val store = PackStore(storage(root))
         install(store, "folha-2026", manifest(), "conteudo")
