@@ -135,6 +135,7 @@ class ReadOnlyQueryExecutor(
         val sensitivePositions = SensitiveColumnScanner.sensitivePositions(sql, masking, metadata.columnCount)
         val expressionIdentifiers = SensitiveColumnScanner.identifiersByPosition(sql, metadata.columnCount)
         val touchesSecret by lazy { SensitiveColumnScanner.touchesSensitiveColumn(sql, masking) }
+        val statementIdentifiers by lazy { SensitiveColumnScanner.allIdentifiers(sql) }
         val columns = (1..metadata.columnCount).map { index ->
             val label = metadata.getColumnLabel(index).orEmpty()
             val origin = baseColumnName(metadata, index)
@@ -144,21 +145,20 @@ class ReadOnlyQueryExecutor(
                 if (sensitivePositions == null) touchesSecret else index in sensitivePositions
             val masked = masking.ruleFor(listOf(label, origin)) == MaskingRule.MASK ||
                 (computed && computedFromSecret)
+            // Sem mapeamento confiavel da lista de selecao, uma coluna calculada so pode ser
+            // reconhecida pelos identificadores do statement inteiro.
+            val expression = expressionIdentifiers?.getOrNull(index - 1)
+                ?: if (computed) statementIdentifiers else emptyList()
+            val identifiers = (listOf(label, origin) + expression).filter { it.isNotBlank() }.distinct()
             QueryColumn(
                 name = name,
                 type = metadata.getColumnTypeName(index) ?: "unknown",
                 masked = masked,
-                identifiers = (listOf(label, origin) + expressionIdentifiers?.getOrNull(index - 1).orEmpty())
-                    .filter { it.isNotBlank() }
-                    .distinct(),
+                identifiers = identifiers,
                 obfuscatedAs = if (masked || !obfuscate) {
                     PersonalDataKind.NONE
                 } else {
-                    PersonalDataObfuscator.classify(
-                        (listOf(label, origin) + expressionIdentifiers?.getOrNull(index - 1).orEmpty())
-                            .filter { it.isNotBlank() },
-                        null,
-                    )
+                    PersonalDataObfuscator.classify(identifiers, null)
                 },
             )
         }

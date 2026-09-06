@@ -6,6 +6,17 @@ All notable changes to this project are documented here. The format follows
 
 ## [Unreleased]
 
+## [0.1.0-rc.13] - 2026-09-06
+
+### Fixed
+
+- **Obfuscation had no safe fallback when the select list could not be mapped.** With `WITH`,
+  `UNION` or `*` expansion, a computed and renamed column was judged by its query label alone, so
+  `WITH x AS (SELECT num_cpf AS codigo FROM ...) SELECT codigo FROM x` handed the document back in
+  full. The secret mask beside it had always fallen back to the identifiers of the whole statement in
+  exactly that situation; the new feature was written without it. Obfuscation now falls back the same
+  way. Found by reading the two side by side, which is now a required step of the review skill.
+
 ## [0.1.0-rc.12] - 2026-09-06
 
 ### Fixed
@@ -268,7 +279,8 @@ full cycle with a real AI client — are still open.
 - Repository role and workspace type explain themselves in the dialog: both describe the work to the
   AI client and enforce nothing, which access modes and policies do.
 
-[Unreleased]: https://github.com/gilmardeveloper/prumo/compare/v0.1.0-rc.12...HEAD
+[Unreleased]: https://github.com/gilmardeveloper/prumo/compare/v0.1.0-rc.13...HEAD
+[0.1.0-rc.13]: https://github.com/gilmardeveloper/prumo/compare/v0.1.0-rc.12...v0.1.0-rc.13
 [0.1.0-rc.12]: https://github.com/gilmardeveloper/prumo/compare/v0.1.0-rc.11...v0.1.0-rc.12
 [0.1.0-rc.11]: https://github.com/gilmardeveloper/prumo/compare/v0.1.0-rc.10...v0.1.0-rc.11
 [0.1.0-rc.10]: https://github.com/gilmardeveloper/prumo/compare/v0.1.0-rc.9...v0.1.0-rc.10

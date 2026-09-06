@@ -2,6 +2,8 @@ package io.prumo.mcp.datasource.security
 
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertNotEquals
+import org.junit.jupiter.api.Assertions.assertNull
+import org.junit.jupiter.api.Assertions.assertTrue
 import org.junit.jupiter.api.Tag
 import org.junit.jupiter.api.Test
 
@@ -47,6 +49,33 @@ class ObfuscationBypassTest {
     @Test
     fun `a categoria sobrevive a lista fora de ordem`() {
         assertEquals(classify("num_cpf", "codigo"), classify("codigo", "num_cpf"))
+    }
+
+    /**
+     * A máscara de segredo recua para os identificadores do statement inteiro quando a lista de
+     * seleção não pode ser mapeada. A ofuscação nasceu sem esse recuo: com `WITH`, `UNION` ou
+     * expansão por `*`, uma coluna calculada e renomeada ficava só com o rótulo escolhido.
+     */
+    @Test
+    fun `o statement inteiro identifica a coluna quando a lista nao e mapeavel`() {
+        val sql = "WITH x AS (SELECT num_cpf AS codigo FROM db_sgp.tb_pessoa) SELECT codigo FROM x"
+
+        assertNull(
+            SensitiveColumnScanner.identifiersByPosition(sql, 1),
+            "a premissa do teste caiu: esta consulta passou a ser mapeável",
+        )
+        val doStatement = SensitiveColumnScanner.allIdentifiers(sql)
+        assertEquals(
+            PersonalDataKind.CPF,
+            PersonalDataObfuscator.classify(listOf("codigo") + doStatement, "12345678901"),
+        )
+    }
+
+    @Test
+    fun `o recuo enxerga a coluna citada em qualquer ponto do statement`() {
+        val sql = "SELECT * FROM db_sgp.tb_pessoa WHERE num_cpf IS NOT NULL"
+
+        assertTrue(SensitiveColumnScanner.allIdentifiers(sql).any { it == "num_cpf" })
     }
 
     @Test
