@@ -188,8 +188,10 @@ class DatabaseToolset : McpToolset {
 
     @McpTool(name = LIST_AVAILABLE_TOOL)
     @McpDescription(
-        "Lists the databases bound to the current workspace. Returns identifiers and access mode " +
-            "only — never host, port, user or credentials. Use the datasourceId in the other database tools.",
+        "Use this tool first when you need data: it lists the databases of this workspace with " +
+            "the developer's description of each one, so you know what a database holds before " +
+            "querying it. Returns identifiers and access mode only — never host, port, user or " +
+            "credentials. The datasourceId returned here addresses the other database tools.",
     )
     suspend fun listAvailable(): AvailableDataSourcesResponse =
         prumoToolCall(LIST_AVAILABLE_TOOL, "database.list_available", PolicyAction.READ_REPOSITORY) { call ->
@@ -198,8 +200,8 @@ class DatabaseToolset : McpToolset {
 
     @McpTool(name = GET_SCHEMA_TOOL)
     @McpDescription(
-        "Lists the schemas of a database bound to the current workspace, with how many tables and " +
-            "views each one holds. System schemas are omitted.",
+        "Use this tool to map a bound database before querying it: every schema with how many " +
+            "tables and views it holds. System schemas are omitted.",
     )
     suspend fun getSchema(
         @McpDescription("Data source id from prumo_database_list_available.")
@@ -214,8 +216,9 @@ class DatabaseToolset : McpToolset {
 
     @McpTool(name = LIST_TABLES_TOOL)
     @McpDescription(
-        "Lists tables, views and materialized views of a bound database, optionally restricted to " +
-            "one schema. Row counts are the planner estimate, not an exact count.",
+        "Use this tool to find the tables you need: tables, views and materialized views of a " +
+            "bound database, optionally restricted to one schema. Row counts are the planner " +
+            "estimate, not an exact count.",
     )
     suspend fun listTables(
         @McpDescription("Data source id from prumo_database_list_available.")
@@ -230,8 +233,9 @@ class DatabaseToolset : McpToolset {
 
     @McpTool(name = DESCRIBE_TABLE_TOOL)
     @McpDescription(
-        "Describes one table or view of a bound database: columns with types and defaults, " +
-            "constraints and indexes. Reads structure only — no row is ever read.",
+        "Use this tool to learn a table before writing SQL against it: columns with types, " +
+            "defaults and the developer's comments, plus constraints and indexes. Prefer it over " +
+            "guessing column names from a failed query. Reads structure only — no row is ever read.",
     )
     suspend fun describeTable(
         @McpDescription("Data source id from prumo_database_list_available.")

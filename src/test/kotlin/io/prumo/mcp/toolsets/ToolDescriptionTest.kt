@@ -102,6 +102,11 @@ class ToolDescriptionTest {
          * precisam dizer ao cliente quando escolhê-las.
          */
         val INSTRUCTIVE = setOf(
+            "prumo_database_describe_table",
+            "prumo_database_get_schema",
+            "prumo_database_list_available",
+            "prumo_database_list_tables",
+            "prumo_ide_get_current_context",
             "prumo_repository_get_branch",
             "prumo_repository_get_diff",
             "prumo_repository_get_status",
