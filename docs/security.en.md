@@ -89,8 +89,33 @@ other families in the AI client, and that is outside this plugin's reach.
 
 Masking decides by the **originating column**, read from the driver metadata, and not by the alias
 the client chose: `SELECT senha AS num_matricula` comes back masked. A computed column has no
-originating column in the metadata, so a query that touches a sensitive name also masks the computed
-ones — masking too much, which is the accepted direction.
+originating column in the metadata; there Prumo reads the select list and masks the column whose own
+expression touches a sensitive name. When the list cannot be mapped safely — `*` expansion, a
+statement that is not a simple `SELECT` — every computed column is masked: masking too much, which
+is the accepted direction.
+
+## Personal data obfuscation
+
+An authentication secret is replaced whole. **Personal data is partially hidden** — enough that it
+cannot be reconstructed, little enough that the AI still understands the field: a CPF comes back as
+`123.***.789-**`, a phone as `(85) ****-4321`, a name as `Maria S. S.`, an e-mail keeps its domain,
+and a birth date keeps its year, so age brackets and age-based rules stay analysable.
+
+Three decisions hold this up:
+
+- **A check digit is never shown.** It is a function of the other digits: it adds no business
+  information, and it lets a guess from another source be verified.
+- **The data is obfuscated, never the metadata.** Column name, type, comment, constraint and index
+  come back intact. The AI needs the full structure to write correct SQL; what it does not need is
+  the person's document.
+- **Obfuscation happens on the way out**, after the database has resolved the query. Joins, grouping,
+  filtering and ordering keep operating on the real value.
+
+The switch lives on the database binding and is **on by default**: a freshly bound database protects
+without anyone remembering to enable it.
+
+The limit is known: an obfuscated value is **not a key**. Two values that differ only in the hidden
+digits come back identical, and equality on the way out does not prove equality at the source.
 
 What masking does **not** do is prevent inference. A query using the sensitive column in a predicate
 — `WHERE senha = 'guess'` — either returns rows or does not, and that confirms the value without ever

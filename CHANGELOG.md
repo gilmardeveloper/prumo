@@ -6,6 +6,54 @@ All notable changes to this project are documented here. The format follows
 
 ## [Unreleased]
 
+### Added
+
+- **Personal data comes back partially hidden.** A CPF now reads `123.***.789-**`, a phone
+  `(85) ****-4321`, a name `Maria S. S.`; an e-mail keeps its domain and a birth date keeps its year,
+  so age-based rules stay analysable. A check digit is never shown — it is a function of the other
+  digits, so it adds nothing and lets a guess from another source be verified. Column names, types
+  and comments are never altered: the AI needs the full structure to write correct SQL, not the
+  person's document. The switch lives on the database binding and is on by default. Obfuscation is
+  applied on the way out, so joins, grouping and filtering keep operating on the real value — but an
+  obfuscated value is not a key, since two values differing only in hidden digits come back equal.
+- **A database binding can carry a description**, handed to the AI client the way a repository
+  description already was. A field evaluation found a database labelled `dev` that was in fact a copy
+  of production: two AI agents suspected it and neither could confirm it, and one recorded that it
+  could not tell whether it was reading real people's data.
+- **`prumo_workspace_read_documentation`** reads the documentation attached to a workspace. Until now
+  Prumo announced a source as text-extractable and offered no way to extract it — an evaluator put it
+  plainly: the specification was cited in the code, listed in the workspace, and impossible to open.
+  Absolute paths, parent traversal and any path leaving the registered root are refused.
+
+### Changed
+
+- **Tool descriptions now say when to use each tool.** The IDE's MCP server transmits no
+  presentation text, so between connecting and the first call a client sees only names and
+  descriptions — and Prumo's sat at the end of a 69-tool list, describing themselves while the native
+  tools instructed ("Use this tool to…", "You MUST prefer this tool over…"). One blind evaluator
+  never noticed Prumo existed: it did the whole job with the IDE's own tools, reported that database
+  access was missing while `prumo_database_*` sat unused in the same session, and — without the
+  workspace context — read a stale README and reported the wrong Java version. One description was
+  actively handing the client away, telling the AI that for the open project the IDE's own tools
+  already answer; that sentence is gone, and a test now fails if any description cedes preference
+  again. `prumo_workspace_prepare` announces itself as the first call and explains what a workspace
+  is.
+- **Workspace policy no longer declares the database off limits.** Database actions were evaluated
+  without a datasource, which is a situation a real query never hits, and the answer came back
+  denied. Two blind evaluators concluded the database was closed and one nearly finished its work
+  without ever querying it. Actions are now decided per bound database, and the answer names which
+  ones allow what.
+
+### Fixed
+
+- **A plain count was blanked out for standing next to a secret.** `SELECT count(*) AS total,
+  max(txt_senha) AS x` returned `[masked]` for the count, which is not a secret at all; the same
+  count alone returned the number. The mask now falls on the computed column whose own expression
+  touches a sensitive name, and still covers every computed column when the select list cannot be
+  mapped safely.
+- **A database refused by the domain no longer vanishes without a word** when saved. The repository
+  binding got that protection in 0.1.0-rc.8; the database binding never had it.
+
 ## [0.1.0-rc.8] - 2026-09-06
 
 ### Fixed
