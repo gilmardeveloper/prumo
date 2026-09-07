@@ -4,7 +4,6 @@ import com.intellij.openapi.fileChooser.FileChooser
 import com.intellij.openapi.fileChooser.FileChooserDescriptor
 import com.intellij.openapi.fileChooser.FileChooserFactory
 import com.intellij.openapi.fileChooser.FileSaverDescriptor
-import com.intellij.openapi.application.ApplicationManager
 import com.intellij.openapi.project.Project
 import com.intellij.openapi.ui.Messages
 import com.intellij.ui.components.JBLabel
@@ -14,7 +13,7 @@ import io.prumo.mcp.i18n.PrumoBundle
 import io.prumo.mcp.ide.PrumoWorkspaceService
 import io.prumo.mcp.pack.application.PackFileExchange
 import io.prumo.mcp.pack.application.PackStore
-import io.prumo.mcp.ui.PrumoToolWindowFactory
+import io.prumo.mcp.ui.PrumoUiEvents
 import io.prumo.mcp.ui.WorkspaceViewModel
 import java.nio.file.Path
 import javax.swing.Icon
@@ -201,7 +200,7 @@ class PackExchangePanel(
 
     /** Remonta a janela: as seções de pack e a contagem da fila são desenhadas fora deste painel. */
     private fun refreshPanel() {
-        ApplicationManager.getApplication().invokeLater { PrumoToolWindowFactory.refreshOpenProjects() }
+        PrumoUiEvents.publishStateChanged()
     }
 
     private fun chosenPack(emptyKey: String, titleKey: String, messageKey: String): WorkspaceViewModel.PackRow? {

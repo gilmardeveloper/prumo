@@ -1,6 +1,5 @@
 package io.prumo.mcp.ui.pack
 
-import com.intellij.openapi.application.ApplicationManager
 import com.intellij.openapi.project.Project
 import com.intellij.ui.ColoredListCellRenderer
 import com.intellij.ui.SimpleTextAttributes
@@ -15,7 +14,7 @@ import io.prumo.mcp.pack.authoring.SubmissionQueue
 import io.prumo.mcp.pack.exchange.PackImporter
 import io.prumo.mcp.pack.exchange.PackOrigin
 import io.prumo.mcp.ui.PrumoSeverity
-import io.prumo.mcp.ui.PrumoToolWindowFactory
+import io.prumo.mcp.ui.PrumoUiEvents
 import javax.swing.DefaultListModel
 import javax.swing.JComponent
 import javax.swing.JList
@@ -144,7 +143,7 @@ class ApprovalQueuePanel(
      * instalado logo depois de instalar um.
      */
     private fun redraw() {
-        ApplicationManager.getApplication().invokeLater { PrumoToolWindowFactory.refreshOpenProjects() }
+        PrumoUiEvents.publishStateChanged()
     }
 
     /**

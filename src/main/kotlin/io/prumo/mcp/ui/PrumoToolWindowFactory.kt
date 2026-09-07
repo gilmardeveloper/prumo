@@ -2,13 +2,12 @@ package io.prumo.mcp.ui
 
 import com.intellij.icons.AllIcons
 import com.intellij.openapi.actionSystem.DefaultActionGroup
+import com.intellij.openapi.application.ApplicationManager
 import com.intellij.openapi.options.ShowSettingsUtil
 import com.intellij.openapi.project.DumbAwareAction
 import com.intellij.openapi.project.Project
-import com.intellij.openapi.project.ProjectManager
 import com.intellij.openapi.wm.ToolWindow
 import com.intellij.openapi.wm.ToolWindowFactory
-import com.intellij.openapi.wm.ToolWindowManager
 import com.intellij.ui.components.JBLabel
 import com.intellij.ui.content.Content
 import com.intellij.ui.content.ContentFactory
@@ -36,7 +35,26 @@ class PrumoToolWindowFactory : ToolWindowFactory {
 
     override fun createToolWindowContent(project: Project, toolWindow: ToolWindow) {
         toolWindow.setAdditionalGearActions(DefaultActionGroup(settingsAction(project)))
+        subscribe(project, toolWindow)
         install(project, toolWindow)
+    }
+
+    /**
+     * Liga esta janela ao canal de mudança de estado.
+     *
+     * A assinatura vive enquanto a janela viver: `toolWindow.disposable` a desfaz quando o projeto
+     * fecha, e sem isso um projeto fechado continuaria reagindo a eventos.
+     */
+    private fun subscribe(project: Project, toolWindow: ToolWindow) {
+        ApplicationManager.getApplication().messageBus.connect(toolWindow.disposable)
+            .subscribe(
+                PrumoUiEvents.STATE_CHANGED,
+                object : PrumoStateListener {
+                    override fun prumoStateChanged() {
+                        ApplicationManager.getApplication().invokeLater { refresh(project, toolWindow) }
+                    }
+                },
+            )
     }
 
     /** Caminho visível para a preferência de idioma, que de outro modo só existe em *Settings*. */
@@ -46,22 +64,17 @@ class PrumoToolWindowFactory : ToolWindowFactory {
         }
 
     companion object {
-        private const val TOOL_WINDOW_ID = "Prumo MCP"
 
         /**
-         * Remonta o painel dos projetos abertos.
+         * Remonta a janela de um projeto.
          *
-         * O painel é montado uma vez, quando a janela nasce. Sem remontar, gravar o workspace ou
+         * As abas são montadas uma vez, quando a janela nasce. Sem remontar, gravar o workspace ou
          * trocar o idioma deixa na tela o conteúdo anterior até a IDE reiniciar.
          */
-        fun refreshOpenProjects() {
-            ProjectManager.getInstance().openProjects.forEach { project ->
-                val toolWindow = ToolWindowManager.getInstance(project).getToolWindow(TOOL_WINDOW_ID)
-                    ?: return@forEach
-                toolWindow.stripeTitle = PrumoBundle.message("toolwindow.title")
-                toolWindow.contentManager.removeAllContents(true)
-                install(project, toolWindow)
-            }
+        private fun refresh(project: Project, toolWindow: ToolWindow) {
+            toolWindow.stripeTitle = PrumoBundle.message("toolwindow.title")
+            toolWindow.contentManager.removeAllContents(true)
+            install(project, toolWindow)
         }
 
         /**
