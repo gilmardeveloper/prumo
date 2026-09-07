@@ -80,11 +80,17 @@ Accepts `staged`. Never runs a mutating Git command.
 
 ### `prumo_repository_read_file`
 Reads a text file by `path` relative to the repository root, with `firstLine` and `maxLines`.
-Absolute paths and `..` are refused. Binary files are refused with an explicit message.
+Absolute paths and `..` are refused. Binary files are refused with an explicit message. Asking for a
+directory is refused by saying it is a directory, and pointing at the tool that lists it — never by
+saying it does not exist.
 
 ### `prumo_repository_search_text`
-Literal text search inside a bound repository, optionally scoped to a subdirectory. Binary files and
-`.git` are never read.
+Literal text search inside a bound repository, optionally scoped to a subdirectory through `scope`.
+Binary files and `.git` are never read. A `scope` that does not exist is refused rather than
+answered with an empty search: a misspelled scope and a search that covered everything and found
+nothing lead to opposite conclusions. A `scope` inside an excluded area still answers that it is
+excluded, so the refusal never becomes an existence oracle over what the workspace chose not to
+show.
 
 ### `prumo_repository_get_structure`
 Directories and files of a bound repository. Use it to discover the layout of a repository that is
@@ -97,8 +103,12 @@ Directories and files of a bound repository. Use it to discover the layout of a 
 ### `prumo_ide_get_current_context`
 Where the developer is right now: the file as `repositoryId` plus a relative path, caret line and
 column, selection range, the chain of symbols containing the caret, language and module. If the open
-file belongs to no repository of this workspace, the answer is only `insideWorkspace: false` —
-naming a file outside the boundary would already be telling about it.
+file is not within reach, the answer is `insideWorkspace: false` — naming it would already be
+telling about it — together with `reason`: `NO_FILE_OPEN` when no editor is selected,
+`FILE_NOT_ON_DISK` when what is open lives in a jar, a scratch or a remote filesystem, and
+`OUT_OF_REACH` when the file is not within reach of the workspace. Outside the bound repositories
+and inside an excluded path both answer `OUT_OF_REACH`, on purpose: telling them apart would say
+something is hidden there.
 
 ---
 

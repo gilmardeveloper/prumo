@@ -75,6 +75,12 @@ object RepositoryReader {
                     "so Prumo does not read it.",
             )
         }
+        if (file.isDirectory()) {
+            throw RepositoryReadException(
+                "Path '$relativePath' is a directory in this repository, not a file. " +
+                    "List it with prumo_repository_get_structure.",
+            )
+        }
         if (!file.isRegularFile()) {
             throw RepositoryReadException("File '$relativePath' does not exist in this repository.")
         }
@@ -113,6 +119,7 @@ object RepositoryReader {
 
         val start = scopeRoot(root, scope)
         assertScopeAllowed(root, start, scope, excluded)
+        assertScopeExists(start, scope)
         val matches = mutableListOf<TextMatch>()
         var scanned = 0
         var truncated = false
@@ -208,6 +215,26 @@ object RepositoryReader {
         throw RepositoryReadException(
             "Path '$relativePath' is excluded from this repository in the Prumo workspace, " +
                 "so Prumo does not read it.",
+        )
+    }
+
+    /**
+     * Recusa escopo que não existe no repositório.
+     *
+     * Vem depois da checagem de exclusão, e não antes: caminho excluído precisa continuar
+     * respondendo que é excluído, sob pena de a recusa virar um oráculo de existência sobre a área
+     * que o workspace decidiu não mostrar.
+     *
+     * Escopo inexistente devolvia busca vazia, indistinguível de busca que percorreu tudo e não
+     * achou — e a conclusão que o cliente tira das duas é oposta.
+     */
+    private fun assertScopeExists(start: Path, relativePath: String?) {
+        if (relativePath.isNullOrBlank() || Files.exists(start)) {
+            return
+        }
+        throw RepositoryReadException(
+            "Path '$relativePath' does not exist in this repository, so there is nothing to " +
+                "search under it. Searching without a scope covers the whole repository.",
         )
     }
 

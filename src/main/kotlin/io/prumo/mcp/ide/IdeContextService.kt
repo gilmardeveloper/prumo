@@ -26,49 +26,82 @@ data class EditorSnapshot(
 )
 
 /**
+ * O que o editor tem aberto no instante da chamada.
+ *
+ * Não achar posição tem duas causas diferentes, e quem responde ao cliente precisa das duas
+ * separadas: não haver editor de texto selecionado, e o que está aberto não viver em disco.
+ */
+sealed interface EditorState {
+
+    /** Nenhum editor de texto está selecionado. */
+    data object NoEditor : EditorState
+
+    /** O que está aberto não tem caminho em disco: conteúdo de jar, scratch ou sistema remoto. */
+    data object NotOnDisk : EditorState
+
+    /** O cursor está num arquivo do disco. */
+    data class At(val snapshot: EditorSnapshot) : EditorState
+}
+
+/**
  * Leitura do estado do editor.
  *
  * O estado é lido no instante da chamada e devolvido uma vez. Nada é observado continuamente.
  */
 object IdeContextService {
 
-    suspend fun currentEditor(project: Project): EditorSnapshot? {
-        val position = withContext(Dispatchers.EDT) { readCaret(project) } ?: return null
+    suspend fun currentEditor(project: Project): EditorState {
+        val position = when (val caret = withContext(Dispatchers.EDT) { readCaret(project) }) {
+            is CaretLookup.Found -> caret.position
+            CaretLookup.NoEditor -> return EditorState.NoEditor
+            CaretLookup.NotOnDisk -> return EditorState.NotOnDisk
+        }
         val (symbols, language) = readAction { readSymbols(project, position) }
         val module = readAction { ModuleUtilCore.findModuleForFile(position.file, project)?.name }
 
-        return EditorSnapshot(
-            absolutePath = position.absolutePath,
-            line = position.line,
-            column = position.column,
-            selectionStartLine = position.selectionStartLine,
-            selectionEndLine = position.selectionEndLine,
-            selectionLength = position.selectionLength,
-            symbolPath = symbols,
-            language = language,
-            moduleName = module,
+        return EditorState.At(
+            EditorSnapshot(
+                absolutePath = position.absolutePath,
+                line = position.line,
+                column = position.column,
+                selectionStartLine = position.selectionStartLine,
+                selectionEndLine = position.selectionEndLine,
+                selectionLength = position.selectionLength,
+                symbolPath = symbols,
+                language = language,
+                moduleName = module,
+            ),
         )
     }
 
-    private fun readCaret(project: Project): CaretPosition? {
-        val editor = FileEditorManager.getInstance(project).selectedTextEditor ?: return null
+    /** O que a leitura do cursor encontrou, com a causa quando não encontrou posição. */
+    private sealed interface CaretLookup {
+        data object NoEditor : CaretLookup
+        data object NotOnDisk : CaretLookup
+        data class Found(val position: CaretPosition) : CaretLookup
+    }
+
+    private fun readCaret(project: Project): CaretLookup {
+        val editor = FileEditorManager.getInstance(project).selectedTextEditor ?: return CaretLookup.NoEditor
         val document = editor.document
-        val file = FileDocumentManager.getInstance().getFile(document) ?: return null
+        val file = FileDocumentManager.getInstance().getFile(document) ?: return CaretLookup.NoEditor
         // Arquivo dentro de jar, de sistema remoto ou de scratch não tem caminho em disco.
-        val path = runCatching { file.toNioPath().toString() }.getOrNull() ?: return null
+        val path = runCatching { file.toNioPath().toString() }.getOrNull() ?: return CaretLookup.NotOnDisk
 
         val caret = editor.caretModel.primaryCaret
         val logical = caret.logicalPosition
         val hasSelection = caret.hasSelection()
-        return CaretPosition(
-            file = file,
-            absolutePath = path,
-            offset = caret.offset,
-            line = logical.line + 1,
-            column = logical.column + 1,
-            selectionStartLine = if (hasSelection) document.getLineNumber(caret.selectionStart) + 1 else null,
-            selectionEndLine = if (hasSelection) document.getLineNumber(caret.selectionEnd) + 1 else null,
-            selectionLength = if (hasSelection) caret.selectionEnd - caret.selectionStart else null,
+        return CaretLookup.Found(
+            CaretPosition(
+                file = file,
+                absolutePath = path,
+                offset = caret.offset,
+                line = logical.line + 1,
+                column = logical.column + 1,
+                selectionStartLine = if (hasSelection) document.getLineNumber(caret.selectionStart) + 1 else null,
+                selectionEndLine = if (hasSelection) document.getLineNumber(caret.selectionEnd) + 1 else null,
+                selectionLength = if (hasSelection) caret.selectionEnd - caret.selectionStart else null,
+            ),
         )
     }
 

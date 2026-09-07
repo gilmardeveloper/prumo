@@ -18,8 +18,10 @@ class IdeToolset : McpToolset {
         "Use this tool to find out what the developer is looking at right now: the file being " +
             "edited as a repository id plus a relative path, the caret position, the selection and " +
             "the symbols containing it. Call it when the request says \"this file\", \"here\" or " +
-            "\"the current class\". When the open file belongs to no repository of this workspace, " +
-            "only that fact is reported.",
+            "\"the current class\". When there is no context to report, insideWorkspace is false " +
+            "and reason says why: NO_FILE_OPEN when no editor is selected, FILE_NOT_ON_DISK when " +
+            "what is open lives in a jar, a scratch or a remote filesystem, and OUT_OF_REACH when " +
+            "the open file is not within reach of this workspace.",
     )
     suspend fun getCurrentContext(): IdeContextResponse =
         prumoToolCall(

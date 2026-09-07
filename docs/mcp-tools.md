@@ -85,11 +85,16 @@ unificado daquele arquivo. Aceita `staged`. Nunca roda comando Git que altere es
 
 ### `prumo_repository_read_file`
 Lê um arquivo de texto por `path` relativo à raiz do repositório, com `firstLine` e `maxLines`.
-Caminho absoluto e `..` são recusados. Arquivo binário é recusado com mensagem explícita.
+Caminho absoluto e `..` são recusados. Arquivo binário é recusado com mensagem explícita. Pedir um
+diretório é recusado dizendo que é diretório, e apontando a tool que o lista — não se diz que ele
+não existe.
 
 ### `prumo_repository_search_text`
-Busca literal dentro de um repositório vinculado, opcionalmente restrita a um subdiretório. Arquivo
-binário e `.git` nunca são lidos.
+Busca literal dentro de um repositório vinculado, opcionalmente restrita a um subdiretório por
+`scope`. Arquivo binário e `.git` nunca são lidos. `scope` que não existe é recusado, e não devolve
+busca vazia: escopo digitado errado e busca que percorreu tudo sem achar levam a conclusões opostas.
+`scope` dentro de área excluída continua respondendo que é excluído, para que a recusa não vire um
+oráculo de existência sobre o que o workspace decidiu não mostrar.
 
 ### `prumo_repository_get_structure`
 Diretórios e arquivos de um repositório vinculado. Serve para descobrir o layout de um repositório
@@ -102,8 +107,12 @@ que **não** é o projeto aberto — para o projeto aberto as ferramentas da pr�
 ### `prumo_ide_get_current_context`
 Onde o desenvolvedor está agora: o arquivo como `repositoryId` mais caminho relativo, linha e coluna
 do cursor, intervalo selecionado, a cadeia de símbolos que contém o cursor, linguagem e módulo. Se o
-arquivo aberto não pertence a repositório algum deste workspace, a resposta é só
-`insideWorkspace: false` — nomear um arquivo fora da fronteira já seria contar sobre ele.
+arquivo aberto não está ao alcance, a resposta é `insideWorkspace: false` — nomeá-lo já seria
+contar sobre ele —, acompanhada de `reason`: `NO_FILE_OPEN` quando nenhum editor está selecionado,
+`FILE_NOT_ON_DISK` quando o que está aberto vive num jar, num scratch ou em sistema remoto, e
+`OUT_OF_REACH` quando o arquivo não está ao alcance do workspace. Fora dos repositórios vinculados e
+dentro de caminho excluído devolvem o mesmo `OUT_OF_REACH`, de propósito: distinguir os dois diria
+que existe algo escondido ali.
 
 ---
 
