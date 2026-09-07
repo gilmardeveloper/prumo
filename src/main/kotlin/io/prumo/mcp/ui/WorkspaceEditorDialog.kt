@@ -12,6 +12,7 @@ import com.intellij.ui.ToolbarDecorator
 import com.intellij.ui.components.JBCheckBox
 import com.intellij.ui.components.JBList
 import com.intellij.ui.components.JBScrollPane
+import com.intellij.ui.components.JBTabbedPane
 import com.intellij.ui.components.JBTextArea
 import com.intellij.ui.components.JBTextField
 import com.intellij.ui.dsl.builder.columns
@@ -31,8 +32,6 @@ import io.prumo.mcp.workspace.domain.RepositoryBinding
 import io.prumo.mcp.workspace.domain.RepositoryRole
 import io.prumo.mcp.workspace.domain.Workspace
 import io.prumo.mcp.workspace.domain.WorkspaceType
-import java.awt.Dimension
-import java.awt.Toolkit
 import java.nio.file.Path
 import javax.swing.DefaultListModel
 import javax.swing.JComponent
@@ -79,73 +78,52 @@ class WorkspaceEditorDialog(
         init()
     }
 
-    override fun createCenterPanel(): JComponent = scrollable(form())
-
     /**
-     * Envolve o formulário num painel rolável limitado a parte da altura da tela.
+     * Uma aba por assunto, no lugar de um formulário único e rolante.
      *
-     * `DialogWrapper` dimensiona pelo tamanho preferido do conteúdo e corta o que não couber na
-     * tela, sem oferecer gesto para alcançar o excedente. O teto só entra em ação quando o
-     * formulário é mais alto que ele, então tela grande continua sem barra.
-     *
-     * Envolver o painel faz `DialogWrapper` deixar de reconhecê-lo como `DialogPanel`, e com isso
-     * `apply()` nunca roda — por isso todo campo deste diálogo é lido do próprio componente.
+     * O diálogo governa cinco assuntos independentes; empilhados, cada um empurrava os outros para
+     * fora da tela. Nenhum campo é ligado por `bind*`: todos são lidos do próprio componente.
      */
-    private fun scrollable(form: JComponent): JComponent = JBScrollPane(form).apply {
-        border = JBUI.Borders.empty()
-        horizontalScrollBarPolicy = javax.swing.ScrollPaneConstants.HORIZONTAL_SCROLLBAR_NEVER
-        verticalScrollBar.unitIncrement = SCROLL_UNIT
-        val ceiling = (Toolkit.getDefaultToolkit().screenSize.height * MAX_HEIGHT_RATIO).toInt()
-        preferredSize = Dimension(
-            form.preferredSize.width + verticalScrollBar.preferredSize.width,
-            minOf(form.preferredSize.height, ceiling),
-        )
+    override fun createCenterPanel(): JComponent = JBTabbedPane().apply {
+        addTab(PrumoBundle.message("workspace.tab.identity"), identity())
+        addTab(PrumoBundle.message("workspace.section.repositories"), listTab(repositoryList(), "workspace.section.repositories.hint"))
+        addTab(PrumoBundle.message("workspace.section.documentation"), listTab(documentationList(), "workspace.section.documentation.hint"))
+        addTab(PrumoBundle.message("workspace.section.datasources"), listTab(datasourceList(), "workspace.section.datasources.hint"))
+        addTab(PrumoBundle.message("workspace.section.policies"), policies())
+        preferredSize = JBUI.size(DIALOG_WIDTH, DIALOG_HEIGHT)
     }
 
-    private fun form(): JComponent = panel {
+    private fun identity(): JComponent = panel {
         row(PrumoBundle.message("workspace.field.name")) {
             cell(nameField).columns(34).focused()
         }
         row(PrumoBundle.message("workspace.field.type")) { cell(typeBox) }
         row { comment(PrumoBundle.message("workspace.typeHint"), maxLineLength = 72) }
+    }.apply { border = JBUI.Borders.empty(12) }
 
-        group(PrumoBundle.message("workspace.section.repositories")) {
-            row {
-                cell(repositoryList()).align(com.intellij.ui.dsl.builder.AlignX.FILL)
-            }
-            row {
-                comment(PrumoBundle.message("workspace.section.repositories.hint"))
-            }
+    private fun listTab(list: JComponent, hintKey: String): JComponent = panel {
+        row {
+            cell(list).align(com.intellij.ui.dsl.builder.AlignX.FILL)
         }
+        row { comment(PrumoBundle.message(hintKey)) }
+    }.apply { border = JBUI.Borders.empty(12) }
 
-        group(PrumoBundle.message("workspace.section.documentation")) {
-            row {
-                cell(documentationList()).align(com.intellij.ui.dsl.builder.AlignX.FILL)
-            }
-            row {
-                comment(PrumoBundle.message("workspace.section.documentation.hint"))
-            }
-        }
+    private fun policies(): JComponent = panel {
+        row { cell(referenceWriteBox) }
+        row { cell(databaseWriteBox) }
+        row { cell(processExecutionBox) }
+        row { cell(gitWriteBox) }
+        row { comment(PrumoBundle.message("workspace.section.policies.hint")) }
+    }.apply { border = JBUI.Borders.empty(12) }
 
-        group(PrumoBundle.message("workspace.section.datasources")) {
-            row {
-                cell(datasourceList()).align(com.intellij.ui.dsl.builder.AlignX.FILL)
-            }
-            row {
-                comment(PrumoBundle.message("workspace.section.datasources.hint"))
-            }
-        }
-
-        group(PrumoBundle.message("workspace.section.policies")) {
-            row { cell(referenceWriteBox) }
-            row { cell(databaseWriteBox) }
-            row { cell(processExecutionBox) }
-            row { cell(gitWriteBox) }
-            row {
-                comment(PrumoBundle.message("workspace.section.policies.hint"))
-            }
-        }
-    }.apply { border = JBUI.Borders.empty(8) }
+    /** Diz o que houve quando uma adição é recusada: o botão que não faz nada não explica. */
+    private fun refuse(messageKey: String, vararg arguments: Any) {
+        Messages.showWarningDialog(
+            project,
+            PrumoBundle.message(messageKey, *arguments),
+            PrumoBundle.message("workspace.dialog.title"),
+        )
+    }
 
     private fun repositoryList(): JComponent {
         val list = JBList(repositories).apply {
@@ -191,6 +169,7 @@ class WorkspaceEditorDialog(
         }
         val profile = profileOrReport(dialog) ?: return
         if (datasources.elements().toList().any { it.id == profile.id }) {
+            refuse("workspace.duplicate.datasource", profile.name)
             return
         }
         datasources.addElement(profile)
@@ -236,6 +215,7 @@ class WorkspaceEditorDialog(
         val path = Path.of(chosen.path)
         val id = ConfigureWorkspaceAction.slug(path.fileName?.toString() ?: chosen.name)
         if (repositories.elements().toList().any { it.id == id }) {
+            refuse("workspace.duplicate.repository", path.fileName?.toString() ?: chosen.name)
             return
         }
 
@@ -273,9 +253,13 @@ class WorkspaceEditorDialog(
             null
         }
 
+    /**
+     * O repositório primário não é removível: é ele que liga o projeto aberto a este workspace.
+     */
     private fun removeRepository(index: Int) {
         val binding = repositories.get(index)
         if (binding.id == primaryRepositoryId) {
+            refuse("workspace.repository.primaryKept", binding.name)
             return
         }
         repositories.remove(index)
@@ -288,6 +272,7 @@ class WorkspaceEditorDialog(
         val path = Path.of(chosen.path)
         val id = ConfigureWorkspaceAction.slug(path.fileName?.toString() ?: chosen.name)
         if (documentation.elements().toList().any { it.id == id }) {
+            refuse("workspace.duplicate.documentation", path.fileName?.toString() ?: chosen.name)
             return
         }
         documentation.addElement(
@@ -337,8 +322,8 @@ class WorkspaceEditorDialog(
     }
 
     private companion object {
-        const val MAX_HEIGHT_RATIO = 0.75
-        const val SCROLL_UNIT = 16
+        const val DIALOG_WIDTH = 720
+        const val DIALOG_HEIGHT = 520
     }
 }
 
