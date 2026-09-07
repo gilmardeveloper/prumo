@@ -121,7 +121,7 @@ class WorkspaceRemovalTest {
 
         val leftover = WorkspaceRemoval(store, credentials).erase(workspace)
 
-        assertEquals(listOf("prod"), leftover)
+        assertEquals(listOf("prod"), leftover.map { it.datasourceId })
         assertNull(store.load(workspace.id))
         assertEquals(1, credentials.stored.size)
     }

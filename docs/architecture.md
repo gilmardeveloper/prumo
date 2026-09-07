@@ -14,7 +14,7 @@ cliente de IA pode enxergar não depende da IDE**, e por isso pode ser testada s
 ├──────────────────────────────────────────────────────────────────────────┤
 │ ui/                  Janela do Prumo, editor de workspace, consentimento. │
 ├──────────────────────────────────────────────────────────────────────────┤
-│ ide/                 O único lugar que toca Project, PSI e Git4Idea.      │
+│ ide/                 O único lugar que toca PSI e Git4Idea.               │
 ├──────────────────────────────────────────────────────────────────────────┤
 │ workspace/ policy/ repository/ datasource/ pack/ audit/ storage/ quality/ │
 │ knowledge/           O núcleo determinístico. Nenhum tipo do IntelliJ.    │
@@ -86,7 +86,8 @@ escolher um.
   testes se declaram pulados — o resto da suíte continua significando alguma coisa.
 - O confinamento de script é testado contra o sistema operacional real, com comandos escolhidos por
   sistema, para que as mesmas garantias sejam conferidas no Windows e no Linux.
-- Dois testes leem o código-fonte do próprio projeto: um fixa os nomes das tools MCP registradas,
-  outro prova que o toolset de autoria não contém caminho de instalação.
+- Três testes leem o código-fonte do próprio projeto: um fixa os nomes das tools MCP registradas,
+  outro prova que o toolset de autoria não contém caminho de instalação, e o `CoreIndependenceTest`
+  varre os pacotes e reprova qualquer tipo da IDE que atravesse a fronteira do núcleo.
 - O `SecurityCoverageTest` mapeia cada princípio inviolável ao teste que o sustenta, e falha quando
   um deles desaparece.
