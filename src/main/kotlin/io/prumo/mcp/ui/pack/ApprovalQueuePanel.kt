@@ -2,7 +2,8 @@ package io.prumo.mcp.ui.pack
 
 import com.intellij.openapi.application.ApplicationManager
 import com.intellij.openapi.project.Project
-import com.intellij.ui.components.JBLabel
+import com.intellij.ui.ColoredListCellRenderer
+import com.intellij.ui.SimpleTextAttributes
 import com.intellij.ui.components.JBList
 import com.intellij.ui.dsl.builder.AlignX
 import com.intellij.ui.dsl.builder.panel
@@ -13,10 +14,11 @@ import io.prumo.mcp.pack.authoring.PackSubmission
 import io.prumo.mcp.pack.authoring.SubmissionQueue
 import io.prumo.mcp.pack.exchange.PackImporter
 import io.prumo.mcp.pack.exchange.PackOrigin
+import io.prumo.mcp.ui.PrumoSeverity
 import io.prumo.mcp.ui.PrumoToolWindowFactory
 import javax.swing.DefaultListModel
 import javax.swing.JComponent
-import javax.swing.ListCellRenderer
+import javax.swing.JList
 import javax.swing.ListModel
 
 /**
@@ -145,8 +147,26 @@ class ApprovalQueuePanel(
         ApplicationManager.getApplication().invokeLater { PrumoToolWindowFactory.refreshOpenProjects() }
     }
 
-    private fun renderer() = ListCellRenderer<PackSubmission> { _, value, _, _, _ ->
-        JBLabel("${value.title}  —  ${value.packId} ${value.version} · risk ${value.riskLevel}")
+    /**
+     * Desenha a proposta com o ícone e a cor do nível de risco, honrando o estado de seleção.
+     */
+    private fun renderer() = object : ColoredListCellRenderer<PackSubmission>() {
+        override fun customizeCellRenderer(
+            list: JList<out PackSubmission>,
+            value: PackSubmission,
+            index: Int,
+            selected: Boolean,
+            hasFocus: Boolean,
+        ) {
+            val level = PrumoSeverity.levelOf(value.riskLevel)
+            icon = PrumoSeverity.iconFor(level)
+            append(value.title)
+            append("  ${value.packId} · ${value.version}", SimpleTextAttributes.GRAYED_ATTRIBUTES)
+            append(
+                "  ${level.name}",
+                SimpleTextAttributes(SimpleTextAttributes.STYLE_PLAIN, PrumoSeverity.colorFor(level)),
+            )
+        }
     }
 }
 
