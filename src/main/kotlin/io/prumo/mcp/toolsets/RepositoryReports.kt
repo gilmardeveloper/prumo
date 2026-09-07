@@ -251,11 +251,15 @@ object RepositoryReports {
      * Descobre a qual repositório do workspace um caminho absoluto pertence.
      *
      * Devolve o identificador do repositório e o caminho relativo, ou nulo fora de todo repositório
-     * vinculado.
+     * vinculado e para caminho excluído.
+     *
+     * Caminho que qualquer vínculo do workspace exclui não é localizado por nenhum outro: a exclusão
+     * vale para o caminho, e um vínculo mais abrangente não desfaz o alcance que o mais próximo
+     * recusou.
      */
     fun locate(context: WorkspaceContext, absolutePath: String): Pair<RepositoryBinding, String>? {
         val target = pathOrNull(absolutePath)?.toAbsolutePath()?.normalize() ?: return null
-        return context.workspace.repositories
+        val candidates = context.workspace.repositories
             .mapNotNull { binding ->
                 val root = pathOrNull(binding.localPath)?.toAbsolutePath()?.normalize()
                 if (root != null && target.startsWith(root)) {
@@ -264,8 +268,13 @@ object RepositoryReports {
                     null
                 }
             }
-            // O vínculo mais específico ganha: a raiz mais profunda produz o caminho relativo mais curto.
-            .minByOrNull { (_, relative) -> relative.count { it == '/' } }
+
+        if (candidates.any { (binding, relative) -> RepositoryReader.isExcludedPath(relative, binding.excludedPaths) }) {
+            return null
+        }
+
+        // O vínculo mais específico ganha: a raiz mais profunda produz o caminho relativo mais curto.
+        return candidates.minByOrNull { (_, relative) -> relative.count { it == '/' } }
     }
 
     /**
