@@ -119,6 +119,18 @@ Three limits the description states to the client, and that hold here:
 - `shortName` is stable and always English, `displayName` follows the IDE language, and severity is
   not a closed vocabulary: a plugin may register its own.
 
+The response opens by saying **which profile answered**. `profileScope` is `PROJECT` when the
+profile travels with the project, in `.idea/inspectionProfiles` — the ruleset that project agreed
+on, and the one anyone cloning the repository gets. It is `APPLICATION` when the project declares no
+profile of its own: the answer is then the configuration of whoever opened the IDE, and another
+developer may see something else. The IDE decides, through the project's `USE_PROJECT_PROFILE`;
+Prumo only reports which of the two answered.
+
+A filter value the catalogue does not know comes back in `unknownFilters`, with the accepted values
+in `knownValues` — so `severity: "WARNIG"` is never confused with a filter that legitimately matched
+nothing. Group stays out of `knownValues` because an installation has hundreds of them: to learn
+them, call without a filter and read `byGroup`.
+
 Finding the problems of one specific file is a different job, and `get_file_problems`, from the
 IDE's own MCP server, is the tool for it. Prumo does not replace it.
 

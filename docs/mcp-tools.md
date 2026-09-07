@@ -123,6 +123,18 @@ Três limites que a descrição declara ao cliente e que valem aqui:
 - `shortName` é estável e sempre em inglês, `displayName` acompanha o idioma da IDE, e a severidade
   não é vocabulário fechado: um plugin pode registrar a sua.
 
+A resposta abre dizendo **de qual perfil ela veio**. `profileScope` é `PROJECT` quando o perfil
+acompanha o projeto, em `.idea/inspectionProfiles` — é o conjunto de regras que aquele projeto
+combinou, e vale para quem clonar o repositório. É `APPLICATION` quando o projeto não declara perfil
+próprio: aí a resposta é a configuração de quem abriu a IDE, e outro desenvolvedor pode ver outra
+coisa. Quem decide é a própria IDE, pelo `USE_PROJECT_PROFILE` do projeto; o Prumo apenas informa
+qual dos dois respondeu.
+
+Filtro com valor que o catálogo não conhece volta em `unknownFilters`, com os valores aceitos em
+`knownValues` — assim `severity: "WARNIG"` não se confunde com um recorte que legitimamente não
+casou nada. Grupo fica fora de `knownValues` porque uma instalação tem centenas deles: para
+conhecê-los, chame sem filtro e leia `byGroup`.
+
 Encontrar os problemas de um arquivo específico é outro trabalho, e quem o faz é a
 `get_file_problems`, do próprio servidor MCP da IDE. O Prumo não a substitui.
 

@@ -26,8 +26,13 @@ class QualityToolset : McpToolset {
             "problems of one specific file is a different job, and get_file_problems is the tool " +
             "for it. Registered and enabled is not the same as applicable: whether an inspection " +
             "would run on a given file depends on the file, and this catalog does not say. The " +
-            "counts describe this installation and its plugins, not the Prumo product, so they " +
-            "change with the IDE edition and the plugins installed. shortName is stable and always " +
+            "source field says which profile answered: PROJECT means the profile travels with the " +
+            "project and is the ruleset it agreed on, APPLICATION means it belongs to this IDE " +
+            "installation and another developer may see a different one. The counts describe this " +
+            "installation and its plugins, not the Prumo product, so they change with the IDE " +
+            "edition and the plugins installed. A filter value this catalog does not know comes " +
+            "back in unknownFilters, with the accepted values in knownValues, so an empty result " +
+            "is never confused with a misspelled filter. shortName is stable and always " +
             "English; displayName follows the IDE language.",
     )
     suspend fun listInspections(
