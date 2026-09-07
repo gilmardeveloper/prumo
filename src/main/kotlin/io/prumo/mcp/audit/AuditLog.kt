@@ -8,7 +8,8 @@ import java.nio.file.Files
 import java.nio.file.StandardOpenOption
 import java.time.Instant
 
-enum class AuditResult { SUCCESS, DENIED, ERROR }
+/** Desfecho de uma chamada de tool: concluída, recusada pela política, interrompida ou falha. */
+enum class AuditResult { SUCCESS, DENIED, CANCELLED, ERROR }
 
 /**
  * Um evento da trilha de auditoria.
