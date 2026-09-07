@@ -33,7 +33,23 @@ sealed interface WorkspaceViewModel {
         val installedPacks: List<PackRow> = emptyList(),
         /** Os bancos vinculados a este workspace. */
         val dataSources: List<DataSourceRow> = emptyList(),
+        /** As chamadas mais recentes registradas na trilha, da mais antiga para a mais nova. */
+        val activity: List<ActivityRow> = emptyList(),
     ) : WorkspaceViewModel
+
+    /**
+     * Uma chamada registrada na trilha de auditoria.
+     *
+     * Traz o que aconteceu, não o que foi lido: nem conteúdo de arquivo, nem linha de resultado,
+     * nem valor de parâmetro — a trilha nunca os guardou.
+     */
+    data class ActivityRow(
+        val timestamp: String,
+        val tool: String,
+        val operation: String,
+        val result: String,
+        val durationMillis: Long,
+    )
 
     /**
      * Um banco na tela.
@@ -75,6 +91,7 @@ sealed interface WorkspaceViewModel {
             resolution: WorkspaceResolution,
             pendingPacks: Int = 0,
             installedPacks: List<PackRow> = emptyList(),
+            activity: List<ActivityRow> = emptyList(),
         ): WorkspaceViewModel = when (resolution) {
             is WorkspaceResolution.NotConfigured -> NotConfigured(resolution.projectName)
 
@@ -100,6 +117,7 @@ sealed interface WorkspaceViewModel {
                     },
                     pendingPacks = pendingPacks,
                     installedPacks = installedPacks,
+                    activity = activity,
                     dataSources = context.workspace.datasources.map {
                         DataSourceRow(
                             name = it.name,

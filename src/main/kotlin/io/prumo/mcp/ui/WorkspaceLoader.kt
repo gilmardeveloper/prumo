@@ -18,6 +18,9 @@ object WorkspaceLoader {
 
     private val log = Logger.getInstance(WorkspaceLoader::class.java)
 
+    /** Quantas chamadas recentes a aba de atividade mostra. A trilha inteira cresce sem limite. */
+    private const val ACTIVITY_LIMIT = 200
+
     /**
      * Devolve o modelo da tela, ou [WorkspaceViewModel.Failed] quando o disco não pôde ser lido.
      *
@@ -34,6 +37,17 @@ object WorkspaceLoader {
             installedPacks = workspaceId?.let { id ->
                 PackStore(service.storage).list(id).map {
                     WorkspaceViewModel.PackRow(it.id, it.title.default, it.version)
+                }
+            }.orEmpty(),
+            activity = workspaceId?.let { id ->
+                service.audit.readLast(id, ACTIVITY_LIMIT).map {
+                    WorkspaceViewModel.ActivityRow(
+                        timestamp = it.timestamp,
+                        tool = it.tool,
+                        operation = it.operation,
+                        result = it.result.name,
+                        durationMillis = it.durationMillis,
+                    )
                 }
             }.orEmpty(),
         )
