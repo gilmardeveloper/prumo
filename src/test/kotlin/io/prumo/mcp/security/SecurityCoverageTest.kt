@@ -70,6 +70,10 @@ class SecurityCoverageTest {
             listOf("ambiente da IDE nao chega ao script", "estourar o tempo mata o processo", "saida grande demais e cortada"),
         ),
         Requirement(
+            "documentacao resolve caminho pelo validador do produto",
+            listOf("caractere de controle no caminho", "travessia disfarcada", "caminho absoluto de windows"),
+        ),
+        Requirement(
             "consentimento registrado e reforcado",
             listOf("aceite reforcado", "bloqueado nao tem caminho de aceitacao"),
         ),
