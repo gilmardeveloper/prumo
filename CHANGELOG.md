@@ -6,6 +6,28 @@ All notable changes to this project are documented here. The format follows
 
 ## [Unreleased]
 
+## [0.1.0] - 2026-09-06
+
+First stable release, and the first version to reach `main`.
+
+Prumo MCP gives an AI client a workspace with a declared boundary: the repositories it may read, the
+documentation it may consult, the read-only databases it may query, and nothing else. Personal data
+comes back partially hidden while aggregates come back real, so analysis stays possible and a
+document does not. Columns whose name announces a secret are masked with no configuration at all.
+Every tool call is audited locally, and nothing the product writes ever lands inside a repository.
+
+Teams can package what they know as a Prumo Pack — saved queries, scripts and knowledge documents.
+An AI client can write one and submit it, and it stays inert until a developer reads the consent
+screen and accepts it: the capabilities it asks for, the exact commands it carries, and every risk
+finding with the snippet that produced it. Packs can be exported, imported and removed from the tool
+window, and a file altered after packaging is refused.
+
+The acceptance walkthrough of the MVP specification was completed on Windows against an installed
+build, including the full life of a pack, from an AI authoring it to a developer removing it. Linux
+validation comes next, by third parties, over the stable product.
+
+The releases from `0.1.0-rc.1` to `0.1.0-rc.28` below record how it got here.
+
 ## [0.1.0-rc.28] - 2026-09-06
 
 ### Added
@@ -544,6 +566,7 @@ full cycle with a real AI client — are still open.
   AI client and enforce nothing, which access modes and policies do.
 
 [Unreleased]: https://github.com/gilmardeveloper/prumo/compare/v0.1.0-rc.21...HEAD
+[0.1.0]: https://github.com/gilmardeveloper/prumo/compare/v0.1.0-rc.28...v0.1.0
 [0.1.0-rc.28]: https://github.com/gilmardeveloper/prumo/compare/v0.1.0-rc.27...v0.1.0-rc.28
 [0.1.0-rc.27]: https://github.com/gilmardeveloper/prumo/compare/v0.1.0-rc.26...v0.1.0-rc.27
 [0.1.0-rc.26]: https://github.com/gilmardeveloper/prumo/compare/v0.1.0-rc.25...v0.1.0-rc.26
