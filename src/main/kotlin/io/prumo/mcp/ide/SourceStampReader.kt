@@ -4,6 +4,7 @@ import io.prumo.mcp.knowledge.Provenance
 import io.prumo.mcp.knowledge.SourceKind
 import io.prumo.mcp.knowledge.SourceStamp
 import io.prumo.mcp.repository.PathSecurityValidator
+import io.prumo.mcp.repository.RepositoryReader
 import io.prumo.mcp.workspace.application.WorkspaceContext
 import java.nio.file.Files
 import java.nio.file.InvalidPathException
@@ -44,6 +45,8 @@ sealed interface StampResult {
  */
 object SourceStampReader {
 
+    private const val BACKSLASH = '\\'
+
     fun stamp(context: WorkspaceContext, provenance: Provenance): StampResult = when (provenance.sourceKind) {
         SourceKind.DOCUMENTATION -> stampDocumentation(context, provenance)
         SourceKind.REPOSITORY -> stampRepository(context, provenance)
@@ -68,12 +71,32 @@ object SourceStampReader {
             ?: return StampResult.UnknownSource
         val root = pathOrNull(binding.localPath) ?: return StampResult.UnknownSource
         val relative = provenance.path ?: return StampResult.PathMissing
-        if (binding.excludedPaths.any { relative.startsWith(it, ignoreCase = true) }) {
-            return StampResult.PathExcluded
-        }
         val target = runCatching { PathSecurityValidator.resolve(root, relative) }.getOrNull()
             ?: return StampResult.PathNotFound
+        if (excludedByAnyBinding(context, target)) {
+            return StampResult.PathExcluded
+        }
         return stampOf(target)
+    }
+
+    /**
+     * Um caminho excluído por qualquer vínculo do workspace não é carimbado por nenhum outro.
+     *
+     * Mesma regra e mesma forma do `RepositoryReports.locate`: a exclusão vale para o caminho, e um
+     * vínculo mais abrangente não desfaz o alcance que o mais próximo recusou. A decisão delega a
+     * `RepositoryReader.isExcludedPath`, que é onde a regra mora — reescrevê-la aqui foi como o
+     * `.git` acabou carimbável e a exclusão deixou de valer no meio do caminho.
+     */
+    private fun excludedByAnyBinding(context: WorkspaceContext, target: Path): Boolean {
+        val absolute = target.toAbsolutePath().normalize()
+        return context.workspace.repositories.any { binding ->
+            val root = pathOrNull(binding.localPath)?.toAbsolutePath()?.normalize()
+            root != null && absolute.startsWith(root) &&
+                RepositoryReader.isExcludedPath(
+                    root.relativize(absolute).toString().replace(BACKSLASH, '/'),
+                    binding.excludedPaths,
+                )
+        }
     }
 
     private fun stampOf(file: Path): StampResult {

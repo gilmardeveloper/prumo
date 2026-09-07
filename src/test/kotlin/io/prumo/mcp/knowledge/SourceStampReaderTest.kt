@@ -118,6 +118,78 @@ class SourceStampReaderTest {
         )
     }
 
+    /**
+     * A revisão pegou isto: a regra de exclusão tinha sido reescrita aqui em vez de delegada, e
+     * divergiu da canônica em dois pontos. Em campo, `remember` aceitou `.git/config` como fonte
+     * enquanto `read_file` recusava o mesmo caminho.
+     */
+    @Test
+    fun `o diretorio git nunca e carimbado, mesmo sem estar na lista de exclusao`() {
+        root.resolve("repo/.git").createDirectories()
+        root.resolve("repo/.git/config").writeText("[core]")
+
+        assertSame(StampResult.PathExcluded, SourceStampReader.stamp(context, provenance(path = ".git/config")))
+        assertSame(StampResult.PathExcluded, SourceStampReader.stamp(context, provenance(path = ".GIT/config")))
+    }
+
+    /** A canônica casa a exclusão por segmento; a regra reescrita só olhava o prefixo. */
+    @Test
+    fun `exclusao vale no meio do caminho, nao so no comeco`() {
+        root.resolve("repo/modulo/segredos").createDirectories()
+        root.resolve("repo/modulo/segredos/x.txt").writeText("nada")
+
+        assertSame(
+            StampResult.PathExcluded,
+            SourceStampReader.stamp(context, provenance(path = "modulo/segredos/x.txt")),
+        )
+    }
+
+    /** E o prefixo sozinho não pode excluir um irmão de nome parecido. */
+    @Test
+    fun `nome que apenas comeca igual ao excluido nao e barrado`() {
+        root.resolve("repo/segredosdopassado.md").writeText("texto publico")
+
+        assertTrue(
+            SourceStampReader.stamp(context, provenance(path = "segredosdopassado.md")) is StampResult.Stamped,
+        )
+    }
+
+    /**
+     * O fail-closed que a 0.3.0 introduziu no `RepositoryReports.locate`, e que esta família não
+     * herdava: um vínculo mais abrangente não pode carimbar o que o vínculo mais próximo excluiu.
+     * Sem ele, basta nomear o repositório de cima para alcançar o que o de baixo recusa.
+     */
+    @Test
+    fun `vinculo mais abrangente nao carimba o que o mais proximo excluiu`() {
+        val guardaChuva = RepositoryBinding(
+            id = "guarda-chuva",
+            name = "guarda-chuva",
+            localPath = root.toString(),
+            role = RepositoryRole.REFERENCE,
+            accessMode = AccessMode.READ_ONLY,
+        )
+        val comDois = context.workspace.copy(
+            repositories = context.workspace.repositories + guardaChuva,
+        )
+        // O vínculo corrente é o de cima, e quem exclui é o de baixo: sem o fail-closed entre
+        // vínculos, consultar só o corrente deixaria o caminho passar.
+        val aninhado = WorkspaceContext(comDois, guardaChuva)
+
+        assertSame(
+            StampResult.PathExcluded,
+            SourceStampReader.stamp(
+                aninhado,
+                provenance(sourceId = "guarda-chuva", path = "repo/segredos/chaves.txt"),
+            ),
+            "o vínculo de cima carimbou o que o de baixo excluiu",
+        )
+        assertTrue(
+            SourceStampReader.stamp(aninhado, provenance(sourceId = "guarda-chuva", path = "repo/README.md"))
+                is StampResult.Stamped,
+            "o vínculo de cima deixou de alcançar o que ninguém excluiu",
+        )
+    }
+
     @Test
     fun `mudar o conteudo muda o carimbo`() {
         val antes = SourceStampReader.stamp(context, provenance(path = "README.md")).stampOrNull!!
