@@ -36,10 +36,10 @@ class ActivityTab(project: Project) : WorkspaceBackedTab(project) {
         val entries = DefaultListModel<WorkspaceViewModel.ActivityRow>().apply {
             model.activity.asReversed().forEach(::addElement)
         }
+        row { comment(PrumoBundle.message("toolwindow.activity.hint", model.activity.size)) }
         row {
             cell(JBList(entries).apply { cellRenderer = renderer() }).align(AlignX.FILL)
         }
-        row { comment(PrumoBundle.message("toolwindow.activity.hint", model.activity.size)) }
     }
 
     private fun renderer() = object : ColoredListCellRenderer<WorkspaceViewModel.ActivityRow>() {
