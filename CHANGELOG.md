@@ -6,6 +6,28 @@ All notable changes to this project are documented here. The format follows
 
 ## [Unreleased]
 
+## [0.6.0] - 2026-09-07
+
+### Added
+
+- **The inspection catalogue says which profile answered.** `prumo_quality_list_inspections` now
+  opens its response with `source`: the profile name and a `profileScope` of `PROJECT` or
+  `APPLICATION`. `PROJECT` means the profile travels with the project, in `.idea/inspectionProfiles`,
+  and is the ruleset that project agreed on; `APPLICATION` means it belongs to this IDE
+  installation, and another developer may see a different one. Measured in the field before it was
+  written down: with a project profile in place, an inspection moved to `ERROR` came back `ERROR`,
+  and one disabled there disappeared from the catalogue.
+- **A filter value the catalogue does not know is no longer indistinguishable from an empty
+  result.** Unknown values come back in `unknownFilters`, and `knownValues` carries what the
+  catalogue accepts for `severity` and `language`. Group stays out on purpose: an installation has
+  hundreds of them, and `byGroup` on an unfiltered call already lists them.
+
+### Changed
+
+- **The response repeats what the counts measure.** The warning that the numbers describe this IDE
+  installation and its plugins — not Prumo — used to live only in the tool description; it now
+  travels in every answer, where a client reads the numbers.
+
 ## [0.5.1] - 2026-09-07
 
 ### Changed
@@ -724,7 +746,8 @@ full cycle with a real AI client — are still open.
 - Repository role and workspace type explain themselves in the dialog: both describe the work to the
   AI client and enforce nothing, which access modes and policies do.
 
-[Unreleased]: https://github.com/gilmardeveloper/prumo/compare/v0.5.1...HEAD
+[Unreleased]: https://github.com/gilmardeveloper/prumo/compare/v0.6.0...HEAD
+[0.6.0]: https://github.com/gilmardeveloper/prumo/compare/v0.5.1...v0.6.0
 [0.5.1]: https://github.com/gilmardeveloper/prumo/compare/v0.5.0...v0.5.1
 [0.5.0]: https://github.com/gilmardeveloper/prumo/compare/663efff2f71f939ed7c3e9ecfb4dbce0760ec60b...v0.5.0
 [0.4.0]: https://github.com/gilmardeveloper/prumo/compare/18a34f975ce80d0a607dfe9101d42d75382f9f70...663efff2f71f939ed7c3e9ecfb4dbce0760ec60b
