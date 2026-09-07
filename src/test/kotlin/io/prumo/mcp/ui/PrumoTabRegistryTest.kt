@@ -19,6 +19,25 @@ import kotlin.io.path.walk
  */
 class PrumoTabRegistryTest {
 
+    /**
+     * Uma aba que existe como classe mas não está no registro compila, passa no verificador e
+     * simplesmente não aparece na janela — o mesmo modo de falha que uma toolset fora do
+     * `plugin.xml`. Só é descoberto abrindo a IDE.
+     */
+    @Test
+    fun `toda aba escrita esta no registro`() {
+        val registro = Path.of("src/main/kotlin/io/prumo/mcp/ui/PrumoTabRegistry.kt").readText()
+        val classes = Path.of("src/main/kotlin/io/prumo/mcp/ui/tab")
+            .let { pasta -> java.nio.file.Files.list(pasta).use { it.toList() } }
+            .map { it.fileName.toString().removeSuffix(".kt") }
+            .filter { it.endsWith("Tab") && it != "WorkspaceBackedTab" }
+
+        assertTrue(classes.isNotEmpty(), "nenhuma aba encontrada; o teste perdeu o alvo")
+
+        val ausentes = classes.filterNot { registro.contains("$it(project)") }
+        assertTrue(ausentes.isEmpty(), "abas escritas e fora do registro: $ausentes")
+    }
+
     @Test
     fun `toda aba declarada tem titulo nos dois idiomas`() {
         val base = properties("PrumoBundle.properties")

@@ -4,6 +4,8 @@ import com.intellij.openapi.diagnostic.Logger
 import com.intellij.openapi.project.Project
 import io.prumo.mcp.ide.PrumoProjectContext
 import io.prumo.mcp.ide.PrumoWorkspaceService
+import io.prumo.mcp.ide.SourceStampReader
+import io.prumo.mcp.knowledge.freshnessOf
 import io.prumo.mcp.pack.application.PackStore
 import io.prumo.mcp.pack.authoring.SubmissionQueue
 import io.prumo.mcp.workspace.application.WorkspaceResolution
@@ -48,6 +50,22 @@ object WorkspaceLoader {
                         operation = it.operation,
                         result = it.result.name,
                         durationMillis = it.durationMillis,
+                    )
+                }
+            }.orEmpty(),
+            memory = workspaceId?.let { id ->
+                val context = (resolution as? WorkspaceResolution.Resolved)?.context
+                service.knowledge.list(id).map { record ->
+                    WorkspaceViewModel.MemoryRow(
+                        knowledgeId = record.id,
+                        title = record.title,
+                        sourceId = record.provenance.sourceId,
+                        freshness = freshnessOf(
+                            record.provenance.stamp,
+                            context?.let { SourceStampReader.stamp(it, record.provenance) },
+                        ).name,
+                        author = record.author,
+                        updatedAt = record.updatedAt,
                     )
                 }
             }.orEmpty(),
