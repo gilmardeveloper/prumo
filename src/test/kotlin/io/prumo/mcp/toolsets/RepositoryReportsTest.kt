@@ -199,6 +199,9 @@ class RepositoryReportsTest {
 @Tag("security")
 class ToolSurfaceTest {
 
+    /** Prefixos de operação que denotam escrita, no vocabulário das operações canônicas da casa. */
+    private val ESCRITA = listOf("submit", "remember", "forget", "write", "install", "remove")
+
     @Test
     fun `as tools registradas sao exatamente as previstas`() {
         val registered = listOf(
@@ -209,6 +212,7 @@ class ToolSurfaceTest {
             PackToolset::class.java,
             PackAuthoringToolset::class.java,
             QualityToolset::class.java,
+            KnowledgeToolset::class.java,
         )
             .flatMap { toolset -> toolset.declaredMethods.mapNotNull { it.getAnnotation(McpTool::class.java)?.name } }
             .sorted()
@@ -221,6 +225,10 @@ class ToolSurfaceTest {
                 "prumo_database_list_available",
                 "prumo_database_list_tables",
                 "prumo_ide_get_current_context",
+                "prumo_knowledge_forget",
+                "prumo_knowledge_read",
+                "prumo_knowledge_recall",
+                "prumo_knowledge_remember",
                 "prumo_pack_get_authoring_spec",
                 "prumo_pack_get_knowledge",
                 "prumo_pack_list",
@@ -264,12 +272,40 @@ class ToolSurfaceTest {
             PackToolset::class.java,
             PackAuthoringToolset::class.java,
             QualityToolset::class.java,
+            KnowledgeToolset::class.java,
         ).filter { toolset -> toolset.declaredMethods.any { it.getAnnotation(McpTool::class.java) != null } }
 
         val ausentes = toolsets.filterNot { descriptor.contains(it.name) }
 
         assertTrue(toolsets.isNotEmpty(), "nenhuma toolset encontrada; o teste perdeu o alvo")
         assertTrue(ausentes.isEmpty(), "toolset fora do plugin.xml: ${ausentes.map { it.simpleName }}")
+    }
+
+    /**
+     * Uma escrita que consome decisão de leitura faz `prumo_workspace_get_policy` publicar uma
+     * resposta que não descreve a operação — e o painel de políticas é lido por quem decide o que a
+     * IA pode fazer. A submissão de pacote viveu assim até a 0.5.0.
+     */
+    @Test
+    fun `nenhuma tool que escreve consome uma acao de leitura`() {
+        val chamada = Regex("""prumoToolCall\(\s*\w+,\s*"([^"]+)",\s*PolicyAction\.(\w+)""")
+        val operacoes = java.nio.file.Files.list(java.nio.file.Path.of("src/main/kotlin/io/prumo/mcp/toolsets"))
+            .use { arquivos ->
+                arquivos.toList()
+                    .filter { it.toString().endsWith("Toolset.kt") }
+                    .flatMap { chamada.findAll(java.nio.file.Files.readString(it)).toList() }
+                    .associate { it.groupValues[1] to it.groupValues[2] }
+            }
+
+        assertTrue(operacoes.isNotEmpty(), "nenhuma chamada encontrada; o teste perdeu o alvo")
+
+        val escritas = operacoes.filterKeys { operacao ->
+            ESCRITA.any { operacao.substringAfter('.').startsWith(it) }
+        }
+        assertTrue(escritas.isNotEmpty(), "nenhuma operação de escrita encontrada; o teste perdeu o alvo")
+
+        val mentindo = escritas.filterValues { it.startsWith("READ_") }
+        assertTrue(mentindo.isEmpty(), "operações de escrita consumindo ação de leitura: $mentindo")
     }
 
     @Test

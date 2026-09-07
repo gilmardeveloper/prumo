@@ -68,6 +68,17 @@ statement type, row count, outcome and duration. It never records file content, 
 text or parameter values: an audit that copies the data becomes a second copy of what it was meant
 to protect.
 
+**The AI writes to the memory, and to nothing else.** Since 0.5.0 there is a knowledge store per
+workspace where AI clients record what they distilled — without per-item consent, unlike packs. What
+holds this up is not trust in the content: it is **provenance**. Only a record pointing at a source
+already in reach of that workspace is accepted, the stamp of that source is computed by Prumo and
+never taken from the client, and every read returns the freshness verdict beside the content. The
+store never touches the user's repositories, is not portable, and is rebuildable from the sources —
+if it disappears, nothing original is lost. **Prumo does not guarantee that a distilled record is
+faithful to its source**: AI distillation loses information, and Prumo does not judge content. It
+guarantees where it came from, whether the source changed, who wrote it and when. The developer sees
+everything that was written in the *AI memory* tab, and can delete any record.
+
 ## What Prumo governs, and what it does not
 
 Prumo bounds **Prumo's tools**. The IDE's MCP server is not Prumo's: it belongs to the platform, and

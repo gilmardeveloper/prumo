@@ -41,6 +41,41 @@ class WorkspaceViewModelTest {
         updatedAt = "2026-09-04T00:00:00Z",
     )
 
+    /**
+     * A base de conhecimento é a única superfície em que a IA grava sem passar pelo desenvolvedor.
+     * A tela é onde ele vê o que foi gravado, por quem, de que fonte — e se aquilo ainda vale.
+     */
+    @Test
+    fun `a memoria da IA chega a tela com autor, fonte e frescor`() {
+        val model = WorkspaceViewModel.from(
+            WorkspaceResolution.Resolved(WorkspaceContext(workspace, target)),
+            memory = listOf(
+                WorkspaceViewModel.MemoryRow(
+                    knowledgeId = "s-1210-prazo",
+                    title = "Prazo do S-1210",
+                    sourceId = "eventos-esocial",
+                    freshness = "STALE",
+                    author = "claude-code/2.1",
+                    updatedAt = "2026-09-07T12:00:00Z",
+                ),
+            ),
+        ) as WorkspaceViewModel.Configured
+
+        assertEquals(1, model.memory.size)
+        assertEquals("claude-code/2.1", model.memory.single().author, "a tela não diz qual cliente gravou")
+        assertEquals("STALE", model.memory.single().freshness, "a tela não diz se a fonte mudou")
+        assertEquals("eventos-esocial", model.memory.single().sourceId)
+    }
+
+    @Test
+    fun `workspace sem memoria nao inventa linha`() {
+        val model = WorkspaceViewModel.from(
+            WorkspaceResolution.Resolved(WorkspaceContext(workspace, target)),
+        ) as WorkspaceViewModel.Configured
+
+        assertTrue(model.memory.isEmpty())
+    }
+
     @Test
     fun `mostra o workspace corrente com repositorios e politicas`() {
         val model = WorkspaceViewModel.from(

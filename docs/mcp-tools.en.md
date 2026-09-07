@@ -152,6 +152,59 @@ privilege — comes back with the server's own message, naming what it refused.
 
 ---
 
+## AI memory
+
+A store of the AI clients' own. What goes in is **distilled by them** from sources already in reach
+of this workspace, so that an expensive source need not be read again in a later session. It is not
+portable: it lives on the machine, inside the workspace, and it is rebuildable from the sources.
+
+It differs from packs in two ways: packs carry knowledge from outside and need the developer's
+consent; the memory derives from what is already inside the boundary, and the AI writes it alone.
+
+**What Prumo guarantees about a record:** where it came from, whether the source has changed since,
+which client wrote it and when. **What it does not guarantee:** that the summary is faithful to the
+source, or that it replaces the source. A record cites; it does not substitute.
+
+Every read returns the freshness verdict beside the content:
+
+| | |
+|---|---|
+| `FRESH` | the source is as it was when the record was written |
+| `STALE` | the source changed, and the record may be wrong |
+| `ORPHAN` | the source is no longer in reach of the workspace |
+
+`FRESH` is about the **bytes of the source**, not about the record: it means nobody edited that
+file, never that Prumo checked the text against it. A record pointing at a PDF — whose content Prumo
+states it cannot extract — also comes back `FRESH`, because the file did not change.
+
+The verdict is recomputed on every call, comparing size, modification time and SHA-256 digest of the
+file. Any one of the three differing is enough for `STALE` — including when the change was elsewhere
+in the file. That is deliberate: a false `STALE` costs one redistillation, a false `FRESH` hands over
+wrong content as if it were good.
+
+### `prumo_knowledge_remember`
+Stores a distilled excerpt, naming the source it came from. **Prumo stamps the source itself**, never
+accepting the stamp from the client: a stamp supplied by the AI would prove only what the AI said.
+What is refused is a record **naming a source it cannot reach** — an id that is not in the
+workspace, a path that does not exist inside it, or a path the developer excluded, and the three
+refusals arrive distinct. Prumo stamps where the text came from; it does **not** check that the text
+follows from there, and that judgement stays with whoever writes it.
+
+### `prumo_knowledge_recall`
+Finds what was already distilled, by tag, by source, by text in the title or by freshness. Literal
+and deterministic — no embedding, no model ranking. It does not return the text: it returns the list
+with provenance and verdict.
+
+### `prumo_knowledge_read`
+The full text of a record, with its provenance and freshness beside it. A `STALE` record is still
+returned — what it says may still be useful — but the source is the truth.
+
+### `prumo_knowledge_forget`
+Removes a record. Immediate, without asking the developer. The source is untouched: only what was
+distilled from it goes away.
+
+---
+
 ## Packs
 
 ### `prumo_pack_list`

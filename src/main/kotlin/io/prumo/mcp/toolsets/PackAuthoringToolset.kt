@@ -72,7 +72,7 @@ class PackAuthoringToolset : McpToolset {
         @McpDescription("The pack draft, as the JSON exchange file.")
         draft: String,
     ): PackSubmissionResponse =
-        prumoToolCall(SUBMIT_TOOL, "pack.submit", PolicyAction.READ_DOCUMENTATION) { call ->
+        prumoToolCall(SUBMIT_TOOL, "pack.submit", PolicyAction.SUBMIT_PACK) { call ->
             val report = PackValidator.validate(draft)
             if (!report.valid) {
                 val first = report.errors.firstOrNull()

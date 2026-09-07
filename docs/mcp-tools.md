@@ -156,6 +156,59 @@ privilégio negado — volta com a mensagem do servidor, nomeando o que foi recu
 
 ---
 
+## Memória da IA
+
+Base própria dos clientes de IA. O que entra aqui é **destilado por eles** a partir de fontes que já
+estavam ao alcance deste workspace, e serve para não reler na sessão seguinte o que é caro de ler.
+Não é portável: vive na máquina, no workspace, e é reconstruível a partir das fontes.
+
+Diferente dos pacotes em dois pontos: os pacotes trazem conhecimento de fora e exigem o consentimento
+do desenvolvedor; a memória deriva do que já está dentro da fronteira e a IA escreve sozinha.
+
+**O que o Prumo garante sobre um registro:** de onde ele veio, se a fonte mudou desde então, qual
+cliente o escreveu e quando. **O que ele não garante:** que o resumo é fiel à fonte, e que ele
+substitui a fonte. O registro cita; não substitui.
+
+Toda leitura devolve o veredicto de frescor ao lado do conteúdo:
+
+| | |
+|---|---|
+| `FRESH` | a fonte está como estava quando o registro nasceu |
+| `STALE` | a fonte mudou, e o registro pode estar errado |
+| `ORPHAN` | a fonte não existe mais ao alcance do workspace |
+
+`FRESH` fala dos **bytes da fonte**, não do registro: quer dizer que ninguém editou aquele arquivo,
+nunca que o Prumo conferiu o texto contra ele. Um registro apontando para um PDF — cujo conteúdo o
+Prumo declara não conseguir extrair — também volta `FRESH`, porque o arquivo não mudou.
+
+O veredicto é recalculado a cada chamada, comparando tamanho, data de modificação e resumo SHA-256
+do arquivo. Divergir em qualquer um dos três basta para o registro ser `STALE` — inclusive quando a
+mudança foi em outra parte do arquivo. É deliberado: um falso `STALE` custa uma redestilação, um
+falso `FRESH` entrega conteúdo errado como se fosse bom.
+
+### `prumo_knowledge_remember`
+Guarda um trecho destilado, dizendo de que fonte ele veio. **O carimbo da fonte é calculado pelo
+Prumo**, nunca aceito do cliente: um carimbo informado pela IA provaria apenas o que ela disse.
+O que é recusado é o registro que **nomeia uma fonte inalcançável** — id que não existe no
+workspace, caminho que não existe dentro dela, ou caminho excluído pelo desenvolvedor, e as três
+recusas chegam distintas. O Prumo carimba de onde o texto veio; ele **não** confere que o texto
+decorre dali, e esse juízo continua sendo de quem escreve.
+
+### `prumo_knowledge_recall`
+Procura o que já foi destilado, por etiqueta, por fonte, por texto no título ou por frescor. Literal
+e determinística — sem embedding e sem ordenação por modelo. Não devolve o texto: devolve a lista com
+procedência e veredicto.
+
+### `prumo_knowledge_read`
+O texto completo de um registro, com a procedência e o frescor ao lado. Um registro `STALE` continua
+sendo devolvido — o que ele diz pode continuar útil —, mas a fonte é a verdade.
+
+### `prumo_knowledge_forget`
+Remove um registro. Imediato, sem perguntar ao desenvolvedor. A fonte não é tocada: sai apenas o que
+foi destilado dela.
+
+---
+
 ## Pacotes
 
 ### `prumo_pack_list`

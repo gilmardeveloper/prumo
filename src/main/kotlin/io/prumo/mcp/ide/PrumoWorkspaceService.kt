@@ -4,6 +4,7 @@ import com.intellij.openapi.components.Service
 import com.intellij.openapi.components.service
 import com.intellij.openapi.project.Project
 import io.prumo.mcp.audit.AuditLog
+import io.prumo.mcp.knowledge.KnowledgeStore
 import io.prumo.mcp.credential.CredentialProvider
 import io.prumo.mcp.credential.PasswordSafeCredentialProvider
 import io.prumo.mcp.repository.GitRepositoryProbe
@@ -26,6 +27,9 @@ class PrumoWorkspaceService {
     val storage: LocalStorageProvider = FileSystemStorageProvider.forCurrentSystem()
     val store: WorkspaceStore = WorkspaceStore(storage)
     val audit: AuditLog = AuditLog(storage)
+
+    /** A base de conhecimento destilado, uma por workspace, aberta sob demanda. */
+    val knowledge: KnowledgeStore = MvStoreKnowledgeStore(storage)
     val credentials: CredentialProvider = PasswordSafeCredentialProvider()
     private val contextService = CurrentWorkspaceContextService(store)
 

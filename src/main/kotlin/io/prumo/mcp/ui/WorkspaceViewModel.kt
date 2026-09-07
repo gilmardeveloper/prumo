@@ -35,7 +35,24 @@ sealed interface WorkspaceViewModel {
         val dataSources: List<DataSourceRow> = emptyList(),
         /** As chamadas mais recentes registradas na trilha, da mais antiga para a mais nova. */
         val activity: List<ActivityRow> = emptyList(),
+        /** O que os clientes de IA destilaram e guardaram neste workspace. */
+        val memory: List<MemoryRow> = emptyList(),
     ) : WorkspaceViewModel
+
+    /**
+     * Um registro da base de conhecimento, como a tela o mostra.
+     *
+     * Carrega o veredicto de frescor porque é o que diz ao desenvolvedor se aquilo ainda descreve a
+     * fonte — e é a informação que justifica a IA ter escrito sozinha.
+     */
+    data class MemoryRow(
+        val knowledgeId: String,
+        val title: String,
+        val sourceId: String,
+        val freshness: String,
+        val author: String,
+        val updatedAt: String,
+    )
 
     /**
      * Uma chamada registrada na trilha de auditoria.
@@ -92,6 +109,7 @@ sealed interface WorkspaceViewModel {
             pendingPacks: Int = 0,
             installedPacks: List<PackRow> = emptyList(),
             activity: List<ActivityRow> = emptyList(),
+            memory: List<MemoryRow> = emptyList(),
         ): WorkspaceViewModel = when (resolution) {
             is WorkspaceResolution.NotConfigured -> NotConfigured(resolution.projectName)
 
@@ -118,6 +136,7 @@ sealed interface WorkspaceViewModel {
                     pendingPacks = pendingPacks,
                     installedPacks = installedPacks,
                     activity = activity,
+                    memory = memory,
                     dataSources = context.workspace.datasources.map {
                         DataSourceRow(
                             name = it.name,

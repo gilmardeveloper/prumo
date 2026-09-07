@@ -35,6 +35,11 @@ dependencies {
         // executavel de Git ja configurado pelo usuario. Evita assumir `git` no PATH e evita
         // empacotar uma segunda implementacao de Git dentro do plugin.
         bundledPlugin("Git4Idea")
+
+        // Armazenamento da base de conhecimento destilado. O MVStore do H2 vem com a IDE e
+        // traz transacao MVCC: nada e empacotado, e a escrita concorrente deixa de depender
+        // de um lock que o produto nao tem.
+        bundledModule("intellij.libraries.mvstore")
     }
 
     // A plataforma IntelliJ ja fornece kotlinx-serialization em runtime. Empacotar uma segunda
