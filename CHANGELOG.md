@@ -6,6 +6,18 @@ All notable changes to this project are documented here. The format follows
 
 ## [Unreleased]
 
+## [0.2.1] - 2026-09-07
+
+### Fixed
+
+- **The tool window tabs could not be scrolled.** Every tab placed its content straight into the
+  panel, with no scroll pane anywhere, so whatever ran past the height of the window was
+  unreachable. Activity was where it hurt — it lists up to 200 recent calls — but all five tabs had
+  the same defect. Content now scrolls vertically, and horizontally only when a line is wider than
+  the window; a tab shorter than the window still sits at the top.
+- **The Activity count sat below 200 rows.** The line saying how many calls are listed came after
+  the list, so reaching it meant scrolling past everything it described. It now comes first.
+
 ## [0.2.0] - 2026-09-07
 
 ### Added
@@ -610,7 +622,8 @@ full cycle with a real AI client — are still open.
 - Repository role and workspace type explain themselves in the dialog: both describe the work to the
   AI client and enforce nothing, which access modes and policies do.
 
-[Unreleased]: https://github.com/gilmardeveloper/prumo/compare/v0.2.0...HEAD
+[Unreleased]: https://github.com/gilmardeveloper/prumo/compare/v0.2.1...HEAD
+[0.2.1]: https://github.com/gilmardeveloper/prumo/compare/v0.2.0...v0.2.1
 [0.2.0]: https://github.com/gilmardeveloper/prumo/compare/v0.1.0...v0.2.0
 [0.1.0]: https://github.com/gilmardeveloper/prumo/compare/v0.1.0-rc.28...v0.1.0
 [0.1.0-rc.28]: https://github.com/gilmardeveloper/prumo/compare/v0.1.0-rc.27...v0.1.0-rc.28
