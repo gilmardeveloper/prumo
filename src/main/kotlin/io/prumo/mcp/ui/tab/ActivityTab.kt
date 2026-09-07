@@ -55,7 +55,9 @@ class ActivityTab(project: Project) : WorkspaceBackedTab(project) {
             append("  ${value.tool}", SimpleTextAttributes.GRAYED_ATTRIBUTES)
             append("  ${value.timestamp}", SimpleTextAttributes.GRAYED_SMALL_ATTRIBUTES)
             append("  ${value.durationMillis} ms", SimpleTextAttributes.GRAYED_SMALL_ATTRIBUTES)
-            if (value.result != SUCCESS) {
+            if (value.result == CANCELLED) {
+                append("  ${value.result}", SimpleTextAttributes.GRAYED_ATTRIBUTES)
+            } else if (value.result != SUCCESS) {
                 append("  ${value.result}", SimpleTextAttributes.ERROR_ATTRIBUTES)
             }
         }
@@ -64,11 +66,13 @@ class ActivityTab(project: Project) : WorkspaceBackedTab(project) {
     private fun iconFor(result: String): Icon = when (result) {
         SUCCESS -> AllIcons.General.InspectionsOK
         DENIED -> AllIcons.General.Warning
+        CANCELLED -> AllIcons.Actions.Cancel
         else -> AllIcons.General.Error
     }
 
     private companion object {
         const val SUCCESS = "SUCCESS"
         const val DENIED = "DENIED"
+        const val CANCELLED = "CANCELLED"
     }
 }

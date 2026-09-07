@@ -18,6 +18,7 @@ import io.prumo.mcp.repository.RepositoryReadException
 import io.prumo.mcp.workspace.application.WorkspaceContext
 import io.prumo.mcp.workspace.application.WorkspaceResolutionException
 import io.prumo.mcp.workspace.domain.RepositoryBinding
+import kotlin.coroutines.cancellation.CancellationException
 import kotlin.coroutines.coroutineContext
 
 /** O que uma tool do Prumo recebe depois que a fronteira foi resolvida e autorizada. */
@@ -102,6 +103,9 @@ internal suspend fun <T> prumoToolCall(
         service.record(context, call, tool, operation, AuditResult.ERROR, startedAt)
         LOG.warn("Prumo MCP tool '$tool' failed for workspace '${context.workspace.id}'.", failure)
         throw McpExpectedError(failure.message ?: READ_REFUSED)
+    } catch (cancellation: CancellationException) {
+        service.record(context, call, tool, operation, AuditResult.CANCELLED, startedAt)
+        throw cancellation
     } catch (failure: Exception) {
         service.record(context, call, tool, operation, AuditResult.ERROR, startedAt)
         LOG.warn("Prumo MCP tool '$tool' failed for workspace '${context.workspace.id}'.", failure)

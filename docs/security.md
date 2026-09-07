@@ -186,6 +186,9 @@ ignorou e listou tudo. Toda proteção descrita aqui vive em código e está cob
 - **O cliente de IA continua sujeito a engenharia social** pelo conteúdo que lê. O Prumo limita *o
   que* ele alcança, não o que ele conclui.
 - **PDF é catalogado, não interpretado.** Nada dentro de um PDF é analisado.
+- **Chamada vinda de projeto sem workspace vinculado não entra na trilha.** Ela é recusada antes de
+  qualquer acesso, e a trilha é gravada por workspace: sem workspace resolvido não há arquivo onde
+  registrar. A recusa fica no log da IDE, que não é consultável por tool.
 
 ## Relatar uma vulnerabilidade
 

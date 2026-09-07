@@ -6,6 +6,33 @@ All notable changes to this project are documented here. The format follows
 
 ## [Unreleased]
 
+## [0.3.0] - 2026-09-07
+
+### Fixed
+
+- **Documentation reading had its own, weaker copy of the path rule.** `read_documentation` resolved
+  the path inside a folder source with a private implementation that did not reject control
+  characters, while every other surface went through the product's single validator. Two copies of
+  one rule drift apart the moment one of them is hardened. The refusal now also reports as a refusal
+  in the audit trail, not as an error.
+- **The editor context ignored excluded paths.** With the caret in a file under an excluded folder,
+  `get_current_context` still returned the repository, the relative path, the language, the module
+  and the chain of enclosing symbols — class and function names from a folder the developer had put
+  out of reach. A path excluded by any binding in the workspace is no longer located by any other:
+  a broader binding cannot undo what the closest one refused.
+- **A cancelled call was recorded as a failure.** `ProcessCanceledException` extends
+  `CancellationException`, which the generic handler caught: an AI client giving up mid-query left an
+  `ERROR` in the trail and a stack trace in the IDE log, for all 26 tools.
+
+### Changed
+
+- **The audit trail distinguishes cancellation from failure.** `AuditResult` gained `CANCELLED`, and
+  the Activity tab shows it with its own icon instead of a red error. Entries written by earlier
+  versions stay readable.
+- **A declared limit, now written down.** A call from a project bound to no workspace is refused
+  before any access and leaves no audit entry, because the trail is written per workspace. It was
+  true before; it was not documented.
+
 ## [0.2.1] - 2026-09-07
 
 ### Fixed
@@ -622,7 +649,8 @@ full cycle with a real AI client — are still open.
 - Repository role and workspace type explain themselves in the dialog: both describe the work to the
   AI client and enforce nothing, which access modes and policies do.
 
-[Unreleased]: https://github.com/gilmardeveloper/prumo/compare/v0.2.1...HEAD
+[Unreleased]: https://github.com/gilmardeveloper/prumo/compare/v0.3.0...HEAD
+[0.3.0]: https://github.com/gilmardeveloper/prumo/compare/v0.2.1...v0.3.0
 [0.2.1]: https://github.com/gilmardeveloper/prumo/compare/v0.2.0...v0.2.1
 [0.2.0]: https://github.com/gilmardeveloper/prumo/compare/v0.1.0...v0.2.0
 [0.1.0]: https://github.com/gilmardeveloper/prumo/compare/v0.1.0-rc.28...v0.1.0

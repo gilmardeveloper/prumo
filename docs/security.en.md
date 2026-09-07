@@ -178,6 +178,9 @@ test.
 - **The AI client can still be socially engineered** by content it reads. Prumo limits *what* it can
   reach, not what it concludes.
 - **PDF is catalogued, not parsed.** Nothing inside a PDF is analysed.
+- **A call from a project bound to no workspace leaves no audit entry.** It is refused before any
+  access, and the trail is written per workspace: with no workspace resolved there is no file to
+  record into. The refusal stays in the IDE log, which no tool can query.
 
 ## Reporting a vulnerability
 

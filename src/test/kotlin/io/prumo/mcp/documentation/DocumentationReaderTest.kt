@@ -1,5 +1,6 @@
 package io.prumo.mcp.documentation
 
+import io.prumo.mcp.repository.PathAccessDeniedException
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertFalse
 import org.junit.jupiter.api.Assertions.assertThrows
@@ -80,7 +81,7 @@ class DocumentationReaderTest {
         val pasta = root.resolve("docs").also { it.createDirectories() }
         file(pasta, "manual.md")
 
-        val recusa = assertThrows(DocumentationReadException::class.java) {
+        val recusa = assertThrows(PathAccessDeniedException::class.java) {
             DocumentationReader.read(source("docs", pasta, DocumentationKind.DIRECTORY), "C:/Windows/win.ini")
         }
 
@@ -93,7 +94,7 @@ class DocumentationReaderTest {
         file(pasta, "manual.md")
         file(root, "segredo.md", "conteudo fora da fonte")
 
-        val recusa = assertThrows(DocumentationReadException::class.java) {
+        val recusa = assertThrows(PathAccessDeniedException::class.java) {
             DocumentationReader.read(source("docs", pasta, DocumentationKind.DIRECTORY), "../segredo.md")
         }
 
