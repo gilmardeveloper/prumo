@@ -1,5 +1,6 @@
 package io.prumo.mcp.ui
 
+import com.intellij.openapi.diagnostic.Logger
 import com.intellij.openapi.project.Project
 import com.intellij.openapi.ui.DialogWrapper
 import com.intellij.openapi.ui.Messages
@@ -66,9 +67,15 @@ object ConfigureWorkspaceAction {
                 }
                 val leftover = WorkspaceRemoval(service.store, service.credentials).erase(existing)
                 if (leftover.isNotEmpty()) {
+                    leftover.forEach {
+                        LOG.warn("Password left in the safe for datasource '${it.datasourceId}'.", it.cause)
+                    }
                     Messages.showWarningDialog(
                         project,
-                        PrumoBundle.message("workspace.overwrite.leftover", leftover.joinToString(", ")),
+                        PrumoBundle.message(
+                            "workspace.overwrite.leftover",
+                            leftover.joinToString(", ") { it.datasourceId },
+                        ),
                         "Prumo MCP",
                     )
                 }
@@ -159,6 +166,8 @@ object ConfigureWorkspaceAction {
             .take(64)
         return normalized.ifEmpty { "workspace-${System.currentTimeMillis()}" }
     }
+
+    private val LOG = Logger.getInstance(ConfigureWorkspaceAction::class.java)
 }
 
 class ConfigureWorkspaceDialog(
