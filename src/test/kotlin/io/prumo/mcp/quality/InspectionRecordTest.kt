@@ -1,6 +1,7 @@
 package io.prumo.mcp.quality
 
 import org.junit.jupiter.api.Assertions.assertEquals
+import org.junit.jupiter.api.Assertions.assertNull
 import org.junit.jupiter.api.Assertions.assertTrue
 import org.junit.jupiter.api.Test
 
@@ -91,6 +92,58 @@ class InspectionRecordTest {
 
         assertTrue(empty.sortedForCatalog().isEmpty())
         assertTrue(empty.matching(InspectionFilter(severity = "WARNING")).isEmpty())
+    }
+
+    /**
+     * A plataforma devolve três formas de "não declarado" para a linguagem: nulo, texto vazio e
+     * texto em branco. Sem unificá-las, o campo aparece ora ausente ora vazio na resposta MCP, e o
+     * cliente não tem como saber se as duas significam a mesma coisa.
+     */
+    @Test
+    fun `linguagem nao declarada vira ausencia, seja qual for a forma que a plataforma usar`() {
+        listOf(null, "", "   ").forEach { bruto ->
+            val registro = inspectionRecord(
+                shortName = "SpellCheckingInspection",
+                displayName = "Spelling",
+                group = "Proofreading",
+                severity = "TYPO",
+                language = bruto,
+                enabledByDefault = true,
+            )
+
+            assertNull(registro.language, "a linguagem bruta [" + bruto + "] devia virar ausencia")
+        }
+    }
+
+    @Test
+    fun `linguagem declarada e preservada como veio`() {
+        val registro = inspectionRecord(
+            shortName = "UnusedImport",
+            displayName = "Unused import",
+            group = "Imports",
+            severity = "WARNING",
+            language = "kotlin",
+            enabledByDefault = true,
+        )
+
+        assertEquals("kotlin", registro.language)
+    }
+
+    @Test
+    fun `nome de exibicao ausente cai para o identificador, e grupo ausente vira vazio`() {
+        listOf(null, "", "  ").forEach { bruto ->
+            val registro = inspectionRecord(
+                shortName = "AopLanguageInspection",
+                displayName = bruto,
+                group = bruto,
+                severity = "ERROR",
+                language = "PointcutExpression",
+                enabledByDefault = true,
+            )
+
+            assertEquals("AopLanguageInspection", registro.displayName)
+            assertEquals("", registro.group)
+        }
     }
 
     private fun record(

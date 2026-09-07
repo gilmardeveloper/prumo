@@ -37,6 +37,29 @@ data class InspectionFilter(
 )
 
 /**
+ * Monta um registro a partir do metadado cru da plataforma.
+ *
+ * A plataforma não é uniforme no que devolve para o que a inspeção não declara: o nome de exibição
+ * e o grupo podem vir nulos, e a linguagem vem ora nula, ora como texto vazio. Aqui as três formas
+ * de "não declarado" viram uma só, e a fronteira que lê a IDE fica sem decisão nenhuma.
+ */
+fun inspectionRecord(
+    shortName: String,
+    displayName: String?,
+    group: String?,
+    severity: String,
+    language: String?,
+    enabledByDefault: Boolean,
+): InspectionRecord = InspectionRecord(
+    shortName = shortName,
+    displayName = displayName?.takeIf { it.isNotBlank() } ?: shortName,
+    group = group?.takeIf { it.isNotBlank() } ?: "",
+    severity = severity,
+    language = language?.takeIf { it.isNotBlank() },
+    enabledByDefault = enabledByDefault,
+)
+
+/**
  * Ordem estável do catálogo: grupo, depois identificador.
  *
  * A ordenação usa `shortName` como desempate porque ele é único e não muda com o idioma da IDE —

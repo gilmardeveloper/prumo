@@ -7,6 +7,7 @@ import com.intellij.codeInspection.ex.Tools
 import com.intellij.openapi.project.Project
 import com.intellij.profile.codeInspection.InspectionProfileManager
 import io.prumo.mcp.quality.InspectionRecord
+import io.prumo.mcp.quality.inspectionRecord
 
 /**
  * As inspeções habilitadas no perfil corrente do projeto.
@@ -23,10 +24,10 @@ object InspectionCatalogService {
 
     private fun record(state: ScopeToolState): InspectionRecord {
         val wrapper: InspectionToolWrapper<*, *> = state.tool
-        return InspectionRecord(
+        return inspectionRecord(
             shortName = wrapper.shortName,
-            displayName = wrapper.displayName ?: wrapper.shortName,
-            group = wrapper.groupDisplayName ?: "",
+            displayName = wrapper.displayName,
+            group = wrapper.groupDisplayName,
             severity = state.level.name,
             language = wrapper.language,
             enabledByDefault = wrapper.isEnabledByDefault,
