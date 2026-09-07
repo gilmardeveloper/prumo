@@ -6,6 +6,23 @@ All notable changes to this project are documented here. The format follows
 
 ## [Unreleased]
 
+## [0.5.1] - 2026-09-07
+
+### Changed
+
+- **The deterministic core is once again free of IDE types.** Workspace removal had picked up the
+  platform logger; it now returns each credential the safe refused to erase along with the failure
+  that kept it there, and the screen that asked for the removal is the one that logs. A scan over
+  the production source fails the build when any package outside the boundary layers mentions an
+  IntelliJ type, and when PSI or Git4Idea appear outside `ide/`. The rule was already written in the
+  architecture document, was broken once without anyone noticing, and is now enforced.
+
+### Fixed
+
+- **Comparison links in this changelog pointed at tags that do not exist.** Versions 0.2.0 through
+  0.4.0 were accumulated on `develop` and never released, so their `compare/vX.Y.Z` links were dead
+  on GitHub. They now point at the commits that marked each version.
+
 ## [0.5.0] - 2026-09-07
 
 ### Added
@@ -707,7 +724,8 @@ full cycle with a real AI client — are still open.
 - Repository role and workspace type explain themselves in the dialog: both describe the work to the
   AI client and enforce nothing, which access modes and policies do.
 
-[Unreleased]: https://github.com/gilmardeveloper/prumo/compare/v0.5.0...HEAD
+[Unreleased]: https://github.com/gilmardeveloper/prumo/compare/v0.5.1...HEAD
+[0.5.1]: https://github.com/gilmardeveloper/prumo/compare/v0.5.0...v0.5.1
 [0.5.0]: https://github.com/gilmardeveloper/prumo/compare/663efff2f71f939ed7c3e9ecfb4dbce0760ec60b...v0.5.0
 [0.4.0]: https://github.com/gilmardeveloper/prumo/compare/18a34f975ce80d0a607dfe9101d42d75382f9f70...663efff2f71f939ed7c3e9ecfb4dbce0760ec60b
 [0.3.0]: https://github.com/gilmardeveloper/prumo/compare/b26bf42ab8136b5a60a510f1fc2eb4b80e080ae3...18a34f975ce80d0a607dfe9101d42d75382f9f70
