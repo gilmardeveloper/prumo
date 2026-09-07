@@ -68,11 +68,12 @@ class PrumoTabRegistryTest {
         Regex("""override val titleKey = "([^"]+)"""").find(source)?.groupValues?.get(1)
     }
 
+    /** Aba concreta é a que declara título próprio; a base abstrata não declara. */
     @OptIn(ExperimentalPathApi::class)
     private fun tabSources(): List<String> = Path.of("src/main/kotlin/io/prumo/mcp/ui").walk()
         .filter { it.extension == "kt" }
         .map { it.readText() }
-        .filter { it.contains(": PrumoTab") }
+        .filter { it.contains("override val titleKey") }
         .toList()
 
     private fun properties(name: String): Properties = Properties().apply {

@@ -1,6 +1,8 @@
 package io.prumo.mcp.ui
 
 import com.intellij.openapi.project.Project
+import io.prumo.mcp.ui.tab.RepositoriesTab
+import io.prumo.mcp.ui.tab.WorkspaceTab
 
 /**
  * As abas da janela do Prumo, na ordem em que aparecem.
@@ -13,5 +15,6 @@ object PrumoTabRegistry {
 
     fun tabsFor(project: Project): List<PrumoTab> = listOf(
         WorkspaceTab(project),
+        RepositoriesTab(project),
     )
 }
