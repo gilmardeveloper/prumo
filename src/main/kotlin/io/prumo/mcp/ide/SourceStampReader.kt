@@ -27,6 +27,9 @@ sealed interface StampResult {
     /** A fonte existe, mas o caminho pedido dentro dela não. */
     data object PathNotFound : StampResult
 
+    /** A fonte é um repositório, e nenhum caminho foi informado: não há o que carimbar. */
+    data object PathMissing : StampResult
+
     /** O caminho está entre os que o desenvolvedor excluiu deste repositório. */
     data object PathExcluded : StampResult
 
@@ -64,7 +67,7 @@ object SourceStampReader {
         val binding = context.workspace.repositories.firstOrNull { it.id == provenance.sourceId }
             ?: return StampResult.UnknownSource
         val root = pathOrNull(binding.localPath) ?: return StampResult.UnknownSource
-        val relative = provenance.path ?: return StampResult.PathNotFound
+        val relative = provenance.path ?: return StampResult.PathMissing
         if (binding.excludedPaths.any { relative.startsWith(it, ignoreCase = true) }) {
             return StampResult.PathExcluded
         }

@@ -97,6 +97,9 @@ object KnowledgeAdmission {
         }
         val first = provenance.firstLine
         val last = provenance.lastLine
+        if ((first != null && first < 1) || (last != null && last < 1)) {
+            return reject("line numbers start at 1: a range below that cites nothing")
+        }
         if (first != null && last != null && first > last) {
             return reject("the line range ends before it starts")
         }

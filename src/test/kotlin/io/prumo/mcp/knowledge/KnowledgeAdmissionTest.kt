@@ -91,6 +91,30 @@ class KnowledgeAdmissionTest {
         assertTrue((veredicto as Admission.Rejected).reason.contains("freshness"))
     }
 
+    /**
+     * Um agente cego gravou uma citação de linha -500 a -100 e outra da linha 900.000 num arquivo de
+     * três mil bytes. A primeira é impossível e agora é recusada; a segunda continua passando, e
+     * está declarada como limite: conferir exigiria contar as linhas do arquivo a cada gravação.
+     */
+    @Test
+    fun `linha abaixo de um e recusada`() {
+        listOf(-500 to -100, 0 to 10, 1 to 0, -1 to null).forEach { (primeira, ultima) ->
+            val fora = record().copy(
+                provenance = record().provenance.copy(firstLine = primeira, lastLine = ultima),
+            )
+
+            assertFalse(KnowledgeAdmission.evaluate(fora, context).accepted, "linhas $primeira..$ultima")
+        }
+
+        assertTrue(
+            KnowledgeAdmission.evaluate(
+                record().copy(provenance = record().provenance.copy(firstLine = 1, lastLine = 1)),
+                context,
+            ).accepted,
+            "a primeira linha do arquivo é uma citação válida",
+        )
+    }
+
     @Test
     fun `intervalo de linhas invertido e recusado`() {
         val invertido = record().copy(

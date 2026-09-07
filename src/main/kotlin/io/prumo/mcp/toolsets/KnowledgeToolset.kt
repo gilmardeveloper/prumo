@@ -84,6 +84,10 @@ class KnowledgeToolset : McpToolset {
                         "List them with prumo_workspace_get_repositories or " +
                         "prumo_workspace_get_documentation_sources.",
                 )
+                StampResult.PathMissing -> throw McpExpectedError(
+                    "Source '$sourceId' is a repository, so 'path' is required: name the file the " +
+                        "knowledge came from, relative to the repository root.",
+                )
                 StampResult.PathNotFound -> throw McpExpectedError(
                     "Source '$sourceId' exists, but path '${path.orEmpty()}' does not exist in it.",
                 )
