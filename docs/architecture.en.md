@@ -17,7 +17,7 @@ see does not depend on the IDE**, so it can be tested without one.
 │ ide/                 The only place that touches Project, PSI, Git4Idea.  │
 ├──────────────────────────────────────────────────────────────────────────┤
 │ workspace/ policy/ repository/ datasource/ pack/ audit/ storage/ quality/ │
-│                      The deterministic core. No IntelliJ types.           │
+│ knowledge/           The deterministic core. No IntelliJ types.           │
 ├──────────────────────────────────────────────────────────────────────────┤
 │ platform/            Operating system, directories, process execution.    │
 └──────────────────────────────────────────────────────────────────────────┘
