@@ -11,6 +11,29 @@ import java.nio.file.Path
 import java.security.MessageDigest
 
 /**
+ * O que aconteceu ao tentar carimbar uma fonte.
+ *
+ * Distinguir os motivos importa porque a recusa chega a um cliente de IA, e ele precisa saber se
+ * errou o identificador da fonte, se errou o caminho dentro dela, ou se pediu algo que o
+ * desenvolvedor pôs fora de alcance. O resto do produto já distingue essas três coisas.
+ */
+sealed interface StampResult {
+
+    data class Stamped(val stamp: SourceStamp) : StampResult
+
+    /** O identificador não corresponde a nenhuma fonte deste workspace. */
+    data object UnknownSource : StampResult
+
+    /** A fonte existe, mas o caminho pedido dentro dela não. */
+    data object PathNotFound : StampResult
+
+    /** O caminho está entre os que o desenvolvedor excluiu deste repositório. */
+    data object PathExcluded : StampResult
+
+    val stampOrNull: SourceStamp? get() = (this as? Stamped)?.stamp
+}
+
+/**
  * Carimba o estado atual de uma fonte do workspace.
  *
  * O carimbo é sempre calculado aqui, nunca aceito do cliente: quem grava o conhecimento é uma IA, e
@@ -18,46 +41,49 @@ import java.security.MessageDigest
  */
 object SourceStampReader {
 
-    /**
-     * O carimbo da fonte, ou `null` quando ela não existe mais ao alcance do workspace — o que faz o
-     * registro correspondente ser respondido como órfão.
-     */
-    fun stamp(context: WorkspaceContext, provenance: Provenance): SourceStamp? {
-        val file = locate(context, provenance) ?: return null
-        if (!Files.isRegularFile(file)) {
-            return null
-        }
-        return SourceStamp(
-            sizeBytes = Files.size(file),
-            modifiedAtEpochMillis = Files.getLastModifiedTime(file).toMillis(),
-            sha256 = digestOf(file),
-        )
+    fun stamp(context: WorkspaceContext, provenance: Provenance): StampResult = when (provenance.sourceKind) {
+        SourceKind.DOCUMENTATION -> stampDocumentation(context, provenance)
+        SourceKind.REPOSITORY -> stampRepository(context, provenance)
     }
 
-    private fun locate(context: WorkspaceContext, provenance: Provenance): Path? = when (provenance.sourceKind) {
-        SourceKind.DOCUMENTATION -> locateDocumentation(context, provenance)
-        SourceKind.REPOSITORY -> locateRepository(context, provenance)
-    }
-
-    private fun locateDocumentation(context: WorkspaceContext, provenance: Provenance): Path? {
-        val source = context.workspace.documentation.firstOrNull { it.id == provenance.sourceId } ?: return null
-        val root = pathOrNull(source.location) ?: return null
+    private fun stampDocumentation(context: WorkspaceContext, provenance: Provenance): StampResult {
+        val source = context.workspace.documentation.firstOrNull { it.id == provenance.sourceId }
+            ?: return StampResult.UnknownSource
+        val root = pathOrNull(source.location) ?: return StampResult.UnknownSource
         val relative = provenance.path
-        return if (relative.isNullOrBlank()) {
+        val target = if (relative.isNullOrBlank()) {
             root
         } else {
             runCatching { PathSecurityValidator.resolve(root, relative) }.getOrNull()
+                ?: return StampResult.PathNotFound
         }
+        return stampOf(target)
     }
 
-    private fun locateRepository(context: WorkspaceContext, provenance: Provenance): Path? {
-        val binding = context.workspace.repositories.firstOrNull { it.id == provenance.sourceId } ?: return null
-        val root = pathOrNull(binding.localPath) ?: return null
-        val relative = provenance.path ?: return null
+    private fun stampRepository(context: WorkspaceContext, provenance: Provenance): StampResult {
+        val binding = context.workspace.repositories.firstOrNull { it.id == provenance.sourceId }
+            ?: return StampResult.UnknownSource
+        val root = pathOrNull(binding.localPath) ?: return StampResult.UnknownSource
+        val relative = provenance.path ?: return StampResult.PathNotFound
         if (binding.excludedPaths.any { relative.startsWith(it, ignoreCase = true) }) {
-            return null
+            return StampResult.PathExcluded
         }
-        return runCatching { PathSecurityValidator.resolve(root, relative) }.getOrNull()
+        val target = runCatching { PathSecurityValidator.resolve(root, relative) }.getOrNull()
+            ?: return StampResult.PathNotFound
+        return stampOf(target)
+    }
+
+    private fun stampOf(file: Path): StampResult {
+        if (!Files.isRegularFile(file)) {
+            return StampResult.PathNotFound
+        }
+        return StampResult.Stamped(
+            SourceStamp(
+                sizeBytes = Files.size(file),
+                modifiedAtEpochMillis = Files.getLastModifiedTime(file).toMillis(),
+                sha256 = digestOf(file),
+            ),
+        )
     }
 
     private fun pathOrNull(value: String): Path? = try {

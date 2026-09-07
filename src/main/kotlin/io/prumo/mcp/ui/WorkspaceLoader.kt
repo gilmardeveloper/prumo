@@ -62,7 +62,7 @@ object WorkspaceLoader {
                         sourceId = record.provenance.sourceId,
                         freshness = freshnessOf(
                             record.provenance.stamp,
-                            context?.let { SourceStampReader.stamp(it, record.provenance) },
+                            context?.let { SourceStampReader.stamp(it, record.provenance).stampOrNull },
                         ).name,
                         author = record.author,
                         updatedAt = record.updatedAt,

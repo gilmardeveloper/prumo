@@ -6,6 +6,7 @@ import com.intellij.mcpserver.annotations.McpDescription
 import com.intellij.mcpserver.annotations.McpTool
 import io.prumo.mcp.ide.PrumoWorkspaceService
 import io.prumo.mcp.ide.SourceStampReader
+import io.prumo.mcp.ide.StampResult
 import io.prumo.mcp.knowledge.Admission
 import io.prumo.mcp.knowledge.AdmissionContext
 import io.prumo.mcp.knowledge.Freshness
@@ -73,11 +74,23 @@ class KnowledgeToolset : McpToolset {
                 lastLine = lastLine,
                 stamp = EMPTY_STAMP,
             )
-            val stamp = withContext(Dispatchers.IO) { SourceStampReader.stamp(call.context, provenance) }
-                ?: throw McpExpectedError(
-                    "Prumo could not reach source '$sourceId' of this workspace, so it cannot stamp " +
-                        "what this knowledge derives from.",
+            val stamp = when (val result = withContext(Dispatchers.IO) {
+                SourceStampReader.stamp(call.context, provenance)
+            }) {
+                is StampResult.Stamped -> result.stamp
+                StampResult.UnknownSource -> throw McpExpectedError(
+                    "There is no ${kind.name.lowercase()} source '$sourceId' in this workspace. " +
+                        "List them with prumo_workspace_get_repositories or " +
+                        "prumo_workspace_get_documentation_sources.",
                 )
+                StampResult.PathNotFound -> throw McpExpectedError(
+                    "Source '$sourceId' exists, but path '${path.orEmpty()}' does not exist in it.",
+                )
+                StampResult.PathExcluded -> throw McpExpectedError(
+                    "Path '${path.orEmpty()}' is excluded from '$sourceId' in this workspace, so " +
+                        "Prumo does not read it and cannot derive knowledge from it.",
+                )
+            }
 
             val now = Instant.now().toString()
             val store = PrumoWorkspaceService.getInstance().knowledge
@@ -189,7 +202,7 @@ class KnowledgeToolset : McpToolset {
             )
 
     private fun stampOf(context: WorkspaceContext, record: KnowledgeRecord): SourceStamp? =
-        SourceStampReader.stamp(context, record.provenance)
+        SourceStampReader.stamp(context, record.provenance).stampOrNull
 
     private fun admissionContext(
         context: WorkspaceContext,
