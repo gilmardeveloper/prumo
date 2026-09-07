@@ -6,6 +6,18 @@ All notable changes to this project are documented here. The format follows
 
 ## [Unreleased]
 
+## [0.6.1] - 2026-09-07
+
+### Fixed
+
+- **`profileScope` called a project ruleset what was only a local copy.** The IDE materialises a
+  `Project Default` profile inside the project even when the project versions none, born as a copy
+  of the application profile, so asking the platform who manages the current profile answers "the
+  project" either way. A project with no `.idea/inspectionProfiles` was therefore told to the client
+  as the ruleset its team agreed on. The scope now also requires a versioned profile file, and the
+  `APPLICATION` note says plainly that nothing is versioned with the project. Found in the field on
+  0.6.0, before it was released.
+
 ## [0.6.0] - 2026-09-07
 
 ### Added
@@ -746,7 +758,8 @@ full cycle with a real AI client — are still open.
 - Repository role and workspace type explain themselves in the dialog: both describe the work to the
   AI client and enforce nothing, which access modes and policies do.
 
-[Unreleased]: https://github.com/gilmardeveloper/prumo/compare/v0.6.0...HEAD
+[Unreleased]: https://github.com/gilmardeveloper/prumo/compare/v0.6.1...HEAD
+[0.6.1]: https://github.com/gilmardeveloper/prumo/compare/v0.6.0...v0.6.1
 [0.6.0]: https://github.com/gilmardeveloper/prumo/compare/68c27ae791b39a4b120b590b029ffd626b7116ea...v0.6.0
 [0.5.1]: https://github.com/gilmardeveloper/prumo/compare/v0.5.0...68c27ae791b39a4b120b590b029ffd626b7116ea
 [0.5.0]: https://github.com/gilmardeveloper/prumo/compare/663efff2f71f939ed7c3e9ecfb4dbce0760ec60b...v0.5.0
