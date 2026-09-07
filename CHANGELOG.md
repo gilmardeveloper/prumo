@@ -6,6 +6,29 @@ All notable changes to this project are documented here. The format follows
 
 ## [Unreleased]
 
+## [0.6.2] - 2026-09-07
+
+### Fixed
+
+- **Asking for a directory said it did not exist.** `prumo_repository_read_file` answered a real
+  directory and a path that is truly absent with the same sentence, so a client concluded the
+  directory was not there. It now says the path is a directory and points at
+  `prumo_repository_get_structure`.
+- **A search scope that does not exist returned an empty search.** `prumo_repository_search_text`
+  answered a misspelled `scope` exactly like a search that covered everything and found nothing —
+  and the conclusion a client draws from those two is opposite. It is now refused. A `scope` inside
+  an excluded path still answers that it is excluded: the existence check runs after the exclusion
+  check, so the refusal never becomes an oracle over what the workspace chose not to show.
+- **`insideWorkspace: false` carried no reason.** The answer now names it: `NO_FILE_OPEN`,
+  `FILE_NOT_ON_DISK` or `OUT_OF_REACH`. Outside the bound repositories and inside an excluded path
+  deliberately share `OUT_OF_REACH` — telling them apart would say something is hidden there.
+- **The inspection catalogue promised more than it delivered.** The description offered accepted
+  values in `knownValues` without saying it covers only `severity` and `language`, leaving whoever
+  misspelled a group knowing they erred and not what to fix; it now points at `byGroup`. The window
+  limits were silent as well: `maxResults` defaults to 50, is capped at 200, out-of-range values are
+  pulled into that range, and there is no paging — all now stated, and a test fails the build if the
+  numbers in the description drift from the ones in the code.
+
 ## [0.6.1] - 2026-09-07
 
 ### Fixed
@@ -758,7 +781,8 @@ full cycle with a real AI client — are still open.
 - Repository role and workspace type explain themselves in the dialog: both describe the work to the
   AI client and enforce nothing, which access modes and policies do.
 
-[Unreleased]: https://github.com/gilmardeveloper/prumo/compare/v0.6.1...HEAD
+[Unreleased]: https://github.com/gilmardeveloper/prumo/compare/v0.6.2...HEAD
+[0.6.2]: https://github.com/gilmardeveloper/prumo/compare/v0.6.1...v0.6.2
 [0.6.1]: https://github.com/gilmardeveloper/prumo/compare/v0.6.0...v0.6.1
 [0.6.0]: https://github.com/gilmardeveloper/prumo/compare/68c27ae791b39a4b120b590b029ffd626b7116ea...v0.6.0
 [0.5.1]: https://github.com/gilmardeveloper/prumo/compare/v0.5.0...68c27ae791b39a4b120b590b029ffd626b7116ea
