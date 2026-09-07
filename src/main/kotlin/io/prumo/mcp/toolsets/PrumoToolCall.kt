@@ -4,6 +4,7 @@ import com.intellij.mcpserver.McpExpectedError
 import com.intellij.openapi.diagnostic.Logger
 import com.intellij.openapi.project.Project
 import io.prumo.mcp.audit.AuditResult
+import io.prumo.mcp.client.ClientIdentity
 import io.prumo.mcp.datasource.DataSourceAccessException
 import io.prumo.mcp.datasource.application.QueryRefusedException
 import io.prumo.mcp.datasource.domain.DataSourceProfile
@@ -27,6 +28,8 @@ internal data class PrumoCall(
     val context: WorkspaceContext,
     val repository: RepositoryBinding,
     val datasource: DataSourceProfile? = null,
+    /** Quem fez a chamada. Nunca é nulo: cliente que não se identifica vira `UNKNOWN`. */
+    val client: ClientIdentity = ClientIdentity.UNKNOWN,
 ) {
     /** O datasource resolvido dentro da fronteira. Ausente significa erro de programação. */
     val requiredDatasource: DataSourceProfile
@@ -55,6 +58,7 @@ internal suspend fun <T> prumoToolCall(
     block: suspend (PrumoCall) -> T,
 ): T {
     val project = McpProjectResolver.resolve(coroutineContext)
+    val client = McpProjectResolver.client(coroutineContext)
     val service = PrumoWorkspaceService.getInstance()
     val context = try {
         service.require(project)
@@ -76,38 +80,38 @@ internal suspend fun <T> prumoToolCall(
                 databaseAccess = profile?.accessMode,
             ),
         )
-        val prepared = PrumoCall(project, context, binding, profile).also { call = it }
+        val prepared = PrumoCall(project, context, binding, profile, client).also { call = it }
         block(prepared).also {
-            service.record(context, call, tool, operation, AuditResult.SUCCESS, startedAt)
+            service.record(context, call, tool, operation, AuditResult.SUCCESS, startedAt, client)
         }
     } catch (failure: PolicyViolationException) {
-        service.record(context, call, tool, operation, AuditResult.DENIED, startedAt)
+        service.record(context, call, tool, operation, AuditResult.DENIED, startedAt, client)
         throw McpExpectedError(failure.decision.reason)
     } catch (failure: PathAccessDeniedException) {
-        service.record(context, call, tool, operation, AuditResult.DENIED, startedAt)
+        service.record(context, call, tool, operation, AuditResult.DENIED, startedAt, client)
         throw McpExpectedError(failure.message ?: PATH_REFUSED)
     } catch (failure: WorkspaceResolutionException) {
-        service.record(context, call, tool, operation, AuditResult.DENIED, startedAt)
+        service.record(context, call, tool, operation, AuditResult.DENIED, startedAt, client)
         throw McpExpectedError(failure.message ?: UNRESOLVED_WORKSPACE)
     } catch (failure: RepositoryReadException) {
-        service.record(context, call, tool, operation, AuditResult.ERROR, startedAt)
+        service.record(context, call, tool, operation, AuditResult.ERROR, startedAt, client)
         throw McpExpectedError(failure.message ?: READ_REFUSED)
     } catch (failure: GitReadException) {
-        service.record(context, call, tool, operation, AuditResult.ERROR, startedAt)
+        service.record(context, call, tool, operation, AuditResult.ERROR, startedAt, client)
         throw McpExpectedError(failure.message ?: READ_REFUSED)
     } catch (failure: QueryRefusedException) {
         call?.auditDetails?.put("statementType", failure.statementType.name)
-        service.record(context, call, tool, operation, AuditResult.DENIED, startedAt)
+        service.record(context, call, tool, operation, AuditResult.DENIED, startedAt, client)
         throw McpExpectedError(failure.message ?: QUERY_REFUSED)
     } catch (failure: DataSourceAccessException) {
-        service.record(context, call, tool, operation, AuditResult.ERROR, startedAt)
+        service.record(context, call, tool, operation, AuditResult.ERROR, startedAt, client)
         LOG.warn("Prumo MCP tool '$tool' failed for workspace '${context.workspace.id}'.", failure)
         throw McpExpectedError(failure.message ?: READ_REFUSED)
     } catch (cancellation: CancellationException) {
-        service.record(context, call, tool, operation, AuditResult.CANCELLED, startedAt)
+        service.record(context, call, tool, operation, AuditResult.CANCELLED, startedAt, client)
         throw cancellation
     } catch (failure: Exception) {
-        service.record(context, call, tool, operation, AuditResult.ERROR, startedAt)
+        service.record(context, call, tool, operation, AuditResult.ERROR, startedAt, client)
         LOG.warn("Prumo MCP tool '$tool' failed for workspace '${context.workspace.id}'.", failure)
         throw failure
     }
@@ -120,6 +124,7 @@ private fun PrumoWorkspaceService.record(
     operation: String,
     result: AuditResult,
     startedAt: Long,
+    client: ClientIdentity,
 ) {
     audit.record(
         workspaceId = context.workspace.id,
@@ -129,9 +134,12 @@ private fun PrumoWorkspaceService.record(
         durationMillis = (System.nanoTime() - startedAt) / 1_000_000,
         repositoryId = (call?.repository ?: context.currentRepository).id,
         datasourceId = call?.datasource?.id,
-        details = call?.auditDetails.orEmpty(),
+        details = call?.auditDetails.orEmpty() + (CLIENT_DETAIL to client.label),
     )
 }
+
+/** Chave sob a qual a trilha registra quem chamou. */
+private const val CLIENT_DETAIL = "client"
 
 private const val UNRESOLVED_WORKSPACE =
     "This project is not bound to any Prumo workspace. Configure it in the Prumo MCP tool window."
