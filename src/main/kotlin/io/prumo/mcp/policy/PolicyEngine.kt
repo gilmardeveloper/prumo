@@ -13,6 +13,8 @@ enum class PolicyAction {
     EXECUTE_PROCESS,
     WRITE_GIT,
     READ_QUALITY_CATALOG,
+    READ_KNOWLEDGE,
+    WRITE_KNOWLEDGE,
 }
 
 /** Capacidades que um recurso trazido de fora precisa declarar e o usuário precisa conceder. */
@@ -115,6 +117,10 @@ object PolicyEngine {
                 }
 
             PolicyAction.READ_QUALITY_CATALOG -> PolicyDecision.Allowed
+
+            // A base de conhecimento é derivada: o que entra nela precisa apontar para uma fonte
+            // que já estava ao alcance, e essa verificação é da admissão, não da política.
+            PolicyAction.READ_KNOWLEDGE, PolicyAction.WRITE_KNOWLEDGE -> PolicyDecision.Allowed
         }
     }
 
@@ -137,7 +143,11 @@ object PolicyEngine {
         PolicyAction.QUERY_DATABASE, PolicyAction.WRITE_DATABASE -> Capability.DATASOURCE_QUERY
         PolicyAction.READ_DOCUMENTATION -> Capability.DOCUMENTATION_READ
         PolicyAction.EXECUTE_PROCESS -> Capability.PROCESS_EXECUTE
-        PolicyAction.WRITE_GIT, PolicyAction.READ_QUALITY_CATALOG -> null
+        PolicyAction.WRITE_GIT,
+        PolicyAction.READ_QUALITY_CATALOG,
+        PolicyAction.READ_KNOWLEDGE,
+        PolicyAction.WRITE_KNOWLEDGE,
+        -> null
     }
 
     private fun deny(reason: String) = PolicyDecision.Denied("Prumo MCP denied the operation: $reason.")

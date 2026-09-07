@@ -51,5 +51,6 @@
         <mcpToolset implementation="io.prumo.mcp.toolsets.PackToolset" />
         <mcpToolset implementation="io.prumo.mcp.toolsets.PackAuthoringToolset" />
         <mcpToolset implementation="io.prumo.mcp.toolsets.QualityToolset" />
+        <mcpToolset implementation="io.prumo.mcp.toolsets.KnowledgeToolset" />
     </extensions>
 </idea-plugin>

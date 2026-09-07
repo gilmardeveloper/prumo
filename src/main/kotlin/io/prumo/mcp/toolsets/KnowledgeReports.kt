@@ -1,0 +1,105 @@
+package io.prumo.mcp.toolsets
+
+import io.prumo.mcp.knowledge.Freshness
+import io.prumo.mcp.knowledge.KnowledgeRecord
+import kotlinx.serialization.Serializable
+
+@Serializable
+data class ProvenanceResponse(
+    val sourceKind: String,
+    val sourceId: String,
+    val path: String? = null,
+    val firstLine: Int? = null,
+    val lastLine: Int? = null,
+)
+
+@Serializable
+data class KnowledgeRecordResponse(
+    val knowledgeId: String,
+    val title: String,
+    val tags: List<String>,
+    /** De onde veio. Nunca ausente: registro sem procedência não entra na base. */
+    val provenance: ProvenanceResponse,
+    /** `FRESH`, `STALE` ou `ORPHAN`, recalculado agora contra a fonte. */
+    val freshness: String,
+    /** Qual cliente de IA gravou. */
+    val author: String,
+    val updatedAt: String,
+    /** O texto destilado. Ausente na busca, presente na leitura. */
+    val body: String? = null,
+    val truncated: Boolean = false,
+)
+
+@Serializable
+data class KnowledgeRecallResponse(
+    val workspaceId: String,
+    val storedCount: Int,
+    val matchCount: Int,
+    val byFreshness: Map<String, Int>,
+    val results: List<KnowledgeRecordResponse>,
+    val truncated: Boolean,
+)
+
+@Serializable
+data class KnowledgeWriteResponse(
+    val knowledgeId: String,
+    val stored: Boolean,
+    /** Preenchido só quando o registro foi recusado, com o motivo e o que corrigir. */
+    val message: String? = null,
+)
+
+/**
+ * Respostas da base de conhecimento.
+ *
+ * Nenhuma delas devolve conteúdo sem a procedência e o frescor ao lado: o destilado cita a fonte,
+ * não a substitui, e é o veredicto que permite ao cliente decidir se volta a ela.
+ */
+object KnowledgeReports {
+
+    const val MAX_RESULTS = 50
+    const val MAX_BODY_CHARS = 8_000
+
+    fun search(
+        workspaceId: String,
+        stored: Int,
+        matches: List<Pair<KnowledgeRecord, Freshness>>,
+        maxResults: Int,
+    ): KnowledgeRecallResponse {
+        val window = matches.take(maxResults.coerceIn(1, MAX_RESULTS))
+        return KnowledgeRecallResponse(
+            workspaceId = workspaceId,
+            storedCount = stored,
+            matchCount = matches.size,
+            byFreshness = matches.groupingBy { it.second.name }.eachCount().toSortedMap(),
+            results = window.map { (record, freshness) -> summary(record, freshness) },
+            truncated = window.size < matches.size,
+        )
+    }
+
+    /** Um resultado de busca: tudo menos o corpo, que se busca por identificador. */
+    fun summary(record: KnowledgeRecord, freshness: Freshness): KnowledgeRecordResponse =
+        KnowledgeRecordResponse(
+            knowledgeId = record.id,
+            title = record.title,
+            tags = record.tags,
+            provenance = provenance(record),
+            freshness = freshness.name,
+            author = record.author,
+            updatedAt = record.updatedAt,
+        )
+
+    /** O registro inteiro, com o corpo recortado quando ele passa do teto de leitura. */
+    fun detail(record: KnowledgeRecord, freshness: Freshness): KnowledgeRecordResponse =
+        summary(record, freshness).copy(
+            body = record.body.take(MAX_BODY_CHARS),
+            truncated = record.body.length > MAX_BODY_CHARS,
+        )
+
+    private fun provenance(record: KnowledgeRecord) = ProvenanceResponse(
+        sourceKind = record.provenance.sourceKind.name,
+        sourceId = record.provenance.sourceId,
+        path = record.provenance.path,
+        firstLine = record.provenance.firstLine,
+        lastLine = record.provenance.lastLine,
+    )
+}

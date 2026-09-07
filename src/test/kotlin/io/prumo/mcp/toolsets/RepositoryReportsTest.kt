@@ -209,6 +209,7 @@ class ToolSurfaceTest {
             PackToolset::class.java,
             PackAuthoringToolset::class.java,
             QualityToolset::class.java,
+            KnowledgeToolset::class.java,
         )
             .flatMap { toolset -> toolset.declaredMethods.mapNotNull { it.getAnnotation(McpTool::class.java)?.name } }
             .sorted()
@@ -221,6 +222,10 @@ class ToolSurfaceTest {
                 "prumo_database_list_available",
                 "prumo_database_list_tables",
                 "prumo_ide_get_current_context",
+                "prumo_knowledge_forget",
+                "prumo_knowledge_read",
+                "prumo_knowledge_recall",
+                "prumo_knowledge_remember",
                 "prumo_pack_get_authoring_spec",
                 "prumo_pack_get_knowledge",
                 "prumo_pack_list",
@@ -264,6 +269,7 @@ class ToolSurfaceTest {
             PackToolset::class.java,
             PackAuthoringToolset::class.java,
             QualityToolset::class.java,
+            KnowledgeToolset::class.java,
         ).filter { toolset -> toolset.declaredMethods.any { it.getAnnotation(McpTool::class.java) != null } }
 
         val ausentes = toolsets.filterNot { descriptor.contains(it.name) }
