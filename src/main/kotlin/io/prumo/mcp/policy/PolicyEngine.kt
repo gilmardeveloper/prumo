@@ -12,6 +12,7 @@ enum class PolicyAction {
     WRITE_DATABASE,
     EXECUTE_PROCESS,
     WRITE_GIT,
+    READ_QUALITY_CATALOG,
 }
 
 /** Capacidades que um recurso trazido de fora precisa declarar e o usuário precisa conceder. */
@@ -112,6 +113,8 @@ object PolicyEngine {
                 } else {
                     deny("workspace policy denies Git write operations")
                 }
+
+            PolicyAction.READ_QUALITY_CATALOG -> PolicyDecision.Allowed
         }
     }
 
@@ -134,7 +137,7 @@ object PolicyEngine {
         PolicyAction.QUERY_DATABASE, PolicyAction.WRITE_DATABASE -> Capability.DATASOURCE_QUERY
         PolicyAction.READ_DOCUMENTATION -> Capability.DOCUMENTATION_READ
         PolicyAction.EXECUTE_PROCESS -> Capability.PROCESS_EXECUTE
-        PolicyAction.WRITE_GIT -> null
+        PolicyAction.WRITE_GIT, PolicyAction.READ_QUALITY_CATALOG -> null
     }
 
     private fun deny(reason: String) = PolicyDecision.Denied("Prumo MCP denied the operation: $reason.")

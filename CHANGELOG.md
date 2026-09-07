@@ -6,6 +6,21 @@ All notable changes to this project are documented here. The format follows
 
 ## [Unreleased]
 
+## [0.4.0] - 2026-09-07
+
+### Added
+
+- **The inspection catalogue is now reachable over MCP.** `prumo_quality_list_inspections` lists the
+  inspections registered and enabled in the current profile of the open project — what this IDE
+  knows how to look for — filtered by language, severity or group, with the counts by severity and
+  by group covering the whole match before the returned window. It runs no inspection and reads no
+  file: finding the problems of one specific file is a different job, and `get_file_problems`, from
+  the IDE's own MCP server, is the tool for it. Registered and enabled is not the same as
+  applicable, and the numbers describe the installation and its plugins, not the product.
+- **A policy action of its own.** `READ_QUALITY_CATALOG` joins `PolicyAction`, so
+  `prumo_workspace_get_policy` publishes a decision that says what the tool actually does instead of
+  borrowing one that would misdescribe it.
+
 ## [0.3.0] - 2026-09-07
 
 ### Fixed
@@ -649,7 +664,8 @@ full cycle with a real AI client — are still open.
 - Repository role and workspace type explain themselves in the dialog: both describe the work to the
   AI client and enforce nothing, which access modes and policies do.
 
-[Unreleased]: https://github.com/gilmardeveloper/prumo/compare/v0.3.0...HEAD
+[Unreleased]: https://github.com/gilmardeveloper/prumo/compare/v0.4.0...HEAD
+[0.4.0]: https://github.com/gilmardeveloper/prumo/compare/v0.3.0...v0.4.0
 [0.3.0]: https://github.com/gilmardeveloper/prumo/compare/v0.2.1...v0.3.0
 [0.2.1]: https://github.com/gilmardeveloper/prumo/compare/v0.2.0...v0.2.1
 [0.2.0]: https://github.com/gilmardeveloper/prumo/compare/v0.1.0...v0.2.0

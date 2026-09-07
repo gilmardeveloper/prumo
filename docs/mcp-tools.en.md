@@ -102,6 +102,28 @@ naming a file outside the boundary would already be telling about it.
 
 ---
 
+## Quality
+
+### `prumo_quality_list_inspections`
+The catalogue of inspections registered and enabled in the current profile of the open project —
+what this IDE knows how to look for. **It runs no inspection and reads no file.** It accepts a
+filter by language, severity and group, and returns the counts for the whole match before the
+window of results.
+
+Three limits the description states to the client, and that hold here:
+
+- registered and enabled is **not** the same as applicable: the catalogue does not say what would
+  run on a given file;
+- the numbers describe this installation and its plugins, not the product — they change with the
+  IDE edition and with what is installed;
+- `shortName` is stable and always English, `displayName` follows the IDE language, and severity is
+  not a closed vocabulary: a plugin may register its own.
+
+Finding the problems of one specific file is a different job, and `get_file_problems`, from the
+IDE's own MCP server, is the tool for it. Prumo does not replace it.
+
+---
+
 ## Database
 
 ### `prumo_database_list_available`
