@@ -5,7 +5,7 @@ import com.intellij.ui.ColoredListCellRenderer
 import com.intellij.ui.SimpleTextAttributes
 import com.intellij.ui.components.JBList
 import com.intellij.ui.dsl.builder.AlignX
-import com.intellij.ui.dsl.builder.panel
+import com.intellij.ui.dsl.builder.Panel
 import io.prumo.mcp.i18n.PrumoBundle
 import io.prumo.mcp.ide.PrumoWorkspaceService
 import io.prumo.mcp.pack.application.PackStore
@@ -16,7 +16,6 @@ import io.prumo.mcp.pack.exchange.PackOrigin
 import io.prumo.mcp.ui.PrumoSeverity
 import io.prumo.mcp.ui.PrumoUiEvents
 import javax.swing.DefaultListModel
-import javax.swing.JComponent
 import javax.swing.JList
 import javax.swing.ListModel
 
@@ -33,20 +32,28 @@ class ApprovalQueuePanel(
     private val submissions = DefaultListModel<PackSubmission>()
     private val queue = JBList(submissions).apply { cellRenderer = renderer() }
 
-    fun component(): JComponent {
+    /**
+     * Escreve a fila no painel do pai, no mesmo contrato de [PackExchangePanel].
+     *
+     * A fila aparece mesmo vazia: escondê-la fazia a proposta recém-submetida por um cliente de IA
+     * parecer perdida, e a própria descrição da tool precisava avisar disso.
+     */
+    fun render(panel: Panel) = with(panel) {
         refresh()
-        return panel {
-            row { label(PrumoBundle.message("pack.queue.title")) }
-            row {
-                cell(queue).align(AlignX.FILL)
-            }
-            row {
-                button(PrumoBundle.message("pack.queue.review")) { review() }
-                button(PrumoBundle.message("pack.queue.discard")) { discard() }
-            }
-            row {
-                comment(PrumoBundle.message("pack.queue.hint"))
-            }
+        row { label(PrumoBundle.message("pack.queue.title")) }
+        if (submissions.isEmpty) {
+            row { comment(PrumoBundle.message("pack.queue.none")) }
+            return@with
+        }
+        row {
+            cell(queue).align(AlignX.FILL)
+        }
+        row {
+            button(PrumoBundle.message("pack.queue.review")) { review() }
+            button(PrumoBundle.message("pack.queue.discard")) { discard() }
+        }
+        row {
+            comment(PrumoBundle.message("pack.queue.hint"))
         }
     }
 

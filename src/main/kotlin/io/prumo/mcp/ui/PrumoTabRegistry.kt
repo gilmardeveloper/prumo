@@ -2,6 +2,7 @@ package io.prumo.mcp.ui
 
 import com.intellij.openapi.project.Project
 import io.prumo.mcp.ui.tab.DataSourcesTab
+import io.prumo.mcp.ui.tab.KnowledgeTab
 import io.prumo.mcp.ui.tab.RepositoriesTab
 import io.prumo.mcp.ui.tab.WorkspaceTab
 
@@ -18,5 +19,6 @@ object PrumoTabRegistry {
         WorkspaceTab(project),
         RepositoriesTab(project),
         DataSourcesTab(project),
+        KnowledgeTab(project),
     )
 }
