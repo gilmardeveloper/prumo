@@ -60,12 +60,12 @@ class PrumoTabRegistryTest {
      * As abas são lidas do fonte, e não instanciadas: `PrumoTab` monta componente Swing e exige um
      * `Project` vivo, que não existe fora da IDE.
      */
-    private fun declaredIds(): List<String> = tabSources().mapNotNull { source ->
-        Regex("""override val id = "([^"]+)"""").find(source)?.groupValues?.get(1)
+    private fun declaredIds(): List<String> = tabSources().flatMap { source ->
+        Regex("""override val id = "([^"]+)"""").findAll(source).map { it.groupValues[1] }
     }
 
-    private fun declaredTitleKeys(): List<String> = tabSources().mapNotNull { source ->
-        Regex("""override val titleKey = "([^"]+)"""").find(source)?.groupValues?.get(1)
+    private fun declaredTitleKeys(): List<String> = tabSources().flatMap { source ->
+        Regex("""override val titleKey = "([^"]+)"""").findAll(source).map { it.groupValues[1] }
     }
 
     /** Aba concreta é a que declara título próprio; a base abstrata não declara. */

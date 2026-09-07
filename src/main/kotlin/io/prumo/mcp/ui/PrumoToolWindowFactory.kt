@@ -1,6 +1,5 @@
 package io.prumo.mcp.ui
 
-import com.intellij.icons.AllIcons
 import com.intellij.openapi.actionSystem.DefaultActionGroup
 import com.intellij.openapi.application.ApplicationManager
 import com.intellij.openapi.options.ShowSettingsUtil
@@ -8,17 +7,10 @@ import com.intellij.openapi.project.DumbAwareAction
 import com.intellij.openapi.project.Project
 import com.intellij.openapi.wm.ToolWindow
 import com.intellij.openapi.wm.ToolWindowFactory
-import com.intellij.ui.components.JBLabel
 import com.intellij.ui.content.Content
 import com.intellij.ui.content.ContentFactory
-import com.intellij.ui.dsl.builder.panel
-import com.intellij.util.ui.JBUI
 import io.prumo.mcp.i18n.PrumoBundle
 import io.prumo.mcp.settings.PrumoLanguageConfigurable
-import java.awt.BorderLayout
-import javax.swing.Icon
-import javax.swing.JComponent
-import javax.swing.JPanel
 
 /**
  * Janela do Prumo: uma aba por domínio, montadas a partir de [PrumoTabRegistry].

@@ -22,6 +22,7 @@ import javax.swing.JPanel
  */
 abstract class WorkspaceBackedTab(protected val project: Project) : PrumoTab {
 
+    @Volatile
     private var disposed = false
 
     /** Desenha o conteúdo da aba com o workspace já resolvido. */

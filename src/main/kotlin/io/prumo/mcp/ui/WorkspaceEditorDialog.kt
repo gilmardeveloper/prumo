@@ -1,5 +1,6 @@
 package io.prumo.mcp.ui
 
+import com.intellij.icons.AllIcons
 import com.intellij.openapi.fileChooser.FileChooser
 import com.intellij.openapi.fileChooser.FileChooserDescriptor
 import com.intellij.openapi.project.Project
@@ -7,7 +8,9 @@ import com.intellij.openapi.ui.ComboBox
 import com.intellij.openapi.ui.DialogWrapper
 import com.intellij.openapi.ui.Messages
 import com.intellij.openapi.ui.ValidationInfo
+import com.intellij.ui.ColoredListCellRenderer
 import com.intellij.ui.SimpleListCellRenderer
+import com.intellij.ui.SimpleTextAttributes
 import com.intellij.ui.ToolbarDecorator
 import com.intellij.ui.components.JBCheckBox
 import com.intellij.ui.components.JBList
@@ -35,6 +38,7 @@ import io.prumo.mcp.workspace.domain.WorkspaceType
 import java.nio.file.Path
 import javax.swing.DefaultListModel
 import javax.swing.JComponent
+import javax.swing.JList
 
 /** Edição completa de um workspace: identidade, repositórios vinculados, documentação e políticas. */
 class WorkspaceEditorDialog(
@@ -301,24 +305,61 @@ class WorkspaceEditorDialog(
         updatedAt = now,
     )
 
-    private fun repositoryRenderer() = javax.swing.ListCellRenderer<RepositoryBinding> { _, value, _, _, _ ->
-        com.intellij.ui.components.JBLabel(
-            value.name + "  —  " + PrumoBundle.message(value.role.labelKey) + " · " +
-                PrumoBundle.message(value.accessMode.labelKey),
-        )
+    /**
+     * Os três renderizadores honram o estado de seleção.
+     *
+     * As listas deste diálogo têm botão de remover: sem destaque, não há como saber sobre qual item
+     * ele vai agir antes de clicar.
+     */
+    private fun repositoryRenderer() = object : ColoredListCellRenderer<RepositoryBinding>() {
+        override fun customizeCellRenderer(
+            list: JList<out RepositoryBinding>,
+            value: RepositoryBinding,
+            index: Int,
+            selected: Boolean,
+            hasFocus: Boolean,
+        ) {
+            icon = if (value.id == primaryRepositoryId) AllIcons.Nodes.Module else AllIcons.Nodes.Folder
+            append(value.name)
+            append(
+                "  ${PrumoBundle.message(value.role.labelKey)} · ${PrumoBundle.message(value.accessMode.labelKey)}",
+                SimpleTextAttributes.GRAYED_ATTRIBUTES,
+            )
+        }
     }
 
-    private fun documentationRenderer() = javax.swing.ListCellRenderer<DocumentationSource> { _, value, _, _, _ ->
-        com.intellij.ui.components.JBLabel(
-            value.name + "  —  " + PrumoBundle.message(value.kind.labelKey) + " · " +
-                PrumoBundle.message(value.authority.labelKey),
-        )
+    private fun documentationRenderer() = object : ColoredListCellRenderer<DocumentationSource>() {
+        override fun customizeCellRenderer(
+            list: JList<out DocumentationSource>,
+            value: DocumentationSource,
+            index: Int,
+            selected: Boolean,
+            hasFocus: Boolean,
+        ) {
+            icon = if (value.kind == DocumentationKind.DIRECTORY) AllIcons.Nodes.Folder else AllIcons.FileTypes.Text
+            append(value.name)
+            append(
+                "  ${PrumoBundle.message(value.kind.labelKey)} · ${PrumoBundle.message(value.authority.labelKey)}",
+                SimpleTextAttributes.GRAYED_ATTRIBUTES,
+            )
+        }
     }
 
-    private fun datasourceRenderer() = javax.swing.ListCellRenderer<DataSourceProfile> { _, value, _, _, _ ->
-        com.intellij.ui.components.JBLabel(
-            value.name + "  —  PostgreSQL · " + PrumoBundle.message(value.accessMode.labelKey),
-        )
+    private fun datasourceRenderer() = object : ColoredListCellRenderer<DataSourceProfile>() {
+        override fun customizeCellRenderer(
+            list: JList<out DataSourceProfile>,
+            value: DataSourceProfile,
+            index: Int,
+            selected: Boolean,
+            hasFocus: Boolean,
+        ) {
+            icon = if (value.obfuscatePersonalData) AllIcons.Nodes.DataTables else AllIcons.General.Warning
+            append(value.name)
+            append(
+                "  PostgreSQL · ${PrumoBundle.message(value.accessMode.labelKey)}",
+                SimpleTextAttributes.GRAYED_ATTRIBUTES,
+            )
+        }
     }
 
     private companion object {
