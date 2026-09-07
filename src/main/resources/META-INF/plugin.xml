@@ -30,6 +30,10 @@
                     anchor="right"
                     factoryClass="io.prumo.mcp.ui.PrumoToolWindowFactory" />
 
+        <!-- Confirmacao de operacao de pack. Rotulo de painel nao serve: instalar, importar e
+             remover remontam a janela e destroem o rotulo antes de ele ser lido. -->
+        <notificationGroup id="Prumo MCP" displayType="BALLOON" key="notification.group" />
+
         <!-- 'displayName' literal: a plataforma exige nome no descritor para nao carregar a
              classe ao abrir Settings, e o nome do produto e o mesmo nos dois idiomas. -->
         <applicationConfigurable id="io.prumo.mcp.settings"

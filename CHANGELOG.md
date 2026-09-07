@@ -6,6 +6,51 @@ All notable changes to this project are documented here. The format follows
 
 ## [Unreleased]
 
+## [0.2.0] - 2026-09-07
+
+### Added
+
+- **The tool window is now organised in tabs, one per subject.** Workspace, Repositories, Data,
+  Knowledge and Activity replace the single stacked panel where four unrelated domains shared one
+  surface. Adding a screen no longer means appending to the bottom of everything else.
+- **Bound databases are visible.** A data source could be registered and the main screen would never
+  confirm it existed. The Data tab lists each one with its access mode and default schema, and marks
+  the ones that hand personal data to an AI client unobfuscated.
+- **The audit trail has a reader.** Every tool call has been recorded locally since the first
+  release, and no part of the product could show it. The Activity tab lists the most recent calls
+  with tool, operation, outcome and duration. The trail still records what happened, never what was
+  read.
+- **Risk level is legible at a glance.** Pack risk carries an icon and a colour for each level in
+  both themes; `DESTRUCTIVE` and `SAFE` used to be plain text of equal weight on the consent screen.
+- **Selection is visible in every list.** Lists with a remove button gave no indication of which row
+  was selected before the click.
+
+### Fixed
+
+- **The approval queue acted on the wrong pack.** Review and Discard always took the first
+  submission in the queue, ignoring the selection. With two proposals waiting, discarding removed
+  the wrong one.
+- **Import and removal confirmed in silence.** The success message was written to a label the screen
+  destroyed on the next line when it rebuilt itself. Confirmations are now IDE notifications and
+  survive the rebuild.
+- **Silent refusals in the workspace editor.** Duplicate repository, duplicate documentation,
+  duplicate data source, and the refusal to remove the primary repository all returned without a
+  word — the dialog closed and nothing happened. Each now says why.
+- Failures while discarding a submission or writing the audit trail are shown instead of being
+  swallowed by the IDE.
+
+### Changed
+
+- The workspace is read off the interface thread, with an explicit loading state and a failure state
+  that reports without exposing the path of the file that failed.
+- The workspace editor is a tabbed dialog instead of one scrolling form holding five subjects, and
+  its size scales with display density rather than being computed from the primary monitor.
+- Screens are told to refresh through an application event; no package outside the UI refers to the
+  tool window by name any more.
+- The resolved workspace is cached per project for the interface only. MCP tools keep resolving on
+  every call: the workspace file can change outside this IDE, and handing stale context to an AI
+  client is worse than reading it again.
+
 ## [0.1.0] - 2026-09-06
 
 First stable release, and the first version to reach `main`.
@@ -565,7 +610,8 @@ full cycle with a real AI client — are still open.
 - Repository role and workspace type explain themselves in the dialog: both describe the work to the
   AI client and enforce nothing, which access modes and policies do.
 
-[Unreleased]: https://github.com/gilmardeveloper/prumo/compare/v0.1.0-rc.21...HEAD
+[Unreleased]: https://github.com/gilmardeveloper/prumo/compare/v0.2.0...HEAD
+[0.2.0]: https://github.com/gilmardeveloper/prumo/compare/v0.1.0...v0.2.0
 [0.1.0]: https://github.com/gilmardeveloper/prumo/compare/v0.1.0-rc.28...v0.1.0
 [0.1.0-rc.28]: https://github.com/gilmardeveloper/prumo/compare/v0.1.0-rc.27...v0.1.0-rc.28
 [0.1.0-rc.27]: https://github.com/gilmardeveloper/prumo/compare/v0.1.0-rc.26...v0.1.0-rc.27

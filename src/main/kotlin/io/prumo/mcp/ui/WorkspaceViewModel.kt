@@ -5,6 +5,17 @@ import io.prumo.mcp.workspace.application.WorkspaceResolution
 /** O que o painel do Prumo mostra, como dado puro e sem Swing. */
 sealed interface WorkspaceViewModel {
 
+    /** Estado inicial, enquanto o workspace é lido do disco fora da thread de interface. */
+    data object Loading : WorkspaceViewModel
+
+    /**
+     * A leitura falhou.
+     *
+     * Carrega **chave**, nunca a mensagem da exceção: ela costuma trazer o caminho do arquivo que
+     * falhou, e caminho de disco não vai para a tela. O detalhe vai para o log da IDE.
+     */
+    data class Failed(val messageKey: String) : WorkspaceViewModel
+
     data class NotConfigured(val projectName: String) : WorkspaceViewModel
 
     data class Ambiguous(val projectName: String, val workspaceCount: Int) : WorkspaceViewModel
@@ -20,7 +31,38 @@ sealed interface WorkspaceViewModel {
         val pendingPacks: Int = 0,
         /** Os packs já instalados neste workspace, na ordem em que a tela os mostra. */
         val installedPacks: List<PackRow> = emptyList(),
+        /** Os bancos vinculados a este workspace. */
+        val dataSources: List<DataSourceRow> = emptyList(),
+        /** As chamadas mais recentes registradas na trilha, da mais antiga para a mais nova. */
+        val activity: List<ActivityRow> = emptyList(),
     ) : WorkspaceViewModel
+
+    /**
+     * Uma chamada registrada na trilha de auditoria.
+     *
+     * Traz o que aconteceu, não o que foi lido: nem conteúdo de arquivo, nem linha de resultado,
+     * nem valor de parâmetro — a trilha nunca os guardou.
+     */
+    data class ActivityRow(
+        val timestamp: String,
+        val tool: String,
+        val operation: String,
+        val result: String,
+        val durationMillis: Long,
+    )
+
+    /**
+     * Um banco na tela.
+     *
+     * Não carrega host, porta, usuário nem nome do banco: identificar o servidor não é necessário
+     * para o dono reconhecer a fonte, e o que não chega à tela não vaza por ela.
+     */
+    data class DataSourceRow(
+        val name: String,
+        val accessModeKey: String,
+        val defaultSchema: String?,
+        val personalDataObfuscated: Boolean,
+    )
 
     data class PackRow(
         val packId: String,
@@ -49,6 +91,7 @@ sealed interface WorkspaceViewModel {
             resolution: WorkspaceResolution,
             pendingPacks: Int = 0,
             installedPacks: List<PackRow> = emptyList(),
+            activity: List<ActivityRow> = emptyList(),
         ): WorkspaceViewModel = when (resolution) {
             is WorkspaceResolution.NotConfigured -> NotConfigured(resolution.projectName)
 
@@ -74,6 +117,15 @@ sealed interface WorkspaceViewModel {
                     },
                     pendingPacks = pendingPacks,
                     installedPacks = installedPacks,
+                    activity = activity,
+                    dataSources = context.workspace.datasources.map {
+                        DataSourceRow(
+                            name = it.name,
+                            accessModeKey = it.accessMode.labelKey,
+                            defaultSchema = it.defaultSchema,
+                            personalDataObfuscated = it.obfuscatePersonalData,
+                        )
+                    },
                     policies = listOf(
                         PolicyRow("policy.referenceWrite", context.policies.referenceWrite),
                         PolicyRow("policy.databaseWrite", context.policies.databaseWrite),

@@ -117,6 +117,41 @@ class AuditLog(
             .map { json.decodeFromString(AuditEntry.serializer(), it) }
     }
 
+    /**
+     * As [limit] entradas mais recentes, da mais antiga para a mais nova.
+     *
+     * A trilha é append-only e cresce sem limite. Ler o arquivo inteiro para memória, como faz
+     * [read], deixa de servir assim que ele passa de alguns milhares de linhas: aqui só a janela
+     * pedida é retida.
+     *
+     * Linha ilegível é pulada. Uma entrada corrompida no meio do arquivo não pode esconder as
+     * outras — a trilha existe justamente para ser consultada depois de algo dar errado.
+     */
+    fun readLast(workspaceId: String, limit: Int): List<AuditEntry> {
+        val file = fileFor(workspaceId)
+        if (!Files.exists(file)) {
+            return emptyList()
+        }
+        val window = ArrayDeque<AuditEntry>()
+        val size = limit.coerceAtLeast(1)
+        Files.newBufferedReader(file, StandardCharsets.UTF_8).use { reader ->
+            reader.lineSequence()
+                .filter { it.isNotBlank() }
+                .forEach { line ->
+                    val entry = try {
+                        json.decodeFromString(AuditEntry.serializer(), line)
+                    } catch (ignored: Exception) {
+                        return@forEach
+                    }
+                    if (window.size == size) {
+                        window.removeFirst()
+                    }
+                    window.addLast(entry)
+                }
+        }
+        return window.toList()
+    }
+
     private fun append(workspaceId: String, entry: AuditEntry) {
         val file = fileFor(workspaceId)
         Files.createDirectories(file.parent)
