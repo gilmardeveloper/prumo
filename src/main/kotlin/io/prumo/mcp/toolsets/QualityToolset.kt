@@ -4,7 +4,7 @@ import com.intellij.mcpserver.McpToolset
 import com.intellij.mcpserver.annotations.McpDescription
 import com.intellij.mcpserver.annotations.McpTool
 import io.prumo.mcp.policy.PolicyAction
-import io.prumo.mcp.quality.InspectionCatalog
+import io.prumo.mcp.ide.InspectionCatalogService
 import io.prumo.mcp.quality.InspectionFilter
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
@@ -55,7 +55,7 @@ class QualityToolset : McpToolset {
             "quality.list_inspections",
             PolicyAction.READ_QUALITY_CATALOG,
         ) { call ->
-            val catalog = withContext(Dispatchers.IO) { InspectionCatalog.read(call.project) }
+            val catalog = withContext(Dispatchers.IO) { InspectionCatalogService.read(call.project) }
             call.auditDetails["matchCount"] = catalog.size.toString()
             QualityReports.catalog(
                 catalog = catalog,

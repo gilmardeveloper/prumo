@@ -130,7 +130,7 @@ class ToolDescriptionTest {
         val fontes = listOf(
             "src/main/kotlin/io/prumo/mcp/toolsets/QualityToolset.kt",
             "src/main/kotlin/io/prumo/mcp/toolsets/QualityReports.kt",
-            "src/main/kotlin/io/prumo/mcp/quality/InspectionCatalog.kt",
+            "src/main/kotlin/io/prumo/mcp/ide/InspectionCatalogService.kt",
             "src/main/kotlin/io/prumo/mcp/quality/InspectionRecord.kt",
         ).associateWith { java.nio.file.Files.readString(java.nio.file.Path.of(it)) }
 

@@ -107,6 +107,27 @@ arquivo aberto não pertence a repositório algum deste workspace, a resposta é
 
 ---
 
+## Qualidade
+
+### `prumo_quality_list_inspections`
+O catálogo de inspeções registradas e habilitadas no perfil corrente do projeto aberto — o que esta
+IDE sabe procurar. **Não executa inspeção nenhuma e não lê arquivo.** Aceita recorte por linguagem,
+por severidade e por grupo, e devolve as contagens do recorte inteiro antes da janela de resultados.
+
+Três limites que a descrição declara ao cliente e que valem aqui:
+
+- estar registrada e habilitada **não é** o mesmo que ser aplicável: o catálogo não diz o que
+  rodaria sobre um arquivo dado;
+- os números são desta instalação e dos plugins nela instalados, não do produto — mudam com a edição
+  da IDE e com o que estiver instalado;
+- `shortName` é estável e sempre em inglês, `displayName` acompanha o idioma da IDE, e a severidade
+  não é vocabulário fechado: um plugin pode registrar a sua.
+
+Encontrar os problemas de um arquivo específico é outro trabalho, e quem o faz é a
+`get_file_problems`, do próprio servidor MCP da IDE. O Prumo não a substitui.
+
+---
+
 ## Banco de dados
 
 ### `prumo_database_list_available`
