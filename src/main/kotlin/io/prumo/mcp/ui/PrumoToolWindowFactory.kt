@@ -14,8 +14,8 @@ import com.intellij.ui.content.ContentFactory
 import com.intellij.ui.dsl.builder.panel
 import com.intellij.util.ui.JBUI
 import io.prumo.mcp.i18n.PrumoBundle
-import io.prumo.mcp.ide.PrumoWorkspaceService
 import io.prumo.mcp.settings.PrumoLanguageConfigurable
+import java.awt.BorderLayout
 import javax.swing.Icon
 import javax.swing.JComponent
 import javax.swing.JPanel
@@ -114,33 +114,55 @@ class WorkspaceTab(private val project: Project) : PrumoTab {
 
     override val icon: Icon = AllIcons.General.ProjectStructure
 
-    override fun createComponent(): JComponent = render()
+    private var disposed = false
 
-    private fun render(): JPanel {
-        val service = PrumoWorkspaceService.getInstance()
-        val resolution = service.resolve(project)
-        val workspaceId = (resolution as? io.prumo.mcp.workspace.application.WorkspaceResolution.Resolved)
-            ?.context?.workspace?.id
-        val pending = workspaceId
-            ?.let { io.prumo.mcp.pack.authoring.SubmissionQueue(service.storage).pending(it).size }
-            ?: 0
-        val installed = workspaceId
-            ?.let { id ->
-                io.prumo.mcp.pack.application.PackStore(service.storage).list(id).map {
-                    WorkspaceViewModel.PackRow(it.id, it.title.default, it.version)
+    /**
+     * Mostra o estado de carregamento e troca pelo conteúdo quando o disco responde.
+     *
+     * A leitura sai da thread de interface; a troca volta para ela, porque Swing só aceita mudança
+     * de componente na EDT. Aba já descartada não é tocada: o carregamento pode terminar depois de
+     * a janela ter sido remontada.
+     */
+    override fun createComponent(): JComponent {
+        val container = JPanel(BorderLayout())
+        container.add(render(WorkspaceViewModel.Loading), BorderLayout.CENTER)
+
+        ApplicationManager.getApplication().executeOnPooledThread {
+            val model = WorkspaceLoader.load(project)
+            ApplicationManager.getApplication().invokeLater {
+                if (!disposed) {
+                    container.removeAll()
+                    container.add(render(model), BorderLayout.CENTER)
+                    container.revalidate()
+                    container.repaint()
                 }
             }
-            .orEmpty()
-        val model = WorkspaceViewModel.from(resolution, pending, installed)
+        }
+        return container
+    }
 
-        return panel {
-            when (model) {
-                is WorkspaceViewModel.NotConfigured -> notConfigured(model)
-                is WorkspaceViewModel.Ambiguous -> ambiguous(model)
-                is WorkspaceViewModel.Configured -> configured(model)
-            }
-        }.apply {
-            border = JBUI.Borders.empty(12)
+    override fun dispose() {
+        disposed = true
+    }
+
+    private fun render(model: WorkspaceViewModel): JPanel = panel {
+        when (model) {
+            is WorkspaceViewModel.Loading -> row { label(PrumoBundle.message("toolwindow.loading")) }
+            is WorkspaceViewModel.Failed -> failed(model)
+            is WorkspaceViewModel.NotConfigured -> notConfigured(model)
+            is WorkspaceViewModel.Ambiguous -> ambiguous(model)
+            is WorkspaceViewModel.Configured -> configured(model)
+        }
+    }.apply {
+        border = JBUI.Borders.empty(12)
+    }
+
+    private fun com.intellij.ui.dsl.builder.Panel.failed(model: WorkspaceViewModel.Failed) {
+        row {
+            label(PrumoBundle.message(model.messageKey))
+        }
+        row {
+            comment(PrumoBundle.message("toolwindow.loadFailed.hint"))
         }
     }
 

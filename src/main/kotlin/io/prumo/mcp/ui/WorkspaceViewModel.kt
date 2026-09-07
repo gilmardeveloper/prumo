@@ -5,6 +5,17 @@ import io.prumo.mcp.workspace.application.WorkspaceResolution
 /** O que o painel do Prumo mostra, como dado puro e sem Swing. */
 sealed interface WorkspaceViewModel {
 
+    /** Estado inicial, enquanto o workspace é lido do disco fora da thread de interface. */
+    data object Loading : WorkspaceViewModel
+
+    /**
+     * A leitura falhou.
+     *
+     * Carrega **chave**, nunca a mensagem da exceção: ela costuma trazer o caminho do arquivo que
+     * falhou, e caminho de disco não vai para a tela. O detalhe vai para o log da IDE.
+     */
+    data class Failed(val messageKey: String) : WorkspaceViewModel
+
     data class NotConfigured(val projectName: String) : WorkspaceViewModel
 
     data class Ambiguous(val projectName: String, val workspaceCount: Int) : WorkspaceViewModel
