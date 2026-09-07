@@ -79,3 +79,26 @@ fun List<InspectionRecord>.matching(criteria: InspectionFilter): List<Inspection
 
 private fun String?.matches(value: String?): Boolean =
     this == null || (value != null && value.equals(this, ignoreCase = true))
+
+/**
+ * Critérios cujo valor não existe em inspeção nenhuma do catálogo, mapeados ao valor recusado.
+ *
+ * Um recorte legítimo sem resultado e um valor escrito errado devolvem a mesma lista vazia. Esta
+ * função separa os dois casos: o que aparece aqui é valor que o catálogo não conhece.
+ */
+fun List<InspectionRecord>.unknownCriteria(criteria: InspectionFilter): Map<String, String> {
+    val unknown = LinkedHashMap<String, String>()
+    criteria.language?.takeUnless { value -> any { value.equals(it.language, ignoreCase = true) } }
+        ?.let { unknown["language"] = it }
+    criteria.severity?.takeUnless { value -> any { value.equals(it.severity, ignoreCase = true) } }
+        ?.let { unknown["severity"] = it }
+    criteria.group?.takeUnless { value -> any { value.equals(it.group, ignoreCase = true) } }
+        ?.let { unknown["group"] = it }
+    return unknown
+}
+
+/** As severidades que aparecem no catálogo, em ordem alfabética. */
+fun List<InspectionRecord>.severities(): List<String> = map { it.severity }.distinct().sorted()
+
+/** As linguagens declaradas no catálogo, em ordem alfabética. Inspeção sem linguagem não entra. */
+fun List<InspectionRecord>.languages(): List<String> = mapNotNull { it.language }.distinct().sorted()

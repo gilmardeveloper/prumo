@@ -123,6 +123,32 @@ class ToolDescriptionTest {
     }
 
     /**
+     * A resposta do catálogo vale conforme o perfil que a produziu: o do projeto obriga o time
+     * inteiro, o da instalação vale para quem abriu a IDE. Prometer o campo e não o entregar faria
+     * o cliente atribuir ao time uma regra que é de uma máquina só.
+     */
+    @Test
+    fun `a tool de catalogo promete dizer de qual perfil a resposta veio`() {
+        val catalogo = tools.single { it.name == QUALITY_CATALOG }
+
+        listOf("source", "PROJECT", "APPLICATION").forEach { termo ->
+            assertTrue(catalogo.description.contains(termo), "a descrição não cita '$termo'")
+        }
+        assertTrue(
+            catalogo.description.contains("unknownFilters") &&
+                catalogo.description.contains("knownValues"),
+            "a descrição não promete distinguir filtro errado de resultado vazio",
+        )
+
+        val reports = java.nio.file.Files.readString(
+            java.nio.file.Path.of("src/main/kotlin/io/prumo/mcp/toolsets/QualityReports.kt"),
+        )
+        listOf("profileScope", "unknownFilters", "knownValues").forEach { campo ->
+            assertTrue(reports.contains(campo), "a resposta não tem o campo '$campo' prometido")
+        }
+    }
+
+    /**
      * Descrição é contrato: a tool promete não executar inspeção, e o código precisa cumprir.
      * A API que executa está a um import de distância — `InspectionEngine` e `runInspectionOnFile`
      * vivem no mesmo pacote que a enumeração usa.
@@ -134,6 +160,7 @@ class ToolDescriptionTest {
             "src/main/kotlin/io/prumo/mcp/toolsets/QualityReports.kt",
             "src/main/kotlin/io/prumo/mcp/ide/InspectionCatalogService.kt",
             "src/main/kotlin/io/prumo/mcp/quality/InspectionRecord.kt",
+            "src/main/kotlin/io/prumo/mcp/quality/InspectionCatalog.kt",
         ).associateWith { java.nio.file.Files.readString(java.nio.file.Path.of(it)) }
 
         val infratores = fontes.filterValues { fonte ->
