@@ -747,8 +747,8 @@ full cycle with a real AI client — are still open.
   AI client and enforce nothing, which access modes and policies do.
 
 [Unreleased]: https://github.com/gilmardeveloper/prumo/compare/v0.6.0...HEAD
-[0.6.0]: https://github.com/gilmardeveloper/prumo/compare/v0.5.1...v0.6.0
-[0.5.1]: https://github.com/gilmardeveloper/prumo/compare/v0.5.0...v0.5.1
+[0.6.0]: https://github.com/gilmardeveloper/prumo/compare/68c27ae791b39a4b120b590b029ffd626b7116ea...v0.6.0
+[0.5.1]: https://github.com/gilmardeveloper/prumo/compare/v0.5.0...68c27ae791b39a4b120b590b029ffd626b7116ea
 [0.5.0]: https://github.com/gilmardeveloper/prumo/compare/663efff2f71f939ed7c3e9ecfb4dbce0760ec60b...v0.5.0
 [0.4.0]: https://github.com/gilmardeveloper/prumo/compare/18a34f975ce80d0a607dfe9101d42d75382f9f70...663efff2f71f939ed7c3e9ecfb4dbce0760ec60b
 [0.3.0]: https://github.com/gilmardeveloper/prumo/compare/b26bf42ab8136b5a60a510f1fc2eb4b80e080ae3...18a34f975ce80d0a607dfe9101d42d75382f9f70
