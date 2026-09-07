@@ -4,7 +4,6 @@ import com.intellij.openapi.fileChooser.FileChooser
 import com.intellij.openapi.fileChooser.FileChooserDescriptor
 import com.intellij.openapi.fileChooser.FileChooserFactory
 import com.intellij.openapi.fileChooser.FileSaverDescriptor
-import com.intellij.openapi.application.ApplicationManager
 import com.intellij.openapi.project.Project
 import com.intellij.openapi.ui.Messages
 import com.intellij.ui.components.JBLabel
@@ -14,7 +13,7 @@ import io.prumo.mcp.i18n.PrumoBundle
 import io.prumo.mcp.ide.PrumoWorkspaceService
 import io.prumo.mcp.pack.application.PackFileExchange
 import io.prumo.mcp.pack.application.PackStore
-import io.prumo.mcp.ui.PrumoToolWindowFactory
+import io.prumo.mcp.ui.PrumoUiEvents
 import io.prumo.mcp.ui.WorkspaceViewModel
 import java.nio.file.Path
 import javax.swing.Icon
@@ -31,8 +30,6 @@ class PackExchangePanel(
     private val installed: List<WorkspaceViewModel.PackRow>,
 ) {
 
-    private val status = JBLabel(" ")
-
     fun render(panel: Panel) = with(panel) {
         if (installed.isEmpty()) {
             row { comment(PrumoBundle.message("toolwindow.packs.none")) }
@@ -47,7 +44,6 @@ class PackExchangePanel(
             button(PrumoBundle.message("pack.exchange.import")) { importFromFile() }
             button(PrumoBundle.message("pack.exchange.export")) { exportToFile() }
             button(PrumoBundle.message("pack.exchange.remove")) { removeInstalled() }
-            cell(status)
         }
         row { comment(PrumoBundle.message("pack.exchange.hint")) }
     }
@@ -74,7 +70,7 @@ class PackExchangePanel(
 
         val dialog = PackConsentDialog(project, preview)
         if (!dialog.showAndGet()) {
-            status.text = PrumoBundle.message("pack.queue.notInstalled")
+            notifyPackWarning(project, "pack.queue.notInstalled")
             return
         }
         try {
@@ -88,21 +84,28 @@ class PackExchangePanel(
             showPackFailure(project, failure, "pack.exchange.importError")
             return
         }
-        service.audit.record(
-            workspaceId = workspaceId,
-            tool = "prumo_ide",
-            operation = "pack.import",
-            result = AuditResult.SUCCESS,
-            durationMillis = 0,
-            packId = preview.manifest.id,
-            details = mapOf(
-                "version" to preview.manifest.version,
-                "checksum" to preview.checksum,
-                "capabilities" to preview.manifest.capabilities.joinToString(",") { it.name },
-            ),
-        )
-        status.text = PrumoBundle.message("pack.exchange.imported", preview.manifest.id)
-        ApplicationManager.getApplication().invokeLater { PrumoToolWindowFactory.refreshOpenProjects() }
+        // O pack já está instalado: falha ao auditar é mostrada, não revertida.
+        try {
+            service.audit.record(
+                workspaceId = workspaceId,
+                tool = "prumo_ide",
+                operation = "pack.import",
+                result = AuditResult.SUCCESS,
+                durationMillis = 0,
+                packId = preview.manifest.id,
+                details = mapOf(
+                    "version" to preview.manifest.version,
+                    "checksum" to preview.checksum,
+                    "capabilities" to preview.manifest.capabilities.joinToString(",") { it.name },
+                ),
+            )
+        } catch (failure: Exception) {
+            showPackFailure(project, failure, "pack.audit.error")
+            refreshPanel()
+            return
+        }
+        notifyPack(project, "pack.exchange.imported", preview.manifest.id)
+        refreshPanel()
     }
 
     /** Exporta o pack escolhido. Com um só instalado, não há o que escolher. */
@@ -128,16 +131,22 @@ class PackExchangePanel(
             showPackFailure(project, failure, "pack.exchange.exportError")
             return
         }
-        service.audit.record(
-            workspaceId = workspaceId,
-            tool = "prumo_ide",
-            operation = "pack.export",
-            result = AuditResult.SUCCESS,
-            durationMillis = 0,
-            packId = pack.packId,
-            details = mapOf("version" to pack.version),
-        )
-        status.text = PrumoBundle.message("pack.exchange.exported", written.fileName.toString())
+        // O arquivo já foi escrito: falha ao auditar é mostrada, não revertida.
+        try {
+            service.audit.record(
+                workspaceId = workspaceId,
+                tool = "prumo_ide",
+                operation = "pack.export",
+                result = AuditResult.SUCCESS,
+                durationMillis = 0,
+                packId = pack.packId,
+                details = mapOf("version" to pack.version),
+            )
+        } catch (failure: Exception) {
+            showPackFailure(project, failure, "pack.audit.error")
+            return
+        }
+        notifyPack(project, "pack.exchange.exported", written.fileName.toString())
     }
 
     /**
@@ -169,22 +178,34 @@ class PackExchangePanel(
             showPackFailure(project, failure, "pack.exchange.removeError")
             return
         }
-        service.audit.record(
-            workspaceId = workspaceId,
-            tool = "prumo_ide",
-            operation = "pack.remove",
-            result = AuditResult.SUCCESS,
-            durationMillis = 0,
-            packId = pack.packId,
-            details = mapOf("version" to pack.version),
-        )
-        status.text = PrumoBundle.message("pack.exchange.removed", pack.packId)
-        ApplicationManager.getApplication().invokeLater { PrumoToolWindowFactory.refreshOpenProjects() }
+        // O pack já saiu do disco: falha ao auditar é mostrada, não revertida.
+        try {
+            service.audit.record(
+                workspaceId = workspaceId,
+                tool = "prumo_ide",
+                operation = "pack.remove",
+                result = AuditResult.SUCCESS,
+                durationMillis = 0,
+                packId = pack.packId,
+                details = mapOf("version" to pack.version),
+            )
+        } catch (failure: Exception) {
+            showPackFailure(project, failure, "pack.audit.error")
+            refreshPanel()
+            return
+        }
+        notifyPack(project, "pack.exchange.removed", pack.packId)
+        refreshPanel()
+    }
+
+    /** Remonta a janela: as seções de pack e a contagem da fila são desenhadas fora deste painel. */
+    private fun refreshPanel() {
+        PrumoUiEvents.publishStateChanged()
     }
 
     private fun chosenPack(emptyKey: String, titleKey: String, messageKey: String): WorkspaceViewModel.PackRow? {
         if (installed.isEmpty()) {
-            status.text = PrumoBundle.message(emptyKey)
+            notifyPackWarning(project, emptyKey)
             return null
         }
         if (installed.size == 1) {

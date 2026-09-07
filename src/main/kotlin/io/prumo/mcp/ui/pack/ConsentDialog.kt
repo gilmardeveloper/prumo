@@ -3,6 +3,7 @@ package io.prumo.mcp.ui.pack
 import com.intellij.openapi.project.Project
 import com.intellij.openapi.ui.DialogWrapper
 import com.intellij.ui.components.JBCheckBox
+import com.intellij.ui.components.JBLabel
 import com.intellij.ui.components.JBScrollPane
 import com.intellij.ui.dsl.builder.AlignX
 import com.intellij.ui.dsl.builder.panel
@@ -11,9 +12,11 @@ import io.prumo.mcp.i18n.PrumoBundle
 import io.prumo.mcp.pack.domain.RiskLevel
 import io.prumo.mcp.pack.exchange.PackAcceptance
 import io.prumo.mcp.pack.exchange.PackImportPreview
+import io.prumo.mcp.ui.PrumoSeverity
 import java.time.Instant
 import javax.swing.JComponent
 import javax.swing.JTextArea
+import javax.swing.SwingConstants
 
 /**
  * Termo de consentimento do import de pack.
@@ -73,7 +76,15 @@ class PackConsentDialog(
         if (preview.assessment.findings.isNotEmpty()) {
             group(PrumoBundle.message("pack.consent.findings")) {
                 preview.assessment.findings.forEach { finding ->
-                    row { label("[${finding.level}] ${finding.explanation}") }
+                    row {
+                        cell(
+                            JBLabel(
+                                "${finding.level} — ${finding.explanation}",
+                                PrumoSeverity.iconFor(finding.level),
+                                SwingConstants.LEADING,
+                            ),
+                        )
+                    }
                     row { comment("<code>${finding.evidence}</code> — ${finding.location}") }
                 }
                 row {

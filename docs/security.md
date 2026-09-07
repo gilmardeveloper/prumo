@@ -74,6 +74,17 @@ statement, contagem de linhas, desfecho e duração. Nunca registra conteúdo de
 consulta, texto SQL ou valor de parâmetro: auditoria que copia o dado vira uma segunda cópia daquilo
 que ela deveria proteger.
 
+**A IA escreve na memória, e só nela.** Desde a 0.5.0 existe uma base de conhecimento por
+workspace em que os clientes de IA gravam o que destilaram — sem consentimento por item, ao contrário
+dos pacotes. O que sustenta isso não é confiança no conteúdo: é a **procedência**. Só é aceito o
+registro que aponta para uma fonte já ao alcance daquele workspace, o carimbo dessa fonte é calculado
+pelo Prumo e nunca aceito do cliente, e toda leitura devolve o veredicto de frescor ao lado do
+conteúdo. A base não toca os repositórios do usuário, não é portável e é reconstruível a partir das
+fontes — se ela sumir, nada de original se perde. **O Prumo não garante que o destilado é fiel à
+fonte**: destilação por IA perde informação, e ele não julga conteúdo. Garante de onde veio, se a
+fonte mudou, quem escreveu e quando. O desenvolvedor vê tudo o que foi gravado na aba *Memória da IA*
+e pode apagar qualquer registro.
+
 ## O que o Prumo governa, e o que ele não governa
 
 O Prumo impõe fronteira às **ferramentas do Prumo**. O servidor MCP da IDE não é dele: é da
@@ -186,6 +197,9 @@ ignorou e listou tudo. Toda proteção descrita aqui vive em código e está cob
 - **O cliente de IA continua sujeito a engenharia social** pelo conteúdo que lê. O Prumo limita *o
   que* ele alcança, não o que ele conclui.
 - **PDF é catalogado, não interpretado.** Nada dentro de um PDF é analisado.
+- **Chamada vinda de projeto sem workspace vinculado não entra na trilha.** Ela é recusada antes de
+  qualquer acesso, e a trilha é gravada por workspace: sem workspace resolvido não há arquivo onde
+  registrar. A recusa fica no log da IDE, que não é consultável por tool.
 
 ## Relatar uma vulnerabilidade
 

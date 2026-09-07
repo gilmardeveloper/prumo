@@ -35,7 +35,7 @@ class PackUiPanelsTest {
     }
 
     /**
-     * Instalar muda seções que o painel da ação não desenha. Sem remontar, a tela continua dizendo
+     * Instalar muda seções que o painel da ação não desenha. Sem avisar, a tela continua dizendo
      * que não há pack instalado logo depois de instalar um, e a fila segue anunciando uma proposta
      * que já saiu.
      */
@@ -47,9 +47,25 @@ class PackUiPanelsTest {
                 source.contains(".remove(")
         }.forEach { (name, source) ->
             assertTrue(
-                source.contains("refreshOpenProjects"),
-                "$name muda o estado do workspace e precisa remontar o painel",
+                source.contains("publishStateChanged"),
+                "$name muda o estado do workspace e precisa avisar a janela",
             )
         }
+    }
+
+    /**
+     * O aviso sai por evento, não por chamada à janela. Um painel que conhece a tool window pelo
+     * nome amarra o domínio à superfície e obriga toda tela nova a ser conhecida por ele.
+     */
+    @Test
+    fun `nenhum painel de pack chama a janela pelo nome`() {
+        val infratores = panels
+            .filter { (_, source) -> source.contains("PrumoToolWindowFactory") }
+            .map { (name, _) -> name }
+
+        assertTrue(
+            infratores.isEmpty(),
+            "devem publicar PrumoUiEvents.publishStateChanged em vez de chamar a janela: $infratores",
+        )
     }
 }

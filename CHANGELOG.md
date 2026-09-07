@@ -6,6 +6,148 @@ All notable changes to this project are documented here. The format follows
 
 ## [Unreleased]
 
+## [0.5.0] - 2026-09-07
+
+### Added
+
+- **AI clients now have a memory of their own.** `prumo_knowledge_remember`, `_recall`, `_read` and
+  `_forget` give each workspace a store where a client records what it distilled from sources that
+  were already in reach, so an expensive document need not be read again in the next session — by
+  that client or by any other. It is not portable and not exported: it lives on the machine, inside
+  the workspace, and it is rebuildable from the sources.
+- **Provenance, and a freshness verdict beside every answer.** Each record names the source it came
+  from, and Prumo — not the client — stamps that source with its size, modification time and SHA-256.
+  Every read recomputes the stamp and answers `FRESH`, `STALE` or `ORPHAN`, so a client can decide
+  on its own whether to trust the record or go back to the source. Any of the three measures
+  differing is enough for `STALE`: a false `STALE` costs one redistillation, a false `FRESH` hands
+  over wrong content as if it were good.
+- **What Prumo refuses to guarantee is written in the tool descriptions.** It guarantees where a
+  record came from, whether the source changed, who wrote it and when. It does not guarantee that
+  the summary is faithful, nor that it replaces the source: a record cites, it does not substitute.
+  A test fails the build if those refusals leave the description.
+- **Prumo now knows which client is calling.** `ClientInfo` reaches every MCP call and had been
+  discarded since 0.1.0; the audit trail now records it on all ten outcomes, refusals included, and
+  each knowledge record carries the client that wrote it.
+- **An `AI memory` tab.** This is the one surface where the AI writes without the developer, so the
+  window shows every record with its source, its author and its freshness — and lets the developer
+  delete any of them.
+
+### Changed
+
+- **The knowledge store is transactional.** It runs on the H2 MVStore that ships with the IDE, so
+  redistilling a source replaces what came from it atomically — all of it or none. Nothing new is
+  bundled: the plugin declares the module and grows by the size of its own code.
+- **Submitting a pack no longer consumes a read decision.** `pack_submit` writes a file to the
+  approval queue and had been asking the policy engine about reading documentation; it now has an
+  action that describes what it does, and a test fails the build if any writing tool consumes a
+  `READ_` action again.
+
+### Fixed
+
+- **A tab written but left out of the registry compiled and simply never appeared.** The same silent
+  failure as a toolset missing from `plugin.xml`, and only discoverable by opening the IDE. A test
+  now fails the build instead.
+
+
+## [0.4.0] - 2026-09-07
+
+### Added
+
+- **The inspection catalogue is now reachable over MCP.** `prumo_quality_list_inspections` lists the
+  inspections registered and enabled in the current profile of the open project — what this IDE
+  knows how to look for — filtered by language, severity or group, with the counts by severity and
+  by group covering the whole match before the returned window. It runs no inspection and reads no
+  file: finding the problems of one specific file is a different job, and `get_file_problems`, from
+  the IDE's own MCP server, is the tool for it. Registered and enabled is not the same as
+  applicable, and the numbers describe the installation and its plugins, not the product.
+- **A policy action of its own.** `READ_QUALITY_CATALOG` joins `PolicyAction`, so
+  `prumo_workspace_get_policy` publishes a decision that says what the tool actually does instead of
+  borrowing one that would misdescribe it.
+
+## [0.3.0] - 2026-09-07
+
+### Fixed
+
+- **Documentation reading had its own, weaker copy of the path rule.** `read_documentation` resolved
+  the path inside a folder source with a private implementation that did not reject control
+  characters, while every other surface went through the product's single validator. Two copies of
+  one rule drift apart the moment one of them is hardened. The refusal now also reports as a refusal
+  in the audit trail, not as an error.
+- **The editor context ignored excluded paths.** With the caret in a file under an excluded folder,
+  `get_current_context` still returned the repository, the relative path, the language, the module
+  and the chain of enclosing symbols — class and function names from a folder the developer had put
+  out of reach. A path excluded by any binding in the workspace is no longer located by any other:
+  a broader binding cannot undo what the closest one refused.
+- **A cancelled call was recorded as a failure.** `ProcessCanceledException` extends
+  `CancellationException`, which the generic handler caught: an AI client giving up mid-query left an
+  `ERROR` in the trail and a stack trace in the IDE log, for all 26 tools.
+
+### Changed
+
+- **The audit trail distinguishes cancellation from failure.** `AuditResult` gained `CANCELLED`, and
+  the Activity tab shows it with its own icon instead of a red error. Entries written by earlier
+  versions stay readable.
+- **A declared limit, now written down.** A call from a project bound to no workspace is refused
+  before any access and leaves no audit entry, because the trail is written per workspace. It was
+  true before; it was not documented.
+
+## [0.2.1] - 2026-09-07
+
+### Fixed
+
+- **The tool window tabs could not be scrolled.** Every tab placed its content straight into the
+  panel, with no scroll pane anywhere, so whatever ran past the height of the window was
+  unreachable. Activity was where it hurt — it lists up to 200 recent calls — but all five tabs had
+  the same defect. Content now scrolls vertically, and horizontally only when a line is wider than
+  the window; a tab shorter than the window still sits at the top.
+- **The Activity count sat below 200 rows.** The line saying how many calls are listed came after
+  the list, so reaching it meant scrolling past everything it described. It now comes first.
+
+## [0.2.0] - 2026-09-07
+
+### Added
+
+- **The tool window is now organised in tabs, one per subject.** Workspace, Repositories, Data,
+  Knowledge and Activity replace the single stacked panel where four unrelated domains shared one
+  surface. Adding a screen no longer means appending to the bottom of everything else.
+- **Bound databases are visible.** A data source could be registered and the main screen would never
+  confirm it existed. The Data tab lists each one with its access mode and default schema, and marks
+  the ones that hand personal data to an AI client unobfuscated.
+- **The audit trail has a reader.** Every tool call has been recorded locally since the first
+  release, and no part of the product could show it. The Activity tab lists the most recent calls
+  with tool, operation, outcome and duration. The trail still records what happened, never what was
+  read.
+- **Risk level is legible at a glance.** Pack risk carries an icon and a colour for each level in
+  both themes; `DESTRUCTIVE` and `SAFE` used to be plain text of equal weight on the consent screen.
+- **Selection is visible in every list.** Lists with a remove button gave no indication of which row
+  was selected before the click.
+
+### Fixed
+
+- **The approval queue acted on the wrong pack.** Review and Discard always took the first
+  submission in the queue, ignoring the selection. With two proposals waiting, discarding removed
+  the wrong one.
+- **Import and removal confirmed in silence.** The success message was written to a label the screen
+  destroyed on the next line when it rebuilt itself. Confirmations are now IDE notifications and
+  survive the rebuild.
+- **Silent refusals in the workspace editor.** Duplicate repository, duplicate documentation,
+  duplicate data source, and the refusal to remove the primary repository all returned without a
+  word — the dialog closed and nothing happened. Each now says why.
+- Failures while discarding a submission or writing the audit trail are shown instead of being
+  swallowed by the IDE.
+
+### Changed
+
+- The workspace is read off the interface thread, with an explicit loading state and a failure state
+  that reports without exposing the path of the file that failed.
+- The workspace editor is a tabbed dialog instead of one scrolling form holding five subjects, and
+  its size scales with display density rather than being computed from the primary monitor.
+- Screens are told to refresh through an application event; no package outside the UI refers to the
+  tool window by name any more.
+- The resolved workspace is cached per project for the interface only. MCP tools keep resolving on
+  every call: the workspace file can change outside this IDE, and handing stale context to an AI
+  client is worse than reading it again.
+
 ## [0.1.0] - 2026-09-06
 
 First stable release, and the first version to reach `main`.
@@ -565,7 +707,12 @@ full cycle with a real AI client — are still open.
 - Repository role and workspace type explain themselves in the dialog: both describe the work to the
   AI client and enforce nothing, which access modes and policies do.
 
-[Unreleased]: https://github.com/gilmardeveloper/prumo/compare/v0.1.0-rc.21...HEAD
+[Unreleased]: https://github.com/gilmardeveloper/prumo/compare/v0.5.0...HEAD
+[0.5.0]: https://github.com/gilmardeveloper/prumo/compare/v0.4.0...v0.5.0
+[0.4.0]: https://github.com/gilmardeveloper/prumo/compare/v0.3.0...v0.4.0
+[0.3.0]: https://github.com/gilmardeveloper/prumo/compare/v0.2.1...v0.3.0
+[0.2.1]: https://github.com/gilmardeveloper/prumo/compare/v0.2.0...v0.2.1
+[0.2.0]: https://github.com/gilmardeveloper/prumo/compare/v0.1.0...v0.2.0
 [0.1.0]: https://github.com/gilmardeveloper/prumo/compare/v0.1.0-rc.28...v0.1.0
 [0.1.0-rc.28]: https://github.com/gilmardeveloper/prumo/compare/v0.1.0-rc.27...v0.1.0-rc.28
 [0.1.0-rc.27]: https://github.com/gilmardeveloper/prumo/compare/v0.1.0-rc.26...v0.1.0-rc.27

@@ -7,7 +7,7 @@ import com.intellij.ui.SimpleListCellRenderer
 import com.intellij.ui.dsl.builder.bindItem
 import com.intellij.ui.dsl.builder.panel
 import io.prumo.mcp.i18n.PrumoBundle
-import io.prumo.mcp.ui.PrumoToolWindowFactory
+import io.prumo.mcp.ui.PrumoUiEvents
 import java.io.IOException
 import javax.swing.JComponent
 
@@ -48,7 +48,7 @@ class PrumoLanguageConfigurable : Configurable {
                 PrumoBundle.message("settings.language.error.notSaved", cause.message.orEmpty()),
             )
         }
-        PrumoToolWindowFactory.refreshOpenProjects()
+        PrumoUiEvents.publishStateChanged()
     }
 
     override fun reset() {

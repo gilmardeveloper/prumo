@@ -107,6 +107,27 @@ arquivo aberto não pertence a repositório algum deste workspace, a resposta é
 
 ---
 
+## Qualidade
+
+### `prumo_quality_list_inspections`
+O catálogo de inspeções registradas e habilitadas no perfil corrente do projeto aberto — o que esta
+IDE sabe procurar. **Não executa inspeção nenhuma e não lê arquivo.** Aceita recorte por linguagem,
+por severidade e por grupo, e devolve as contagens do recorte inteiro antes da janela de resultados.
+
+Três limites que a descrição declara ao cliente e que valem aqui:
+
+- estar registrada e habilitada **não é** o mesmo que ser aplicável: o catálogo não diz o que
+  rodaria sobre um arquivo dado;
+- os números são desta instalação e dos plugins nela instalados, não do produto — mudam com a edição
+  da IDE e com o que estiver instalado;
+- `shortName` é estável e sempre em inglês, `displayName` acompanha o idioma da IDE, e a severidade
+  não é vocabulário fechado: um plugin pode registrar a sua.
+
+Encontrar os problemas de um arquivo específico é outro trabalho, e quem o faz é a
+`get_file_problems`, do próprio servidor MCP da IDE. O Prumo não a substitui.
+
+---
+
 ## Banco de dados
 
 ### `prumo_database_list_available`
@@ -132,6 +153,59 @@ transação somente-leitura encerrada em rollback. `maxRows` começa em 100, com
 resposta traz `truncated`. Coluna cujo nome anuncia segredo volta mascarada.
 Statement que o próprio servidor recusa — coluna ou tabela inexistente, `GROUP BY` faltando,
 privilégio negado — volta com a mensagem do servidor, nomeando o que foi recusado.
+
+---
+
+## Memória da IA
+
+Base própria dos clientes de IA. O que entra aqui é **destilado por eles** a partir de fontes que já
+estavam ao alcance deste workspace, e serve para não reler na sessão seguinte o que é caro de ler.
+Não é portável: vive na máquina, no workspace, e é reconstruível a partir das fontes.
+
+Diferente dos pacotes em dois pontos: os pacotes trazem conhecimento de fora e exigem o consentimento
+do desenvolvedor; a memória deriva do que já está dentro da fronteira e a IA escreve sozinha.
+
+**O que o Prumo garante sobre um registro:** de onde ele veio, se a fonte mudou desde então, qual
+cliente o escreveu e quando. **O que ele não garante:** que o resumo é fiel à fonte, e que ele
+substitui a fonte. O registro cita; não substitui.
+
+Toda leitura devolve o veredicto de frescor ao lado do conteúdo:
+
+| | |
+|---|---|
+| `FRESH` | a fonte está como estava quando o registro nasceu |
+| `STALE` | a fonte mudou, e o registro pode estar errado |
+| `ORPHAN` | a fonte não existe mais ao alcance do workspace |
+
+`FRESH` fala dos **bytes da fonte**, não do registro: quer dizer que ninguém editou aquele arquivo,
+nunca que o Prumo conferiu o texto contra ele. Um registro apontando para um PDF — cujo conteúdo o
+Prumo declara não conseguir extrair — também volta `FRESH`, porque o arquivo não mudou.
+
+O veredicto é recalculado a cada chamada, comparando tamanho, data de modificação e resumo SHA-256
+do arquivo. Divergir em qualquer um dos três basta para o registro ser `STALE` — inclusive quando a
+mudança foi em outra parte do arquivo. É deliberado: um falso `STALE` custa uma redestilação, um
+falso `FRESH` entrega conteúdo errado como se fosse bom.
+
+### `prumo_knowledge_remember`
+Guarda um trecho destilado, dizendo de que fonte ele veio. **O carimbo da fonte é calculado pelo
+Prumo**, nunca aceito do cliente: um carimbo informado pela IA provaria apenas o que ela disse.
+O que é recusado é o registro que **nomeia uma fonte inalcançável** — id que não existe no
+workspace, caminho que não existe dentro dela, ou caminho excluído pelo desenvolvedor, e as três
+recusas chegam distintas. O Prumo carimba de onde o texto veio; ele **não** confere que o texto
+decorre dali, e esse juízo continua sendo de quem escreve.
+
+### `prumo_knowledge_recall`
+Procura o que já foi destilado, por etiqueta, por fonte, por texto no título ou por frescor. Literal
+e determinística — sem embedding e sem ordenação por modelo. Não devolve o texto: devolve a lista com
+procedência e veredicto.
+
+### `prumo_knowledge_read`
+O texto completo de um registro, com a procedência e o frescor ao lado. Um registro `STALE` continua
+sendo devolvido — o que ele diz pode continuar útil —, mas a fonte é a verdade.
+
+### `prumo_knowledge_forget`
+Remove um registro. Imediato, sem perguntar ao desenvolvedor. A fonte não é tocada: sai apenas o que
+foi destilado dela.
 
 ---
 

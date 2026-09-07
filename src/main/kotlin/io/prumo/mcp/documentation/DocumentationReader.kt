@@ -1,7 +1,7 @@
 package io.prumo.mcp.documentation
 
+import io.prumo.mcp.repository.PathSecurityValidator
 import java.nio.file.Files
-import java.nio.file.InvalidPathException
 import java.nio.file.Path
 import kotlin.io.path.isDirectory
 import kotlin.io.path.isRegularFile
@@ -36,8 +36,10 @@ object DocumentationReader {
     /**
      * @param source fonte cadastrada no workspace.
      * @param relativePath arquivo dentro da fonte, obrigatório quando ela é uma pasta.
-     * @throws DocumentationReadException quando a fonte sumiu, o formato não é lido como texto, o
-     *   caminho é absoluto, escapa da raiz cadastrada ou não existe.
+     * @throws DocumentationReadException quando a fonte sumiu, o formato não é lido como texto ou o
+     *   arquivo pedido não existe dentro dela.
+     * @throws io.prumo.mcp.repository.PathAccessDeniedException quando o caminho é absoluto, traz
+     *   `..` ou resolve fora da raiz cadastrada.
      */
     fun read(
         source: DocumentationSource,
@@ -121,31 +123,10 @@ object DocumentationReader {
             )
         }
 
-        val candidate = runCatching { Path.of(relativePath) }.getOrElse {
-            throw DocumentationReadException("Prumo refused the path '$relativePath': it is not a valid path.")
-        }
-        if (candidate.isAbsolute) {
-            throw DocumentationReadException("Prumo refused the path '$relativePath': absolute path.")
-        }
-        if (candidate.any { it.toString() == ".." }) {
-            throw DocumentationReadException("Prumo refused the path '$relativePath': parent traversal.")
-        }
-
-        val resolved = try {
-            root.resolve(candidate).normalize()
-        } catch (_: InvalidPathException) {
-            throw DocumentationReadException("Prumo refused the path '$relativePath': it is not a valid path.")
-        }
+        val resolved = PathSecurityValidator.resolve(root, relativePath)
         if (!Files.exists(resolved)) {
             throw DocumentationReadException("'$relativePath' does not exist in documentation source '${source.id}'.")
         }
-
-        val real = resolved.toRealPath()
-        if (!real.startsWith(root)) {
-            throw DocumentationReadException(
-                "Prumo refused the path '$relativePath': it leaves the documentation source.",
-            )
-        }
-        return real
+        return resolved.toRealPath()
     }
 }

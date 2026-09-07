@@ -4,6 +4,7 @@ import com.intellij.mcpserver.McpExpectedError
 import com.intellij.mcpserver.mcpCallInfoOrNull
 import com.intellij.mcpserver.projectOrNull
 import com.intellij.openapi.project.Project
+import io.prumo.mcp.client.ClientIdentity
 import kotlin.coroutines.CoroutineContext
 
 /**
@@ -20,6 +21,18 @@ internal object McpProjectResolver {
             throw McpExpectedError(NO_PROJECT_RESOLVED)
         }
         return callContext.projectOrNull ?: throw McpExpectedError(NO_PROJECT_RESOLVED)
+    }
+
+    /**
+     * Quem fez a chamada, conforme o cliente se declarou no `initialize`.
+     *
+     * Fora de uma chamada MCP, ou quando o cliente não se identifica, devolve
+     * [ClientIdentity.UNKNOWN] — a ausência de identidade nunca impede a chamada, porque a
+     * identidade serve para registrar, não para autorizar.
+     */
+    fun client(callContext: CoroutineContext): ClientIdentity {
+        val info = callContext.mcpCallInfoOrNull?.clientInfo ?: return ClientIdentity.UNKNOWN
+        return ClientIdentity.of(info.name, info.version)
     }
 
     const val NO_PROJECT_RESOLVED: String =

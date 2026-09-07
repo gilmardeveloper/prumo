@@ -1,11 +1,11 @@
 package io.prumo.mcp.ui.pack
 
-import com.intellij.openapi.application.ApplicationManager
 import com.intellij.openapi.project.Project
-import com.intellij.ui.components.JBLabel
+import com.intellij.ui.ColoredListCellRenderer
+import com.intellij.ui.SimpleTextAttributes
 import com.intellij.ui.components.JBList
 import com.intellij.ui.dsl.builder.AlignX
-import com.intellij.ui.dsl.builder.panel
+import com.intellij.ui.dsl.builder.Panel
 import io.prumo.mcp.i18n.PrumoBundle
 import io.prumo.mcp.ide.PrumoWorkspaceService
 import io.prumo.mcp.pack.application.PackStore
@@ -13,10 +13,11 @@ import io.prumo.mcp.pack.authoring.PackSubmission
 import io.prumo.mcp.pack.authoring.SubmissionQueue
 import io.prumo.mcp.pack.exchange.PackImporter
 import io.prumo.mcp.pack.exchange.PackOrigin
-import io.prumo.mcp.ui.PrumoToolWindowFactory
+import io.prumo.mcp.ui.PrumoSeverity
+import io.prumo.mcp.ui.PrumoUiEvents
 import javax.swing.DefaultListModel
-import javax.swing.JComponent
-import javax.swing.ListCellRenderer
+import javax.swing.JList
+import javax.swing.ListModel
 
 /**
  * Fila de packs propostos por um cliente MCP, esperando o desenvolvedor.
@@ -29,23 +30,30 @@ class ApprovalQueuePanel(
 ) {
 
     private val submissions = DefaultListModel<PackSubmission>()
-    private val status = JBLabel(" ")
+    private val queue = JBList(submissions).apply { cellRenderer = renderer() }
 
-    fun component(): JComponent {
+    /**
+     * Escreve a fila no painel do pai, no mesmo contrato de [PackExchangePanel].
+     *
+     * A fila aparece mesmo vazia: escondê-la fazia a proposta recém-submetida por um cliente de IA
+     * parecer perdida, e a própria descrição da tool precisava avisar disso.
+     */
+    fun render(panel: Panel) = with(panel) {
         refresh()
-        return panel {
-            row { label(PrumoBundle.message("pack.queue.title")) }
-            row {
-                cell(JBList(submissions).apply { cellRenderer = renderer() }).align(AlignX.FILL)
-            }
-            row {
-                button(PrumoBundle.message("pack.queue.review")) { review() }
-                button(PrumoBundle.message("pack.queue.discard")) { discard() }
-                cell(status)
-            }
-            row {
-                comment(PrumoBundle.message("pack.queue.hint"))
-            }
+        row { label(PrumoBundle.message("pack.queue.title")) }
+        if (submissions.isEmpty) {
+            row { comment(PrumoBundle.message("pack.queue.none")) }
+            return@with
+        }
+        row {
+            cell(queue).align(AlignX.FILL)
+        }
+        row {
+            button(PrumoBundle.message("pack.queue.review")) { review() }
+            button(PrumoBundle.message("pack.queue.discard")) { discard() }
+        }
+        row {
+            comment(PrumoBundle.message("pack.queue.hint"))
         }
     }
 
@@ -54,17 +62,24 @@ class ApprovalQueuePanel(
         SubmissionQueue(PrumoWorkspaceService.getInstance().storage).pending(workspaceId).forEach(submissions::addElement)
     }
 
-    private fun selected(): PackSubmission? = submissions.elements().toList().firstOrNull()
+    /**
+     * Submissão sobre a qual os botões agem, ou `null` com o motivo já mostrado ao usuário.
+     */
+    private fun selected(): PackSubmission? {
+        val submission = selectionOrSingle(submissions, queue.selectedIndex)
+        if (submission == null) {
+            val reason = if (submissions.isEmpty) "pack.queue.empty" else "pack.queue.selectOne"
+            notifyPackWarning(project, reason)
+        }
+        return submission
+    }
 
     /**
      * Revisar abre o termo de consentimento com o pack inteiro à vista. A instalação só acontece
      * depois do aceite — e um pack bloqueado não tem botão para aceitar.
      */
     private fun review() {
-        val submission = selected() ?: run {
-            status.text = PrumoBundle.message("pack.queue.empty")
-            return
-        }
+        val submission = selected() ?: return
         val preview = try {
             PackImporter.preview(submission.draft, PackOrigin.DRAFT)
         } catch (failure: Exception) {
@@ -73,7 +88,7 @@ class ApprovalQueuePanel(
         }
         val dialog = PackConsentDialog(project, preview)
         if (!dialog.showAndGet()) {
-            status.text = PrumoBundle.message("pack.queue.notInstalled")
+            notifyPackWarning(project, "pack.queue.notInstalled")
             return
         }
 
@@ -89,29 +104,41 @@ class ApprovalQueuePanel(
             showPackFailure(project, failure, "pack.queue.installError")
             return
         }
-        service.audit.record(
-            workspaceId = workspaceId,
-            tool = "prumo_ide",
-            operation = "pack.install",
-            result = io.prumo.mcp.audit.AuditResult.SUCCESS,
-            durationMillis = 0,
-            packId = submission.packId,
-            details = mapOf(
-                "version" to submission.version,
-                "checksum" to preview.checksum,
-                "riskLevel" to submission.riskLevel,
-                "capabilities" to preview.manifest.capabilities.joinToString(",") { it.name },
-            ),
-        )
-        SubmissionQueue(service.storage).discard(workspaceId, submission.submissionId)
-        status.text = PrumoBundle.message("pack.queue.installed")
+        // O pack já está instalado: falha ao auditar ou ao limpar a fila é mostrada, não revertida.
+        try {
+            service.audit.record(
+                workspaceId = workspaceId,
+                tool = "prumo_ide",
+                operation = "pack.install",
+                result = io.prumo.mcp.audit.AuditResult.SUCCESS,
+                durationMillis = 0,
+                packId = submission.packId,
+                details = mapOf(
+                    "version" to submission.version,
+                    "checksum" to preview.checksum,
+                    "riskLevel" to submission.riskLevel,
+                    "capabilities" to preview.manifest.capabilities.joinToString(",") { it.name },
+                ),
+            )
+            SubmissionQueue(service.storage).discard(workspaceId, submission.submissionId)
+        } catch (failure: Exception) {
+            showPackFailure(project, failure, "pack.audit.error")
+            redraw()
+            return
+        }
+        notifyPack(project, "pack.queue.installed")
         redraw()
     }
 
     private fun discard() {
         val submission = selected() ?: return
-        SubmissionQueue(PrumoWorkspaceService.getInstance().storage).discard(workspaceId, submission.submissionId)
-        status.text = PrumoBundle.message("pack.queue.discarded")
+        try {
+            SubmissionQueue(PrumoWorkspaceService.getInstance().storage).discard(workspaceId, submission.submissionId)
+        } catch (failure: Exception) {
+            showPackFailure(project, failure, "pack.queue.discardError")
+            return
+        }
+        notifyPack(project, "pack.queue.discarded")
         redraw()
     }
 
@@ -123,16 +150,40 @@ class ApprovalQueuePanel(
      * instalado logo depois de instalar um.
      */
     private fun redraw() {
-        ApplicationManager.getApplication().invokeLater { PrumoToolWindowFactory.refreshOpenProjects() }
+        PrumoUiEvents.publishStateChanged()
     }
 
-    private fun renderer() = ListCellRenderer<PackSubmission> { _, value, _, _, _ ->
-        JBLabel("${value.title}  —  ${value.packId} ${value.version} · risk ${value.riskLevel}")
+    /**
+     * Desenha a proposta com o ícone e a cor do nível de risco, honrando o estado de seleção.
+     */
+    private fun renderer() = object : ColoredListCellRenderer<PackSubmission>() {
+        override fun customizeCellRenderer(
+            list: JList<out PackSubmission>,
+            value: PackSubmission,
+            index: Int,
+            selected: Boolean,
+            hasFocus: Boolean,
+        ) {
+            val level = PrumoSeverity.levelOf(value.riskLevel)
+            icon = PrumoSeverity.iconFor(level)
+            append(value.title)
+            append("  ${value.packId} · ${value.version}", SimpleTextAttributes.GRAYED_ATTRIBUTES)
+            append(
+                "  ${level.name}",
+                SimpleTextAttributes(SimpleTextAttributes.STYLE_PLAIN, PrumoSeverity.colorFor(level)),
+            )
+        }
     }
 }
 
-private fun <T> java.util.Enumeration<T>.toList(): List<T> = buildList {
-    while (hasMoreElements()) {
-        add(nextElement())
-    }
+/**
+ * Item de uma lista sobre o qual uma ação deve agir: o selecionado ou, quando há um só, ele mesmo.
+ *
+ * Devolve `null` sem seleção e com mais de um item — agir sobre um deles seria escolher pelo
+ * usuário.
+ */
+internal fun <T> selectionOrSingle(model: ListModel<T>, selectedIndex: Int): T? = when {
+    selectedIndex in 0 until model.size -> model.getElementAt(selectedIndex)
+    model.size == 1 -> model.getElementAt(0)
+    else -> null
 }

@@ -16,8 +16,8 @@ cliente de IA pode enxergar não depende da IDE**, e por isso pode ser testada s
 ├──────────────────────────────────────────────────────────────────────────┤
 │ ide/                 O único lugar que toca Project, PSI e Git4Idea.      │
 ├──────────────────────────────────────────────────────────────────────────┤
-│ workspace/ policy/ repository/ datasource/ pack/ audit/ storage/          │
-│                      O núcleo determinístico. Nenhum tipo do IntelliJ.    │
+│ workspace/ policy/ repository/ datasource/ pack/ audit/ storage/ quality/ │
+│ knowledge/           O núcleo determinístico. Nenhum tipo do IntelliJ.    │
 ├──────────────────────────────────────────────────────────────────────────┤
 │ platform/            Sistema operacional, diretórios, execução de script. │
 └──────────────────────────────────────────────────────────────────────────┘
