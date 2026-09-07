@@ -6,6 +6,49 @@ All notable changes to this project are documented here. The format follows
 
 ## [Unreleased]
 
+## [0.5.0] - 2026-09-07
+
+### Added
+
+- **AI clients now have a memory of their own.** `prumo_knowledge_remember`, `_recall`, `_read` and
+  `_forget` give each workspace a store where a client records what it distilled from sources that
+  were already in reach, so an expensive document need not be read again in the next session — by
+  that client or by any other. It is not portable and not exported: it lives on the machine, inside
+  the workspace, and it is rebuildable from the sources.
+- **Provenance, and a freshness verdict beside every answer.** Each record names the source it came
+  from, and Prumo — not the client — stamps that source with its size, modification time and SHA-256.
+  Every read recomputes the stamp and answers `FRESH`, `STALE` or `ORPHAN`, so a client can decide
+  on its own whether to trust the record or go back to the source. Any of the three measures
+  differing is enough for `STALE`: a false `STALE` costs one redistillation, a false `FRESH` hands
+  over wrong content as if it were good.
+- **What Prumo refuses to guarantee is written in the tool descriptions.** It guarantees where a
+  record came from, whether the source changed, who wrote it and when. It does not guarantee that
+  the summary is faithful, nor that it replaces the source: a record cites, it does not substitute.
+  A test fails the build if those refusals leave the description.
+- **Prumo now knows which client is calling.** `ClientInfo` reaches every MCP call and had been
+  discarded since 0.1.0; the audit trail now records it on all ten outcomes, refusals included, and
+  each knowledge record carries the client that wrote it.
+- **An `AI memory` tab.** This is the one surface where the AI writes without the developer, so the
+  window shows every record with its source, its author and its freshness — and lets the developer
+  delete any of them.
+
+### Changed
+
+- **The knowledge store is transactional.** It runs on the H2 MVStore that ships with the IDE, so
+  redistilling a source replaces what came from it atomically — all of it or none. Nothing new is
+  bundled: the plugin declares the module and grows by the size of its own code.
+- **Submitting a pack no longer consumes a read decision.** `pack_submit` writes a file to the
+  approval queue and had been asking the policy engine about reading documentation; it now has an
+  action that describes what it does, and a test fails the build if any writing tool consumes a
+  `READ_` action again.
+
+### Fixed
+
+- **A tab written but left out of the registry compiled and simply never appeared.** The same silent
+  failure as a toolset missing from `plugin.xml`, and only discoverable by opening the IDE. A test
+  now fails the build instead.
+
+
 ## [0.4.0] - 2026-09-07
 
 ### Added
@@ -664,7 +707,8 @@ full cycle with a real AI client — are still open.
 - Repository role and workspace type explain themselves in the dialog: both describe the work to the
   AI client and enforce nothing, which access modes and policies do.
 
-[Unreleased]: https://github.com/gilmardeveloper/prumo/compare/v0.4.0...HEAD
+[Unreleased]: https://github.com/gilmardeveloper/prumo/compare/v0.5.0...HEAD
+[0.5.0]: https://github.com/gilmardeveloper/prumo/compare/v0.4.0...v0.5.0
 [0.4.0]: https://github.com/gilmardeveloper/prumo/compare/v0.3.0...v0.4.0
 [0.3.0]: https://github.com/gilmardeveloper/prumo/compare/v0.2.1...v0.3.0
 [0.2.1]: https://github.com/gilmardeveloper/prumo/compare/v0.2.0...v0.2.1
