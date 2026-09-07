@@ -208,6 +208,7 @@ class ToolSurfaceTest {
             DatabaseToolset::class.java,
             PackToolset::class.java,
             PackAuthoringToolset::class.java,
+            QualityToolset::class.java,
         )
             .flatMap { toolset -> toolset.declaredMethods.mapNotNull { it.getAnnotation(McpTool::class.java)?.name } }
             .sorted()
@@ -227,6 +228,7 @@ class ToolSurfaceTest {
                 "prumo_pack_search_knowledge",
                 "prumo_pack_submit",
                 "prumo_pack_validate",
+                "prumo_quality_list_inspections",
                 "prumo_repository_get_branch",
                 "prumo_repository_get_diff",
                 "prumo_repository_get_status",
@@ -242,6 +244,32 @@ class ToolSurfaceTest {
             ),
             registered,
         )
+    }
+
+    /**
+     * Uma toolset que não está no `plugin.xml` compila, passa no verificador e simplesmente não
+     * existe para o cliente. O defeito só aparece com a IDE aberta.
+     */
+    @Test
+    fun `toda toolset com tool declarada esta registrada no descritor`() {
+        val descriptor = java.nio.file.Files.readString(
+            java.nio.file.Path.of("src/main/resources/META-INF/plugin.xml"),
+        )
+        val toolsets = listOf(
+            PrumoDiagnosticsToolset::class.java,
+            WorkspaceToolset::class.java,
+            RepositoryToolset::class.java,
+            IdeToolset::class.java,
+            DatabaseToolset::class.java,
+            PackToolset::class.java,
+            PackAuthoringToolset::class.java,
+            QualityToolset::class.java,
+        ).filter { toolset -> toolset.declaredMethods.any { it.getAnnotation(McpTool::class.java) != null } }
+
+        val ausentes = toolsets.filterNot { descriptor.contains(it.name) }
+
+        assertTrue(toolsets.isNotEmpty(), "nenhuma toolset encontrada; o teste perdeu o alvo")
+        assertTrue(ausentes.isEmpty(), "toolset fora do plugin.xml: ${ausentes.map { it.simpleName }}")
     }
 
     @Test
