@@ -1,89 +1,92 @@
-# Architecture
+# Arquitetura
 
-Prumo is an IntelliJ Platform plugin that contributes tools to the IDE's bundled MCP server. It has
-one architectural rule that explains most of the rest: **the part that decides what an AI client may
-see does not depend on the IDE**, so it can be tested without one.
+**Português (Brasil)** · [English](architecture.en.md)
 
-## Layers
+O Prumo é um plugin da plataforma IntelliJ que contribui ferramentas para o servidor MCP embutido na
+IDE. Tem uma regra de arquitetura que explica quase todo o resto: **a parte que decide o que um
+cliente de IA pode enxergar não depende da IDE**, e por isso pode ser testada sem uma.
+
+## Camadas
 
 ```
 ┌──────────────────────────────────────────────────────────────────────────┐
-│ toolsets/            MCP adapter — thin. Resolves the project, delegates. │
+│ toolsets/            Adaptador MCP — fino. Resolve o projeto e delega.    │
 ├──────────────────────────────────────────────────────────────────────────┤
-│ ui/                  Tool window, workspace editor, consent screen.       │
+│ ui/                  Janela do Prumo, editor de workspace, consentimento. │
 ├──────────────────────────────────────────────────────────────────────────┤
-│ ide/                 The only place that touches Project, PSI, Git4Idea.  │
+│ ide/                 O único lugar que toca Project, PSI e Git4Idea.      │
 ├──────────────────────────────────────────────────────────────────────────┤
 │ workspace/ policy/ repository/ datasource/ pack/ audit/ storage/          │
-│                      The deterministic core. No IntelliJ types.           │
+│                      O núcleo determinístico. Nenhum tipo do IntelliJ.    │
 ├──────────────────────────────────────────────────────────────────────────┤
-│ platform/            Operating system, directories, process execution.    │
+│ platform/            Sistema operacional, diretórios, execução de script. │
 └──────────────────────────────────────────────────────────────────────────┘
 ```
 
-Everything below `ide/` is plain Kotlin. That is why 243 tests run in seconds without starting an
-IDE, and why the boundary guarantees are verifiable rather than argued.
+Tudo abaixo de `ide/` é Kotlin puro. É por isso que a suíte roda em segundos sem subir uma IDE, e é
+por isso que as garantias de fronteira são verificáveis em vez de argumentadas.
 
-## The one path to context
+## O caminho único até o contexto
 
-Every tool goes through the same contract, in `toolsets/PrumoToolCall.kt`:
+Toda tool passa pelo mesmo contrato, em `toolsets/PrumoToolCall.kt`:
 
-1. **Resolve the project.** The IDE's MCP server is one server for the whole application and serves
-   several open projects. A project chosen by convenience when that identification fails would mean
-   exposing one workspace instead of another, so the absence of a project is always an error.
-2. **Resolve the workspace**, through `CurrentWorkspaceContextService` — the single resolver. Not
-   configured is an error; bound to more than one workspace is an error. Prumo does not choose.
-3. **Resolve the target** — a repository or a data source — *inside* the workspace. An identifier
-   that does not belong here is refused, not searched for elsewhere.
-4. **Ask the `PolicyEngine`.** No tool decides permission on its own, and no instruction given to the
-   LLM substitutes for this evaluation.
-5. **Do the work**, then **record the audit** with the real outcome.
-6. **Fail closed and explicit.** Ambiguity, violation and unparseable input all end in an actionable
-   error, never in a best-effort guess.
+1. **Resolver o projeto.** O servidor MCP da IDE é um só para a aplicação inteira e atende vários
+   projetos abertos. Escolher um projeto por conveniência quando essa identificação falha seria
+   expor um workspace no lugar de outro, então a ausência de projeto é sempre erro.
+2. **Resolver o workspace**, pelo `CurrentWorkspaceContextService` — o resolvedor único. Não
+   configurado é erro; vinculado a mais de um workspace é erro. O Prumo não escolhe.
+3. **Resolver o alvo** — um repositório ou um banco — *dentro* do workspace. Identificador que não
+   pertence a este workspace é recusado, não procurado em outro lugar.
+4. **Consultar o `PolicyEngine`.** Nenhuma tool decide permissão por conta própria, e nenhuma
+   instrução dada ao modelo substitui essa avaliação.
+5. **Fazer o trabalho** e então **registrar a auditoria** com o desfecho real.
+6. **Falhar fechado e explícito.** Ambiguidade, violação e entrada que o parser não reconhece
+   terminam em erro acionável, nunca em palpite.
 
-Because the contract lives in one function, a new tool cannot implement half of it by accident.
+Como o contrato vive numa função só, uma tool nova não consegue implementar metade dele por descuido.
 
-## How a project becomes a workspace
+## Como um projeto vira um workspace
 
-A repository is identified by a **fingerprint**, not by its path: the normalized Git remote when
-there is one, the directory name otherwise. A developer who moves `C:\repos` to `D:\workspace`, or
-clones the same repository on another machine, keeps the binding. The alternative — writing a marker
-file inside the repository — is forbidden by the "nothing inside your repositories" rule.
+Um repositório é identificado por **fingerprint**, não pelo caminho: o remote Git normalizado quando
+existe, o nome do diretório quando não. Quem move `C:\repos` para `D:\workspace`, ou clona o mesmo
+repositório em outra máquina, mantém o vínculo. A alternativa — gravar um arquivo marcador dentro do
+repositório — é proibida pela regra de nunca escrever dentro dos seus repositórios.
 
-Two workspaces claiming the same project is a configuration error, and Prumo says so instead of
-picking one.
+Dois workspaces reivindicando o mesmo projeto é erro de configuração, e o Prumo diz isso em vez de
+escolher um.
 
-## Where things are stored
+## Onde as coisas ficam
 
-| What | Where |
+| O quê | Onde |
 |---|---|
-| Workspaces, packs, audit | `%LOCALAPPDATA%\PrumoMCP\` on Windows, `$XDG_DATA_HOME/prumo-mcp/` on Linux |
-| Credentials | The IDE password safe, addressed by workspace + data source |
-| Your project | **Nothing.** Not one byte. |
+| Workspaces, pacotes, auditoria | `%LOCALAPPDATA%\PrumoMCP\` no Windows, `$XDG_DATA_HOME/prumo-mcp/` no Linux |
+| Credenciais | O cofre de senhas da IDE, endereçado por workspace + banco |
+| O seu projeto | **Nada.** Nem um byte. |
 
-## Decisions, dated
+## Decisões, com data
 
-| Date | Decision | Why |
+| Data | Decisão | Por quê |
 |---|---|---|
-| 2026-09-04 | Contribute to the IDE's MCP server instead of running our own | One server, one consent, one place for the user to configure |
-| 2026-09-04 | Read `.git/config` directly for remote and root | Same behaviour on Windows and Linux, testable without the IDE |
-| 2026-09-04 | Tool names use `_`, not `.` | The platform's own tools do, and clients validate names against `[A-Za-z0-9_-]` |
-| 2026-09-05 | Bundle the PostgreSQL driver | Database Tools exists only in Ultimate; Prumo must work in Community |
-| 2026-09-05 | Git state through the bundled Git plugin | Uses the executable the user already configured; no second Git implementation inside the plugin |
-| 2026-09-05 | No connection pool | A pool keeps authenticated connections alive between calls: secrets in memory for longer, session state surviving a query |
-| 2026-09-05 | JSqlParser for statement classification | Pure Java, Apache-2.0/LGPL, 1.2 MB. Writing our own SQL recognizer is how most security bypasses happen |
-| 2026-09-05 | Gradle build cache disabled | It restored stale test output after an ABI change: 34 tests failed against old bytecode, and worse, some had passed |
-| 2026-09-05 | Interface bilingual, MCP surface English-only | Tool names and descriptions are a contract read by an AI; interface text is for a human |
-| 2026-09-05 | Interface language resolved by Prumo, not only by the IDE | The IDE language is the default; forcing one requires loading the bundle for an explicit locale, because the platform's `<resource-bundle>` and the internal `getResourceBundleLocalized` follow the IDE |
+| 2026-09-04 | Contribuir para o servidor MCP da IDE em vez de subir um próprio | Um servidor, um consentimento, um lugar só para o usuário configurar |
+| 2026-09-04 | Ler `.git/config` diretamente para remote e raiz | Mesmo comportamento no Windows e no Linux, testável sem a IDE |
+| 2026-09-04 | Nome de tool com `_`, não com `.` | As próprias tools da plataforma usam, e clientes validam nome contra `[A-Za-z0-9_-]` |
+| 2026-09-05 | Empacotar o driver do PostgreSQL | O Database Tools só existe no Ultimate; o Prumo precisa funcionar no Community |
+| 2026-09-05 | Estado do Git pelo plugin Git embutido | Usa o executável que o usuário já configurou; sem uma segunda implementação de Git dentro do plugin |
+| 2026-09-05 | Sem pool de conexão | Pool mantém conexão autenticada viva entre chamadas: segredo mais tempo em memória e estado de sessão sobrevivendo à consulta |
+| 2026-09-05 | JSqlParser para classificar o statement | Java puro, Apache-2.0/LGPL, 1,2 MB. Escrever o próprio reconhecedor de SQL é como a maioria dos bypass acontece |
+| 2026-09-05 | Cache de build do Gradle desligado | Ele restaurou saída de teste obsoleta depois de uma mudança de ABI: 34 testes falharam contra bytecode velho e, pior, alguns passaram |
+| 2026-09-05 | Interface bilíngue, superfície MCP só em inglês | Nome e descrição de tool são contrato lido por uma IA; texto de interface é para gente |
+| 2026-09-05 | Idioma da interface resolvido pelo Prumo, não só pela IDE | O idioma da IDE é o padrão; forçar um exige carregar o bundle para um locale explícito, porque o `<resource-bundle>` da plataforma e o `getResourceBundleLocalized` interno seguem a IDE |
+| 2026-09-05 | Papel de repositório com serializador próprio | Papel removido do enum tornaria ilegível o arquivo inteiro do workspace; o serializador resolve valor desconhecido em vez de derrubar repositórios, documentação, bancos e políticas |
 
-## Testing strategy
+## Estratégia de teste
 
-- The deterministic core is tested directly, without an IDE.
-- The database layers are tested against a real PostgreSQL through Testcontainers. Without Docker,
-  those tests declare themselves skipped — the rest of the suite still means something.
-- Script confinement is tested against the real operating system, with commands chosen per OS so the
-  same guarantees are checked on Windows and Linux.
-- Two tests read the project's own source: one pins the registered MCP tool names, another proves
-  that the authoring toolset contains no installation path.
-- `SecurityCoverageTest` maps each inviolable principle to the test that sustains it, and fails when
-  one disappears.
+- O núcleo determinístico é testado direto, sem IDE.
+- As camadas de banco são testadas contra um PostgreSQL real por Testcontainers. Sem Docker, esses
+  testes se declaram pulados — o resto da suíte continua significando alguma coisa.
+- O confinamento de script é testado contra o sistema operacional real, com comandos escolhidos por
+  sistema, para que as mesmas garantias sejam conferidas no Windows e no Linux.
+- Dois testes leem o código-fonte do próprio projeto: um fixa os nomes das tools MCP registradas,
+  outro prova que o toolset de autoria não contém caminho de instalação.
+- O `SecurityCoverageTest` mapeia cada princípio inviolável ao teste que o sustenta, e falha quando
+  um deles desaparece.

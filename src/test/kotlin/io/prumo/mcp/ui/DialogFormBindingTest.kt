@@ -8,36 +8,51 @@ import kotlin.io.path.readText
 import kotlin.io.path.walk
 
 /**
- * `DialogWrapper` copia os valores ligados por `bindText`, `bindItem` e afins para as propriedades
- * só quando chama `DialogPanel.apply()`, e isso acontece depois de `doValidate()` aprovar. Diálogo
- * que valida ou consulta o formulário antes do OK precisa ler os componentes direto, senão enxerga
- * o formulário como ele nasceu — e recusa o que o usuário acabou de digitar.
+ * Nenhum diálogo deste projeto depende de `bindText`, `bindItem` e afins.
+ *
+ * `DialogWrapper` só copia o valor ligado para a propriedade quando chama `DialogPanel.apply()`, e
+ * isso tem duas condições frágeis: acontece **depois** de `doValidate()` aprovar, e só quando
+ * `createCenterPanel()` devolve o `DialogPanel` em pessoa. Envolver o painel — num `JBScrollPane`,
+ * por exemplo — faz a plataforma deixar de reconhecê-lo, e a gravação passa a descartar em silêncio
+ * tudo o que o usuário editou. As duas armadilhas já custaram um defeito cada; ler do componente
+ * não tem nenhuma delas.
  */
 class DialogFormBindingTest {
 
     @Test
-    fun `dialogo que valida le os componentes, e nao valor ligado`() {
-        val infratores = dialogSources()
-            .filter { (_, code) -> code.contains("override fun doValidate") }
+    fun `nenhum dialogo depende de valor ligado`() {
+        val infratores = dialogClasses()
             .filter { (_, code) -> BINDINGS.any { code.contains(it) } }
-            .map { (path, _) -> path.fileName.toString() }
+            .map { (name, _) -> name }
 
         assertTrue(
             infratores.isEmpty(),
-            "diálogo com doValidate não pode depender de bind*, que só é aplicado depois: $infratores",
+            "diálogo não pode depender de bind*; leia do próprio componente: $infratores",
         )
     }
 
+    /**
+     * O recorte é por classe, não por arquivo: um mesmo arquivo hospeda diálogos com regras
+     * diferentes, e o que decide é quem declara `doValidate`.
+     */
     @OptIn(kotlin.io.path.ExperimentalPathApi::class)
-    private fun dialogSources(): List<Pair<Path, String>> {
-        val sources = Path.of("src/main/kotlin/io/prumo/mcp/ui").walk()
+    private fun dialogClasses(): List<Pair<String, String>> {
+        val classes = Path.of("src/main/kotlin/io/prumo/mcp/ui").walk()
             .filter { it.extension == "kt" }
-            .map { it to it.readText() }
+            .flatMap { file -> topLevelClasses(file.readText()) }
             .filter { (_, code) -> code.contains("DialogWrapper(") }
             .toList()
 
-        assertTrue(sources.isNotEmpty(), "nenhum DialogWrapper encontrado")
-        return sources
+        assertTrue(classes.isNotEmpty(), "nenhum DialogWrapper encontrado")
+        return classes
+    }
+
+    private fun topLevelClasses(code: String): List<Pair<String, String>> {
+        val declarations = Regex("""(?m)^(?:internal )?class (\w+)""").findAll(code).toList()
+        return declarations.mapIndexed { index, match ->
+            val end = declarations.getOrNull(index + 1)?.range?.first ?: code.length
+            match.groupValues[1] to code.substring(match.range.first, end)
+        }
     }
 
     private companion object {

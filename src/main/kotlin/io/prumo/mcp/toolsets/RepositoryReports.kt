@@ -6,6 +6,7 @@ import io.prumo.mcp.repository.FileSlice
 import io.prumo.mcp.repository.GitBranchState
 import io.prumo.mcp.repository.GitFileDelta
 import io.prumo.mcp.repository.GitStatusSnapshot
+import io.prumo.mcp.repository.RepositoryReader
 import io.prumo.mcp.repository.TextSearchOutcome
 import io.prumo.mcp.workspace.application.WorkspaceContext
 import io.prumo.mcp.workspace.domain.RepositoryBinding
@@ -171,17 +172,24 @@ object RepositoryReports {
         )
     }
 
+    /**
+     * Monta o diff já sem os caminhos que este repositório exclui.
+     *
+     * O patch carrega o conteúdo das linhas alteradas, então um caminho excluído que chegasse aqui
+     * entregaria por diferença o que as demais tools recusam entregar por leitura.
+     */
     fun diff(
         binding: RepositoryBinding,
         staged: Boolean,
         deltas: List<GitFileDelta>,
         patchLines: List<String>? = null,
     ): RepositoryDiffResponse {
+        val visible = deltas.filterNot { RepositoryReader.isExcludedPath(it.path, binding.excludedPaths) }
         val visiblePatch = patchLines?.take(MAX_PATCH_LINES)
         return RepositoryDiffResponse(
             repositoryId = binding.id,
             staged = staged,
-            files = deltas.map { FileDeltaResponse(it.path, it.addedLines, it.deletedLines, it.binary) },
+            files = visible.map { FileDeltaResponse(it.path, it.addedLines, it.deletedLines, it.binary) },
             patch = visiblePatch?.joinToString("\n"),
             patchTruncated = patchLines != null && visiblePatch != null && patchLines.size > visiblePatch.size,
         )

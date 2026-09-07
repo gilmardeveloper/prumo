@@ -79,10 +79,19 @@ class PrumoWorkspacePanel(private val project: Project) {
     private fun render(): JPanel {
         val service = PrumoWorkspaceService.getInstance()
         val resolution = service.resolve(project)
-        val pending = (resolution as? io.prumo.mcp.workspace.application.WorkspaceResolution.Resolved)
-            ?.let { io.prumo.mcp.pack.authoring.SubmissionQueue(service.storage).pending(it.context.workspace.id).size }
+        val workspaceId = (resolution as? io.prumo.mcp.workspace.application.WorkspaceResolution.Resolved)
+            ?.context?.workspace?.id
+        val pending = workspaceId
+            ?.let { io.prumo.mcp.pack.authoring.SubmissionQueue(service.storage).pending(it).size }
             ?: 0
-        val model = WorkspaceViewModel.from(resolution, pending)
+        val installed = workspaceId
+            ?.let { id ->
+                io.prumo.mcp.pack.application.PackStore(service.storage).list(id).map {
+                    WorkspaceViewModel.PackRow(it.id, it.title.default, it.version)
+                }
+            }
+            .orEmpty()
+        val model = WorkspaceViewModel.from(resolution, pending, installed)
 
         return panel {
             when (model) {
@@ -118,7 +127,7 @@ class PrumoWorkspacePanel(private val project: Project) {
 
     private fun com.intellij.ui.dsl.builder.Panel.configured(model: WorkspaceViewModel.Configured) {
         row { label(model.workspaceName).bold() }
-        row { comment(model.workspaceType) }
+        row { comment(PrumoBundle.message(model.workspaceTypeKey)) }
         row {
             button(PrumoBundle.message("toolwindow.edit")) { ConfigureWorkspaceAction.edit(project) }
         }
@@ -128,7 +137,10 @@ class PrumoWorkspacePanel(private val project: Project) {
                 row {
                     val marker = if (repository.current) "▸ " else ""
                     cell(JBLabel("$marker${repository.name}"))
-                    comment("${repository.role} · ${repository.accessMode}")
+                    comment(
+                        PrumoBundle.message(repository.roleKey) + " · " +
+                            PrumoBundle.message(repository.accessModeKey),
+                    )
                 }
             }
         }
@@ -140,6 +152,10 @@ class PrumoWorkspacePanel(private val project: Project) {
                     comment(PrumoBundle.message(if (policy.allowed) "policy.allow" else "policy.deny"))
                 }
             }
+        }
+
+        group(PrumoBundle.message("toolwindow.packs.title")) {
+            io.prumo.mcp.ui.pack.PackExchangePanel(project, model.workspaceId, model.installedPacks).render(this)
         }
 
         if (model.pendingPacks > 0) {

@@ -19,7 +19,7 @@ class WorkspaceViewModelTest {
         name = "folha-calculadora-consumidor",
         localPath = "C:/repos/consumidor",
         gitRemote = "git@github.com:org/consumidor.git",
-        role = RepositoryRole.TARGET,
+        role = RepositoryRole.PRIMARY,
         accessMode = AccessMode.READ_WRITE,
     )
 
@@ -48,14 +48,18 @@ class WorkspaceViewModelTest {
         ) as WorkspaceViewModel.Configured
 
         assertEquals("Modernização Folha", model.workspaceName)
-        assertEquals("MODERNIZATION", model.workspaceType)
+        assertEquals("workspace.type.modernization", model.workspaceTypeKey)
         assertEquals(listOf("folha-calculadora-consumidor", "folha"), model.repositories.map { it.name })
         assertEquals(listOf(true, false), model.repositories.map { it.current })
-        assertEquals("READ_ONLY", model.repositories.last().accessMode)
+        assertEquals("access.mode.readOnly", model.repositories.last().accessModeKey)
         assertTrue(model.policies.none { it.allowed })
         assertTrue(
             model.policies.all { it.labelKey.startsWith("policy.") },
             "o modelo da tela carrega chave, nao frase pronta",
+        )
+        assertTrue(
+            model.repositories.all { it.roleKey.startsWith("repository.role.") },
+            "papel tambem viaja como chave, nao como texto traduzido",
         )
     }
 
@@ -78,6 +82,21 @@ class WorkspaceViewModelTest {
         assertEquals(2, model.workspaceCount)
         val rendered = model.toString()
         assertTrue(!rendered.contains("alpha") && !rendered.contains("beta"))
+    }
+
+    @Test
+    fun `os packs instalados chegam a tela, e a ausencia deles tambem`() {
+        val semPack = WorkspaceViewModel.from(
+            WorkspaceResolution.Resolved(WorkspaceContext(workspace, target)),
+        ) as WorkspaceViewModel.Configured
+        val comPack = WorkspaceViewModel.from(
+            WorkspaceResolution.Resolved(WorkspaceContext(workspace, target)),
+            installedPacks = listOf(WorkspaceViewModel.PackRow("folha-tools", "Payroll tools", "1.0.0")),
+        ) as WorkspaceViewModel.Configured
+
+        assertEquals(emptyList<WorkspaceViewModel.PackRow>(), semPack.installedPacks)
+        assertEquals("folha-tools", comPack.installedPacks.single().packId)
+        assertEquals("1.0.0", comPack.installedPacks.single().version)
     }
 
     @Test

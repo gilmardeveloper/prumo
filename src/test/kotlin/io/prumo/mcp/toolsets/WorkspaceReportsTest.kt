@@ -1,5 +1,6 @@
 package io.prumo.mcp.toolsets
 
+import io.prumo.mcp.datasource.domain.DataSourceProfile
 import io.prumo.mcp.documentation.DocumentAuthority
 import io.prumo.mcp.documentation.DocumentationKind
 import io.prumo.mcp.documentation.DocumentationSource
@@ -42,6 +43,20 @@ class WorkspaceReportsTest {
         assertNoLocalPath(json.encodeToString(WorkspaceContextResponse.serializer(), response))
     }
 
+    /**
+     * A interface passou a exibir rotulo traduzido; o contrato lido pela IA nao.
+     */
+    @Test
+    fun `papel e acesso chegam ao cliente MCP como identificador em ingles`() {
+        val response = WorkspaceReports.repositories(context())
+
+        assertEquals(listOf("PRIMARY", "LEGACY_REFERENCE"), response.repositories.map { it.role })
+        assertEquals(listOf("READ_WRITE", "READ_ONLY"), response.repositories.map { it.accessMode })
+        val serialized = json.encodeToString(RepositoriesResponse.serializer(), response)
+        assertFalse(serialized.contains("Principal"), serialized)
+        assertFalse(serialized.contains("Somente leitura"), serialized)
+    }
+
     @Test
     fun `a lista de repositorios entrega identificador, nunca caminho nem credencial`() {
         val context = context(currentRemote = "https://someone:s3cr3t-token@github.com/org/consumidor.git")
@@ -66,6 +81,48 @@ class WorkspaceReportsTest {
         assertFalse(byAction.getValue("WRITE_GIT").allowed)
         assertTrue(byAction.getValue("WRITE_GIT").reason.orEmpty().contains("Git write"))
         assertTrue(response.decisions.filter { !it.allowed }.all { !it.reason.isNullOrBlank() })
+    }
+
+    @Test
+    fun `consultar banco e permitido quando ha datasource legivel`() {
+        val response = WorkspaceReports.policy(context(datasources = listOf(datasource("dev"))))
+
+        val consulta = response.decisions.single { it.action == "QUERY_DATABASE" }
+        assertTrue(consulta.allowed, "consulta recusada com datasource vinculado: ${consulta.reason}")
+        assertEquals(listOf("dev"), consulta.datasources.orEmpty().map { it.datasourceId })
+    }
+
+    @Test
+    fun `sem datasource vinculado a recusa diz que nao ha banco, nao que a politica proibe`() {
+        val response = WorkspaceReports.policy(context())
+
+        val consulta = response.decisions.single { it.action == "QUERY_DATABASE" }
+        assertFalse(consulta.allowed)
+        assertTrue(consulta.reason.orEmpty().contains("No database is bound"), consulta.reason.orEmpty())
+        assertTrue(consulta.datasources.orEmpty().isEmpty())
+    }
+
+    @Test
+    fun `escrita em banco segue recusada pela politica mesmo com datasource gravavel`() {
+        val response = WorkspaceReports.policy(
+            context(datasources = listOf(datasource("dev", AccessMode.READ_WRITE))),
+        )
+
+        val escrita = response.decisions.single { it.action == "WRITE_DATABASE" }
+        assertFalse(escrita.allowed, "a politica do workspace nega escrita em banco")
+        assertTrue(escrita.datasources.orEmpty().single().reason.orEmpty().contains("policy"))
+    }
+
+    @Test
+    fun `a decisao por datasource distingue o legivel do bloqueado`() {
+        val response = WorkspaceReports.policy(
+            context(datasources = listOf(datasource("dev"), datasource("analitico"))),
+        )
+
+        val consulta = response.decisions.single { it.action == "QUERY_DATABASE" }
+        assertTrue(consulta.allowed)
+        assertEquals(listOf("dev", "analitico"), consulta.datasources.orEmpty().map { it.datasourceId })
+        assertTrue(consulta.datasources.orEmpty().all { it.allowed })
     }
 
     @Test
@@ -222,12 +279,21 @@ class WorkspacePreparationTest {
         }
 }
 
+private fun datasource(id: String, accessMode: AccessMode = AccessMode.READ_ONLY) = DataSourceProfile(
+    id = id,
+    name = id,
+    host = "localhost",
+    database = "folha",
+    user = "leitor",
+    accessMode = accessMode,
+)
+
 private fun binding(id: String, localPath: Path, remote: String?) = RepositoryBinding(
     id = id,
     name = id,
     localPath = localPath.toString(),
     gitRemote = remote,
-    role = RepositoryRole.TARGET,
+    role = RepositoryRole.PRIMARY,
     accessMode = AccessMode.READ_WRITE,
 )
 
@@ -243,6 +309,7 @@ private fun context(
     repositories: List<RepositoryBinding>? = null,
     documentation: List<DocumentationSource>? = null,
     currentRemote: String = "git@github.com:org/consumidor.git",
+    datasources: List<DataSourceProfile> = emptyList(),
 ): WorkspaceContext {
     val bindings = repositories ?: listOf(
         RepositoryBinding(
@@ -250,7 +317,7 @@ private fun context(
             name = "folha-calculadora-consumidor",
             localPath = "C:/repos/consumidor",
             gitRemote = currentRemote,
-            role = RepositoryRole.TARGET,
+            role = RepositoryRole.PRIMARY,
             accessMode = AccessMode.READ_WRITE,
         ),
         RepositoryBinding(
@@ -274,6 +341,7 @@ private fun context(
                 location = "C:/repos/consumidor/docs/manual.md",
             ),
         ),
+        datasources = datasources,
         policies = WorkspacePolicies.DENY_ALL,
         createdAt = "2026-09-04T00:00:00Z",
         updatedAt = "2026-09-04T00:00:00Z",

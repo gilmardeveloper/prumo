@@ -32,7 +32,7 @@ class RepositoryReportsTest {
         name = "folha-calculadora-consumidor",
         localPath = "C:/repos/consumidor",
         gitRemote = "git@github.com:org/consumidor.git",
-        role = RepositoryRole.TARGET,
+        role = RepositoryRole.PRIMARY,
         accessMode = AccessMode.READ_WRITE,
     )
 
@@ -238,6 +238,7 @@ class ToolSurfaceTest {
                 "prumo_workspace_get_policy",
                 "prumo_workspace_get_repositories",
                 "prumo_workspace_prepare",
+                "prumo_workspace_read_documentation",
             ),
             registered,
         )

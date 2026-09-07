@@ -139,6 +139,26 @@ class DataMaskingPolicyTest {
         assertEquals(MaskingRule.ALLOW, DataMaskingPolicy.NONE.ruleFor("valor_bruto"))
     }
 
+    /**
+     * O fragmento vale como segmento, não como pedaço de palavra. `secretaria` é lotação, e mascarar
+     * a lotação inteira de um sistema de folha custa a análise que o produto existe para permitir.
+     */
+    @Test
+    fun `palavra que contem o fragmento no meio nao e segredo`() {
+        val policy = DataMaskingPolicy.NONE
+
+        listOf("dsc_secretaria", "isn_secretaria", "cod_secretaria_origem", "txt_resenha")
+            .forEach { assertEquals(MaskingRule.ALLOW, policy.ruleFor(it), it) }
+    }
+
+    @Test
+    fun `o plural e a numeracao do fragmento continuam sendo segredo`() {
+        assertEquals(MaskingRule.MASK, DataMaskingPolicy.NONE.ruleFor("txt_senhas"))
+        assertEquals(MaskingRule.MASK, DataMaskingPolicy.NONE.ruleFor("access_tokens"))
+        assertEquals(MaskingRule.MASK, DataMaskingPolicy.NONE.ruleFor("txt_senha1"))
+        assertEquals(MaskingRule.MASK, DataMaskingPolicy.NONE.ruleFor("password2"))
+    }
+
     @Test
     fun `coluna marcada pelo usuario tambem e mascarada`() {
         val policy = DataMaskingPolicy(mapOf("cpf" to MaskingRule.MASK))
@@ -153,4 +173,22 @@ class DataMaskingPolicyTest {
         assertEquals("[masked]", DataMaskingPolicy.NONE.apply("senha", "secreta"))
         assertEquals("Maria", DataMaskingPolicy.NONE.apply("nome", "Maria"))
     }
+
+    /**
+     * Um typo nao pode ser reportado como recusa de categoria: quem le "so SELECT e aceito" depois
+     * de ter escrito um SELECT reescreve a consulta carregando o mesmo erro.
+     */
+    @Test
+    fun `erro de sintaxe se distingue de recusa de categoria`() {
+        val sintaxe = SqlStatementClassifier.classify("SELECT 1 FRON servidor") as SqlClassification.Denied
+        val categoria = SqlStatementClassifier.classify("DELETE FROM servidor") as SqlClassification.Denied
+
+        assertEquals(SqlStatementType.UNPARSEABLE, sintaxe.type)
+        assertTrue(sintaxe.reason.contains("syntax problem"), sintaxe.reason)
+        assertFalse(sintaxe.reason.contains("Only read statements"), sintaxe.reason)
+
+        assertEquals(SqlStatementType.WRITE, categoria.type)
+        assertTrue(categoria.reason.contains("Only read statements"), categoria.reason)
+    }
+
 }

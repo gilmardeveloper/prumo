@@ -1,41 +1,44 @@
-# Security policy
+# Política de segurança
 
-## Supported versions
+**Português (Brasil)** · [English](SECURITY.en.md)
 
-Prumo is pre-1.0. Security fixes land on `main` and in the next release; older builds are not
-patched.
+## Versões cobertas
 
-## Reporting a vulnerability
+O Prumo está antes da 1.0. As correções de segurança entram na `main` e na versão seguinte; builds
+anteriores não recebem correção.
 
-**Do not open a public issue.** Send the report to **gilmarsilva.developer@gmail.com** with:
+## Como relatar uma vulnerabilidade
 
-- what the vulnerability allows an attacker (or an AI client) to do;
-- the steps to reproduce it, including the workspace configuration involved;
-- the plugin version, the IDE version and the operating system.
+**Não abra uma issue pública.** Envie o relato para **gilmarsilva.developer@gmail.com** com:
 
-You will get an acknowledgement within **five working days** and a decision — fix, mitigation or
-"working as designed, with this documented limit" — within **thirty days**. If the report leads to a
-fix, you will be credited in the changelog unless you ask otherwise.
+- o que a vulnerabilidade permite a um atacante (ou a um cliente de IA) fazer;
+- os passos para reproduzi-la, incluindo a configuração de workspace envolvida;
+- a versão do plugin, a versão da IDE e o sistema operacional.
 
-## What counts as a vulnerability here
+Você recebe confirmação em até **cinco dias úteis** e uma decisão — correção, mitigação ou "funciona
+como projetado, com este limite documentado" — em até **trinta dias**. Se o relato levar a uma
+correção, seu crédito vai para o changelog, salvo se você pedir o contrário.
 
-The guarantees Prumo makes are listed in [docs/security.md](docs/security.md). A report is in scope
-when it breaks one of them, for example:
+## O que conta como vulnerabilidade aqui
 
-- reaching the content, configuration, credentials or audit trail of another workspace;
-- escaping a repository root through a path, symlink, junction or mount point;
-- writing through a `READ_ONLY` repository or data source;
-- extracting a credential from any artifact Prumo persists, logs or returns;
-- installing or activating a pack without the consent screen;
-- making Prumo write inside a user's repository.
+As garantias que o Prumo oferece estão em [docs/security.md](docs/security.md). Um relato está no
+escopo quando quebra uma delas, por exemplo:
 
-## What is a documented limit, not a vulnerability
+- alcançar o conteúdo, a configuração, as credenciais ou a trilha de auditoria de outro workspace;
+- escapar da raiz de um repositório por caminho, link simbólico, junction ou ponto de montagem;
+- escrever através de um repositório ou banco marcado como `READ_ONLY`;
+- extrair uma credencial de qualquer artefato que o Prumo grave, registre ou devolva;
+- instalar ou ativar um pacote sem a tela de consentimento;
+- fazer o Prumo escrever dentro do repositório de alguém.
 
-These are stated in the security document and are not accepted as reports:
+## O que é limite documentado, e não vulnerabilidade
 
-- an obfuscated pack script passing the risk classifier — static analysis is signal detection, not
-  proof;
-- a pack script reaching the filesystem through an absolute path — the confinement is the working
-  directory and the environment, not an OS sandbox;
-- a permissive database credential allowing more than intended — the read-only credential is the
-  user's responsibility, and Prumo's layers reduce blast radius rather than replace it.
+Estes pontos estão declarados no documento de segurança e não são aceitos como relato:
+
+- script de pacote ofuscado passando pelo classificador de risco — análise estática é detecção de
+  sinal, não prova;
+- script de pacote alcançando o sistema de arquivos por caminho absoluto — o confinamento é o
+  diretório de trabalho e o ambiente, não uma sandbox do sistema operacional;
+- credencial de banco permissiva concedendo mais do que se pretendia — a credencial somente-leitura é
+  responsabilidade de quem configura, e as camadas do Prumo reduzem o alcance do estrago, não
+  substituem essa responsabilidade.

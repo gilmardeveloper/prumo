@@ -136,4 +136,136 @@ class RepositoryReaderTest {
         assertTrue(failure.message.orEmpty().contains("not a directory"))
         assertFalse(failure.message.orEmpty().contains(root.toString()))
     }
+
+    /**
+     * A garantia escrita diz que o `.git` nunca e lido como conteudo. A busca e a listagem ja
+     * filtravam; a leitura de arquivo nao, e e ali que mora a URL do remote com token.
+     */
+    @Test
+    fun `leitura de arquivo recusa o diretorio git`(@TempDir root: Path) {
+        val git = Files.createDirectories(root.resolve(".git"))
+        Files.writeString(git.resolve("config"), "[remote origin] url = https://user:token@host/org/app.git")
+
+        val falha = assertThrows<RepositoryReadException> {
+            RepositoryReader.readFile(root, ".git/config")
+        }
+
+        assertTrue(falha.message.orEmpty().contains(".git"), falha.message.orEmpty())
+        assertFalse(falha.message.orEmpty().contains("token"), "a recusa nao pode ecoar o conteudo")
+    }
+
+
+    /**
+     * Exclusao escrita na descricao do repositorio e pedido: um agente cego respeitou, outro listou
+     * a pasta assim mesmo. Aqui ela e regra, e vale nos tres pontos de leitura.
+     */
+    @Test
+    fun `caminho excluido e recusado na leitura`(@TempDir root: Path) {
+        val repo = repository(root)
+        root.resolve("target").createDirectories()
+        root.resolve("target/saida.txt").writeText("bytecode")
+
+        val falha = assertThrows<RepositoryReadException> {
+            RepositoryReader.readFile(repo, "target/saida.txt", excluded = listOf("target"))
+        }
+
+        assertTrue(falha.message.orEmpty().contains("excluded"), falha.message.orEmpty())
+        assertFalse(falha.message.orEmpty().contains("bytecode"), "a recusa nao ecoa o conteudo")
+    }
+
+    @Test
+    fun `caminho excluido nao aparece na listagem nem na busca`(@TempDir root: Path) {
+        val repo = repository(root)
+        root.resolve(".claude/skills").createDirectories()
+        root.resolve(".claude/skills/SKILL.md").writeText("segredo de contexto")
+
+        val listagem = RepositoryReader.listDirectory(repo, null, 3, 300, listOf(".claude"))
+        assertFalse(listagem.entries.any { it.path.contains(".claude") }, listagem.entries.toString())
+
+        val busca = RepositoryReader.searchText(repo, "segredo de contexto", excluded = listOf(".claude"))
+        assertTrue(busca.matches.isEmpty(), busca.matches.toString())
+    }
+
+    @Test
+    fun `arquivo solto tambem pode ser excluido`(@TempDir root: Path) {
+        val repo = repository(root)
+        root.resolve("CLAUDE.md").writeText("instrucoes de IA")
+
+        assertThrows<RepositoryReadException> {
+            RepositoryReader.readFile(repo, "CLAUDE.md", excluded = listOf("CLAUDE.md"))
+        }
+    }
+
+    @Test
+    fun `sem exclusao configurada o repositorio continua legivel`(@TempDir root: Path) {
+        val repo = repository(root)
+        root.resolve("target").createDirectories()
+        root.resolve("target/saida.txt").writeText("bytecode")
+
+        val slice = RepositoryReader.readFile(repo, "target/saida.txt")
+
+        assertEquals("bytecode", slice.text)
+    }
+
+
+    /**
+     * Um agente cego leu o arquivo excluido inteiro so trocando a caixa do nome: no Windows o
+     * sistema de arquivos ignora maiusculas, e a comparacao sobre o texto recebido nao ignorava.
+     */
+    @Test
+    fun `trocar a caixa do nome nao contorna a exclusao`(@TempDir root: Path) {
+        val repo = repository(root)
+        root.resolve("CLAUDE.md").writeText("instrucoes de IA")
+        root.resolve("docs").createDirectories()
+        root.resolve("docs/BUILD.md").writeText("como compilar")
+
+        listOf("claude.md", "CLAUDE.MD", "Claude.Md").forEach { grafia ->
+            assertThrows<RepositoryReadException>(grafia) {
+                RepositoryReader.readFile(repo, grafia, excluded = listOf("CLAUDE.md"))
+            }
+        }
+
+        listOf("DOCS/BUILD.md", "Docs/build.md").forEach { grafia ->
+            assertThrows<RepositoryReadException>(grafia) {
+                RepositoryReader.readFile(repo, grafia, excluded = listOf("docs"))
+            }
+        }
+    }
+
+    @Test
+    fun `listagem e busca tambem ignoram a caixa da exclusao`(@TempDir root: Path) {
+        val repo = repository(root)
+        root.resolve("docs").createDirectories()
+        root.resolve("docs/BUILD.md").writeText("termo exclusivo do excluido")
+
+        // A raiz e o ponto comum: no Linux "DOCS" nem existe, no Windows existe e e o mesmo diretorio.
+        val listagem = RepositoryReader.listDirectory(repo, null, 3, 300, listOf("DOCS"))
+        assertTrue(listagem.entries.none { it.path.lowercase().startsWith("docs") }, listagem.entries.toString())
+
+        val busca = RepositoryReader.searchText(repo, "termo exclusivo do excluido", excluded = listOf("DOCS"))
+        assertTrue(busca.matches.isEmpty(), busca.matches.toString())
+    }
+
+
+    /**
+     * Pedir o proibido de frente merece resposta, nao lista vazia: um avaliador relatou que o
+     * silencio faz o cliente concluir que a pasta esta vazia e tentar de novo por outro angulo.
+     */
+    @Test
+    fun `pedir explicitamente o caminho excluido responde em voz alta`(@TempDir root: Path) {
+        val repo = repository(root)
+        root.resolve("docs").createDirectories()
+        root.resolve("docs/BUILD.md").writeText("como compilar")
+
+        val listagem = assertThrows<RepositoryReadException> {
+            RepositoryReader.listDirectory(repo, "docs", 2, 300, listOf("docs"))
+        }
+        assertTrue(listagem.message.orEmpty().contains("excluded"), listagem.message.orEmpty())
+
+        val busca = assertThrows<RepositoryReadException> {
+            RepositoryReader.searchText(repo, "compilar", scope = "docs", excluded = listOf("docs"))
+        }
+        assertTrue(busca.message.orEmpty().contains("excluded"), busca.message.orEmpty())
+    }
+
 }

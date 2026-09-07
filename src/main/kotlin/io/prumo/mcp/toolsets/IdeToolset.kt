@@ -15,9 +15,11 @@ class IdeToolset : McpToolset {
 
     @McpTool(name = GET_CURRENT_CONTEXT_TOOL)
     @McpDescription(
-        "Returns where the developer is right now: the file being edited as a repository id plus a " +
-            "relative path, the caret position, the selection and the symbols containing it. " +
-            "When the open file belongs to no repository of this workspace, only that fact is reported.",
+        "Use this tool to find out what the developer is looking at right now: the file being " +
+            "edited as a repository id plus a relative path, the caret position, the selection and " +
+            "the symbols containing it. Call it when the request says \"this file\", \"here\" or " +
+            "\"the current class\". When the open file belongs to no repository of this workspace, " +
+            "only that fact is reported.",
     )
     suspend fun getCurrentContext(): IdeContextResponse =
         prumoToolCall(

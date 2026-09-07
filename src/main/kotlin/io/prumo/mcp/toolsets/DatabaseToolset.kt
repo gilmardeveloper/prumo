@@ -7,6 +7,7 @@ import io.prumo.mcp.datasource.PostgresConnectionFactory
 import io.prumo.mcp.datasource.application.QueryOutcome
 import io.prumo.mcp.datasource.application.ReadOnlyQueryExecutor
 import io.prumo.mcp.datasource.security.DataMaskingPolicy
+import io.prumo.mcp.datasource.security.ObfuscationGuidance
 import io.prumo.mcp.datasource.domain.DataSourceProfile
 import io.prumo.mcp.datasource.postgres.PostgresIntrospector
 import io.prumo.mcp.datasource.postgres.TableDetail
@@ -27,6 +28,12 @@ data class AvailableDataSourceResponse(
     val accessMode: String,
     val writable: Boolean,
     val defaultSchema: String? = null,
+    /** Texto livre escrito pelo desenvolvedor sobre o que este banco é. */
+    val description: String? = null,
+    /** Verdadeiro quando o dado pessoal devolvido por uma consulta sai parcialmente escondido. */
+    val personalDataObfuscated: Boolean,
+    /** O que esperar deste banco, antes da primeira consulta. */
+    val guidance: String,
 )
 
 @Serializable
@@ -93,6 +100,17 @@ data class QueryColumnResponse(
     val name: String,
     val type: String,
     val masked: Boolean,
+    /**
+     * Categoria de dado pessoal reconhecida nesta coluna, ou `NONE`.
+     *
+     * É a categoria da coluna, decidida pelo nome. A janela aplicada a um valor específico pode ser
+     * mais restritiva: valor cujo formato não confirma a categoria é tratado como número de registro
+     * genérico, e nunca menos protegido do que a categoria declarada.
+     *
+     * O valor sai parcialmente escondido; o nome e o tipo da coluna continuam íntegros. Valor
+     * ofuscado não serve como chave: dois valores diferentes podem sair iguais.
+     */
+    val obfuscatedAs: String = "NONE",
 )
 
 @Serializable
@@ -104,6 +122,15 @@ data class QueryResultResponse(
     val rowCount: Int,
     val truncated: Boolean,
     val durationMillis: Long,
+    /**
+     * Estado da proteção de dado pessoal neste banco.
+     *
+     * Sem valor padrão de propósito: o serializador omite campo igual ao padrão, e o estado ligado —
+     * que é o comum — nunca chegaria ao cliente.
+     */
+    val personalDataObfuscated: Boolean,
+    /** Como trabalhar com o que veio. Ausente quando o resultado não tocou dado pessoal. */
+    val guidance: String? = null,
 )
 
 @Serializable
@@ -139,6 +166,9 @@ object DatabaseReports {
                     accessMode = it.accessMode.name,
                     writable = it.writable,
                     defaultSchema = it.defaultSchema,
+                    description = it.description,
+                    personalDataObfuscated = it.obfuscatePersonalData,
+                    guidance = ObfuscationGuidance.forDatasource(it.obfuscatePersonalData),
                 )
             },
         )
@@ -167,9 +197,11 @@ object DatabaseReports {
 
     fun query(profile: DataSourceProfile, outcome: QueryOutcome): QueryResultResponse =
         QueryResultResponse(
+            personalDataObfuscated = outcome.personalDataObfuscated,
+            guidance = ObfuscationGuidance.forResult(outcome),
             datasourceId = profile.id,
             statementType = outcome.statementType.name,
-            columns = outcome.columns.map { QueryColumnResponse(it.name, it.type, it.masked) },
+            columns = outcome.columns.map { QueryColumnResponse(it.name, it.type, it.masked, it.obfuscatedAs.name) },
             rows = outcome.rows,
             rowCount = outcome.rowCount,
             truncated = outcome.truncated,
@@ -188,8 +220,10 @@ class DatabaseToolset : McpToolset {
 
     @McpTool(name = LIST_AVAILABLE_TOOL)
     @McpDescription(
-        "Lists the databases bound to the current workspace. Returns identifiers and access mode " +
-            "only — never host, port, user or credentials. Use the datasourceId in the other database tools.",
+        "Use this tool first when you need data: it lists the databases of this workspace with " +
+            "the developer's description of each one, so you know what a database holds before " +
+            "querying it. Returns identifiers and access mode only — never host, port, user or " +
+            "credentials. The datasourceId returned here addresses the other database tools.",
     )
     suspend fun listAvailable(): AvailableDataSourcesResponse =
         prumoToolCall(LIST_AVAILABLE_TOOL, "database.list_available", PolicyAction.READ_REPOSITORY) { call ->
@@ -198,8 +232,8 @@ class DatabaseToolset : McpToolset {
 
     @McpTool(name = GET_SCHEMA_TOOL)
     @McpDescription(
-        "Lists the schemas of a database bound to the current workspace, with how many tables and " +
-            "views each one holds. System schemas are omitted.",
+        "Use this tool to map a bound database before querying it: every schema with how many " +
+            "tables and views it holds. System schemas are omitted.",
     )
     suspend fun getSchema(
         @McpDescription("Data source id from prumo_database_list_available.")
@@ -214,8 +248,9 @@ class DatabaseToolset : McpToolset {
 
     @McpTool(name = LIST_TABLES_TOOL)
     @McpDescription(
-        "Lists tables, views and materialized views of a bound database, optionally restricted to " +
-            "one schema. Row counts are the planner estimate, not an exact count.",
+        "Use this tool to find the tables you need: tables, views and materialized views of a " +
+            "bound database, optionally restricted to one schema. Row counts are the planner " +
+            "estimate, not an exact count.",
     )
     suspend fun listTables(
         @McpDescription("Data source id from prumo_database_list_available.")
@@ -230,8 +265,9 @@ class DatabaseToolset : McpToolset {
 
     @McpTool(name = DESCRIBE_TABLE_TOOL)
     @McpDescription(
-        "Describes one table or view of a bound database: columns with types and defaults, " +
-            "constraints and indexes. Reads structure only — no row is ever read.",
+        "Use this tool to learn a table before writing SQL against it: columns with types, " +
+            "defaults and the developer's comments, plus constraints and indexes. Prefer it over " +
+            "guessing column names from a failed query. Reads structure only — no row is ever read.",
     )
     suspend fun describeTable(
         @McpDescription("Data source id from prumo_database_list_available.")
@@ -253,7 +289,10 @@ class DatabaseToolset : McpToolset {
         "Runs one read-only SQL statement against a bound database and returns the rows. Only " +
             "SELECT, WITH … SELECT and EXPLAIN without ANALYZE are accepted: anything that writes " +
             "is refused before reaching the database, and the transaction is read-only anyway. " +
-            "Columns whose name announces a secret come back masked.",
+            "Columns whose name announces a secret come back masked, and personal data — CPF, phone, " +
+            "name, e-mail and other documents — comes back partially hidden, enough to stop you " +
+            "reconstructing it. Column names, types and comments are never altered, so the " +
+            "structure stays fully readable.",
     )
     suspend fun executeReadonly(
         @McpDescription("Data source id from prumo_database_list_available.")

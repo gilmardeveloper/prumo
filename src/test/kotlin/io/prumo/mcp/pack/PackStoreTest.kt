@@ -116,17 +116,33 @@ class PackStoreTest {
     }
 
     @Test
-    fun `manifesto que aponta para fora do pack e recusado`(@TempDir root: Path) {
+    /**
+     * O domínio recusa o caminho de fuga na construção do item, então o manifesto sequer chega ao
+     * store. A defesa em profundidade do store continua exercitada logo abaixo, por um caminho que o
+     * domínio não tem como recusar.
+     */
+    fun `identificador de pack fora do formato nao vira caminho`(@TempDir root: Path) {
         val store = PackStore(storage(root))
-        val escapando = manifest(
-            knowledge = listOf(
-                KnowledgeItem("fuga", LocalizedText("Fuga"), "../../../../etc/passwd"),
-            ),
-        )
-        store.save("folha-2026", escapando)
 
-        assertThrows<PathAccessDeniedException> {
-            store.readKnowledge("folha-2026", "folha-conhecimento", "fuga")
+        listOf("../fora", "a/b", "c:\temp", "", "com espaco").forEach { id ->
+            assertThrows<IllegalArgumentException>("aceitou '$id'") { store.rootOf("folha-2026", id) }
+        }
+    }
+
+    @Test
+    fun `item de conhecimento que aponta para fora do pack e recusado na origem`(@TempDir root: Path) {
+        assertThrows<IllegalArgumentException> {
+            KnowledgeItem("fuga", LocalizedText("Fuga"), "../../../../etc/passwd")
+        }
+    }
+
+    @Test
+    fun `item inexistente nao alcanca o disco`(@TempDir root: Path) {
+        val store = PackStore(storage(root))
+        store.save("folha-2026", manifest())
+
+        assertThrows<PackAccessException> {
+            store.readKnowledge("folha-2026", "folha-conhecimento", "../../fuga")
         }
     }
 
@@ -139,6 +155,31 @@ class PackStoreTest {
             store.readKnowledge("folha-2026", "folha-conhecimento", "inexistente")
         }
         assertTrue(failure.message.orEmpty().contains("inexistente"))
+    }
+
+    @Test
+    fun `remover um pack nao alcanca os vizinhos nem outro workspace`(@TempDir root: Path) {
+        val store = PackStore(storage(root))
+        install(store, "folha-2026", manifest(), "conteudo")
+        install(store, "folha-2026", manifest(id = "outro-pack"), "conteudo")
+        install(store, "outro-workspace", manifest(), "conteudo")
+
+        store.remove("folha-2026", "folha-conhecimento")
+
+        assertEquals(listOf("outro-pack"), store.list("folha-2026").map { it.id })
+        assertEquals(listOf("folha-conhecimento"), store.list("outro-workspace").map { it.id })
+    }
+
+    @Test
+    fun `remover com identificador fora do formato nao apaga nada`(@TempDir root: Path) {
+        val store = PackStore(storage(root))
+        install(store, "folha-2026", manifest(), "conteudo")
+
+        listOf("../folha-2026", "..", "a/b").forEach { id ->
+            assertThrows<IllegalArgumentException>("aceitou '$id'") { store.remove("folha-2026", id) }
+        }
+
+        assertEquals(1, store.list("folha-2026").size)
     }
 
     @Test

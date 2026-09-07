@@ -58,11 +58,23 @@ object RepositoryReader {
     private const val MAX_READABLE_BYTES = 2L * 1024 * 1024
     private const val SNIPPET_LENGTH = 200
 
-    fun readFile(root: Path, relativePath: String, firstLine: Int = 1, maxLines: Int = 400): FileSlice {
+    fun readFile(
+        root: Path,
+        relativePath: String,
+        firstLine: Int = 1,
+        maxLines: Int = 400,
+        excluded: List<String> = emptyList(),
+    ): FileSlice {
         require(firstLine >= 1) { "firstLine must be 1 or greater." }
         require(maxLines >= 1) { "maxLines must be 1 or greater." }
 
         val file = PathSecurityValidator.resolve(root, relativePath)
+        if (isExcluded(root, file, excluded)) {
+            throw RepositoryReadException(
+                "Path '$relativePath' is excluded from this repository in the Prumo workspace, " +
+                    "so Prumo does not read it.",
+            )
+        }
         if (!file.isRegularFile()) {
             throw RepositoryReadException("File '$relativePath' does not exist in this repository.")
         }
@@ -94,16 +106,18 @@ object RepositoryReader {
         ignoreCase: Boolean = true,
         maxResults: Int = 50,
         maxFiles: Int = 5_000,
+        excluded: List<String> = emptyList(),
     ): TextSearchOutcome {
         require(query.isNotBlank()) { "The search query must not be blank." }
         require(maxResults >= 1) { "maxResults must be 1 or greater." }
 
         val start = scopeRoot(root, scope)
+        assertScopeAllowed(root, start, scope, excluded)
         val matches = mutableListOf<TextMatch>()
         var scanned = 0
         var truncated = false
 
-        walk(root, start).forEach { file ->
+        walk(root, start, excluded).forEach { file ->
             if (truncated) {
                 return@forEach
             }
@@ -140,11 +154,13 @@ object RepositoryReader {
         relativePath: String? = null,
         maxDepth: Int = 2,
         maxEntries: Int = 300,
+        excluded: List<String> = emptyList(),
     ): DirectoryListing {
         require(maxDepth >= 1) { "maxDepth must be 1 or greater." }
         require(maxEntries >= 1) { "maxEntries must be 1 or greater." }
 
         val start = scopeRoot(root, relativePath)
+        assertScopeAllowed(root, start, relativePath, excluded)
         if (!start.isDirectory()) {
             throw RepositoryReadException("Path '${relativePath.orEmpty()}' is not a directory in this repository.")
         }
@@ -153,7 +169,7 @@ object RepositoryReader {
         var truncated = false
         Files.walk(start, maxDepth).use { paths ->
             paths.filter { it != start }
-                .filter { candidate -> !isInsideGitDirectory(root, candidate) }
+                .filter { candidate -> !isExcluded(root, candidate, excluded) }
                 .sorted()
                 .forEach { candidate ->
                     if (entries.size >= maxEntries) {
@@ -178,6 +194,23 @@ object RepositoryReader {
         )
     }
 
+    /**
+     * Recusa em voz alta quando o próprio alvo pedido é um caminho excluído.
+     *
+     * Caminho excluído *dentro* de uma varredura continua invisível, que é o desejado. Mas pedir
+     * explicitamente o diretório proibido e receber lista vazia faz o cliente concluir que ele está
+     * vazio e tentar de novo por outro ângulo — foi o que um avaliador em campo apontou.
+     */
+    private fun assertScopeAllowed(root: Path, start: Path, relativePath: String?, excluded: List<String>) {
+        if (relativePath.isNullOrBlank() || !isExcluded(root, start, excluded)) {
+            return
+        }
+        throw RepositoryReadException(
+            "Path '$relativePath' is excluded from this repository in the Prumo workspace, " +
+                "so Prumo does not read it.",
+        )
+    }
+
     private fun scopeRoot(root: Path, relativePath: String?): Path =
         if (relativePath.isNullOrBlank()) {
             root.toAbsolutePath().normalize()
@@ -185,23 +218,69 @@ object RepositoryReader {
             PathSecurityValidator.resolve(root, relativePath)
         }
 
-    private fun walk(root: Path, start: Path): List<Path> =
+    private fun walk(root: Path, start: Path, excluded: List<String>): List<Path> =
         if (!start.isDirectory()) {
             listOf(start)
         } else {
             Files.walk(start).use { paths ->
-                paths.filter { candidate -> !isInsideGitDirectory(root, candidate) }
+                paths.filter { candidate -> !isExcluded(root, candidate, excluded) }
                     .filter(Path::isRegularFile)
                     .sorted()
                     .toList()
             }
         }
 
-    /** O diretório interno do Git nunca entra em leitura nem em busca. */
-    private fun isInsideGitDirectory(root: Path, candidate: Path): Boolean {
-        val relative = root.toAbsolutePath().normalize()
-            .relativize(candidate.toAbsolutePath().normalize())
-        return relative.any { it.name == GIT_DIRECTORY }
+    /**
+     * Decide se um caminho está fora do alcance deste repositório.
+     *
+     * O `.git` é a primeira entrada, sempre, sem depender de configuração: é onde mora a URL do
+     * remote, que pode carregar token. As demais vêm do vínculo do workspace.
+     *
+     * Uma entrada casa quando o caminho relativo é igual a ela, quando começa com ela seguida de
+     * barra, ou quando qualquer segmento do caminho é igual a ela. Isso cobre `target`, `.claude` e
+     * `CLAUDE.md` sem motor de padrões — e sem canto escuro onde um caminho escape por acidente.
+     */
+    private fun isExcluded(root: Path, candidate: Path, excluded: List<String>): Boolean =
+        isExcludedPath(realRelative(root, candidate).map { it.name }.joinToString("/"), excluded)
+
+    /**
+     * Decide a exclusão a partir do caminho relativo em texto, sem tocar o disco.
+     *
+     * Existe para o caminho que o disco não pode confirmar — o arquivo que o Git reporta como
+     * apagado, por exemplo. A regra de casamento é esta, e só esta: duplicá-la em outro ponto foi
+     * como a exclusão nasceu contornável por troca de caixa.
+     */
+    fun isExcludedPath(relativePath: String, excluded: List<String>): Boolean {
+        val segments = relativePath.replace(BACKSLASH, '/').split('/').filter { it.isNotBlank() }
+        if (segments.any { it.equals(GIT_DIRECTORY, ignoreCase = true) }) {
+            return true
+        }
+
+        val normalized = segments.joinToString("/")
+        return excluded.any { entry ->
+            val alvo = entry.trim().trimEnd('/').replace(BACKSLASH, '/')
+            alvo.isNotEmpty() && (
+                normalized.equals(alvo, ignoreCase = true) ||
+                    normalized.startsWith("$alvo/", ignoreCase = true) ||
+                    segments.any { it.equals(alvo, ignoreCase = true) }
+                )
+        }
+    }
+
+    /**
+     * Caminho relativo pela grafia que está no disco, e não pela que o cliente digitou.
+     *
+     * No Windows o sistema de arquivos ignora maiúsculas, então `claude.md` abre o `CLAUDE.md`. Uma
+     * comparação sobre o texto recebido deixaria a exclusão cair com uma troca de caixa —
+     * demonstrado em campo por um agente que leu o arquivo inteiro assim. `toRealPath` devolve a
+     * grafia real; a comparação sem diferenciar caixa cobre o caminho que ainda não existe.
+     */
+    private fun realRelative(root: Path, candidate: Path): Path {
+        val raiz = runCatching { root.toRealPath() }.getOrElse { root.toAbsolutePath().normalize() }
+        val alvo = runCatching { candidate.toRealPath() }
+            .getOrElse { candidate.toAbsolutePath().normalize() }
+        return runCatching { raiz.relativize(alvo) }
+            .getOrElse { root.toAbsolutePath().normalize().relativize(candidate.toAbsolutePath().normalize()) }
     }
 
     private fun assertReadableAsText(file: Path, relativePath: String) {
@@ -245,4 +324,5 @@ object RepositoryReader {
     private fun normalize(path: String): String = path.replace('\\', '/')
 
     private const val GIT_DIRECTORY = ".git"
+    private val BACKSLASH: Char = 92.toChar()
 }

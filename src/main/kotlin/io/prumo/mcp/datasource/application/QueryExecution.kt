@@ -4,6 +4,11 @@ import io.prumo.mcp.datasource.DataSourceAccessException
 import io.prumo.mcp.datasource.PostgresConnectionFactory
 import io.prumo.mcp.datasource.domain.DataSourceProfile
 import io.prumo.mcp.datasource.security.DataMaskingPolicy
+import io.prumo.mcp.datasource.security.PersonalDataKind
+import io.prumo.mcp.datasource.security.PersonalDataObfuscator
+import io.prumo.mcp.datasource.security.MaskingRule
+import io.prumo.mcp.datasource.security.SensitiveColumnScanner
+import org.postgresql.PGResultSetMetaData
 import io.prumo.mcp.datasource.security.SqlClassification
 import io.prumo.mcp.datasource.security.SqlStatementClassifier
 import io.prumo.mcp.datasource.security.SqlStatementType
@@ -22,6 +27,16 @@ data class QueryColumn(
     val name: String,
     val type: String,
     val masked: Boolean,
+    /** Rótulo e coluna de origem: os dois nomes por que esta coluna pode ser reconhecida. */
+    val identifiers: List<String> = listOf(name),
+    /** Verdadeiro quando o valor vem de uma expressão, e não diretamente de uma coluna do banco. */
+    val derived: Boolean = false,
+    /**
+     * Categoria de dado pessoal reconhecida na coluna. `NONE` quando o valor sai como veio do banco.
+     *
+     * A janela aplicada a um valor pode ser mais restritiva do que esta categoria, nunca menos.
+     */
+    val obfuscatedAs: PersonalDataKind = PersonalDataKind.NONE,
 )
 
 data class QueryOutcome(
@@ -31,7 +46,22 @@ data class QueryOutcome(
     val rowCount: Int,
     val truncated: Boolean,
     val durationMillis: Long,
-)
+    /** Verdadeiro quando o banco está configurado para esconder dado pessoal. */
+    val personalDataObfuscated: Boolean = true,
+) {
+    /** Alguma coluna do resultado saiu com dado pessoal escondido. */
+    val hasObfuscatedColumn: Boolean get() = columns.any { it.obfuscatedAs != PersonalDataKind.NONE }
+
+    /**
+     * O resultado trouxe coluna de dado pessoal sem proteção.
+     *
+     * Sem isto a IA não distingue "não havia dado pessoal" de "havia, e você o recebeu inteiro":
+     * nos dois casos toda coluna vem com categoria `NONE`.
+     */
+    val carriesUnprotectedPersonalData: Boolean
+        get() = !personalDataObfuscated &&
+            columns.any { PersonalDataObfuscator.classify(it.identifiers, null) != PersonalDataKind.NONE }
+}
 
 /**
  * Executa uma consulta de leitura.
@@ -66,7 +96,15 @@ class ReadOnlyQueryExecutor(
                     statement.queryTimeout = queryTimeoutSeconds
                     statement.maxRows = limit + 1
                     statement.executeQuery(sql).use { rows ->
-                        read(rows, limit, masking, classification.type, startedAt)
+                        read(
+                            rows = rows,
+                            limit = limit,
+                            masking = masking,
+                            obfuscate = profile.obfuscatePersonalData,
+                            statementType = classification.type,
+                            startedAt = startedAt,
+                            sql = sql,
+                        )
                     }
                 }
             }
@@ -91,20 +129,73 @@ class ReadOnlyQueryExecutor(
         }
     }
 
+    /**
+     * Monta o resultado aplicando máscara e ofuscação.
+     *
+     * É o único ponto em que valor de célula sai para o cliente, e por isso o único lugar seguro
+     * para aplicar a proteção: os dois caminhos de consulta — o Core Toolkit e o de packs — chegam
+     * aqui, e um deles herda a política por omissão.
+     */
     private fun read(
         rows: ResultSet,
         limit: Int,
         masking: DataMaskingPolicy,
+        obfuscate: Boolean,
         statementType: SqlStatementType,
         startedAt: Long,
+        sql: String,
     ): QueryOutcome {
         val metadata = rows.metaData
+        // Coluna calculada nao tem coluna de origem; so a leitura do statement denuncia a origem.
+        // Posicoes nulas significam lista de selecao nao mapeavel: toda calculada e tratada como
+        // sensivel se o statement encostar em segredo em qualquer ponto.
+        val sensitivePositions = SensitiveColumnScanner.sensitivePositions(sql, masking, metadata.columnCount)
+        val expressionIdentifiers = SensitiveColumnScanner.identifiersByPosition(sql, metadata.columnCount)
+        val safeAggregates = SensitiveColumnScanner.safeAggregatePositions(sql, metadata.columnCount)
+        val touchesSecret by lazy { SensitiveColumnScanner.touchesSensitiveColumn(sql, masking) }
+        val statementIdentifiers by lazy { SensitiveColumnScanner.allIdentifiers(sql) }
+        val aliasOrigins = SensitiveColumnScanner.aliasOrigins(sql)
+        // Operador de conjunto: a lista do primeiro braço não descreve os demais.
+        val combinesResults = SensitiveColumnScanner.combinesResultSets(sql)
+        val selectItems = SensitiveColumnScanner.selectItemsOrNull(sql, metadata.columnCount)
+            .takeUnless { combinesResults }
         val columns = (1..metadata.columnCount).map { index ->
-            val name = metadata.getColumnLabel(index) ?: metadata.getColumnName(index)
+            val label = metadata.getColumnLabel(index).orEmpty()
+            val origin = baseColumnName(metadata, index)
+            val name = label.ifBlank { origin }
+            val computed = origin.isBlank()
+            val computedFromSecret =
+                if (sensitivePositions == null) touchesSecret else index in sensitivePositions
+            val masked = masking.ruleFor(listOf(label, origin)) == MaskingRule.MASK ||
+                (computed && computedFromSecret)
+            // Sem mapeamento confiavel da lista de selecao, uma coluna calculada so pode ser
+            // reconhecida pelos identificadores do statement inteiro.
+            val expression = expressionIdentifiers?.getOrNull(index - 1)
+                .takeUnless { combinesResults }
+                ?: if (computed || combinesResults) statementIdentifiers else emptyList()
+            // Serialização de linha inteira não cita coluna: o valor é o registro completo, e
+            // nenhuma janela se aplica a ele.
+            val serializesRow = selectItems?.getOrNull(index - 1)
+                ?.let(SensitiveColumnScanner::serializesWholeRow)
+                ?: (computed && SensitiveColumnScanner.serializesWholeRow(sql))
+            // Um apelido de subconsulta esconde a coluna que ele renomeia; resolvê-lo de volta é o
+            // que impede a expressão sobre o apelido de sair sem classificação.
+            val identifiers = (listOf(label, origin) + expression)
+                .flatMap { listOf(it) + listOfNotNull(aliasOrigins[it.lowercase()]) }
+                .filter { it.isNotBlank() }
+                .distinct()
             QueryColumn(
                 name = name,
                 type = metadata.getColumnTypeName(index) ?: "unknown",
-                masked = masking.ruleFor(name) != io.prumo.mcp.datasource.security.MaskingRule.ALLOW,
+                masked = masked,
+                identifiers = identifiers,
+                derived = computed || serializesRow,
+                obfuscatedAs = when {
+                    masked || !obfuscate -> PersonalDataKind.NONE
+                    serializesRow -> PersonalDataKind.FREE_TEXT
+                    index in safeAggregates -> PersonalDataKind.NONE
+                    else -> PersonalDataObfuscator.classify(identifiers, null)
+                },
             )
         }
 
@@ -117,12 +208,22 @@ class ReadOnlyQueryExecutor(
             }
             values.add(
                 columns.mapIndexed { index, column ->
-                    masking.apply(column.name, cellOf(rows, index + 1, metadata.getColumnType(index + 1)))
+                    val value = cellOf(rows, index + 1, metadata.getColumnType(index + 1))
+                    when {
+                        column.masked && value != null -> DataMaskingPolicy.MASKED
+                        column.obfuscatedAs == PersonalDataKind.NONE -> value
+                        else -> PersonalDataObfuscator.obfuscate(
+                            PersonalDataObfuscator.classify(column.identifiers, value),
+                            value,
+                            derived = column.derived,
+                        )
+                    }
                 },
             )
         }
 
         return QueryOutcome(
+            personalDataObfuscated = obfuscate,
             statementType = statementType,
             columns = columns,
             rows = values,
@@ -137,6 +238,20 @@ class ReadOnlyQueryExecutor(
      *
      * Conteúdo binário vira rótulo; texto acima de [MAX_CELL_LENGTH] é cortado com reticências.
      */
+    /**
+     * Nome da coluna de origem, indiferente ao apelido que o cliente escolheu.
+     *
+     * `getColumnName` do driver PostgreSQL devolve o apelido, igual a `getColumnLabel`, então não
+     * serve para decidir mascaramento. `PGResultSetMetaData.getBaseColumnName` devolve a coluna de
+     * verdade, e vazio quando a coluna é calculada. Driver que não exponha a API cai no nome comum,
+     * e a decisão fica a cargo do rótulo e da varredura do statement.
+     */
+    private fun baseColumnName(metadata: java.sql.ResultSetMetaData, index: Int): String =
+        when (metadata) {
+            is PGResultSetMetaData -> runCatching { metadata.getBaseColumnName(index) }.getOrNull().orEmpty()
+            else -> metadata.getColumnName(index).orEmpty()
+        }
+
     private fun cellOf(rows: ResultSet, index: Int, sqlType: Int): String? = when (sqlType) {
         Types.BINARY, Types.VARBINARY, Types.LONGVARBINARY, Types.BLOB ->
             if (rows.getBytes(index) == null) null else BINARY

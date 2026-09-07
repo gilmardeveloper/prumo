@@ -12,18 +12,26 @@ sealed interface WorkspaceViewModel {
     data class Configured(
         val workspaceId: String,
         val workspaceName: String,
-        val workspaceType: String,
+        val workspaceTypeKey: String,
         val currentRepositoryName: String,
         val repositories: List<RepositoryRow>,
         val policies: List<PolicyRow>,
         /** Quantos packs propostos por cliente MCP esperam decisão do desenvolvedor. */
         val pendingPacks: Int = 0,
+        /** Os packs já instalados neste workspace, na ordem em que a tela os mostra. */
+        val installedPacks: List<PackRow> = emptyList(),
     ) : WorkspaceViewModel
+
+    data class PackRow(
+        val packId: String,
+        val title: String,
+        val version: String,
+    )
 
     data class RepositoryRow(
         val name: String,
-        val role: String,
-        val accessMode: String,
+        val roleKey: String,
+        val accessModeKey: String,
         val current: Boolean,
     )
 
@@ -37,7 +45,11 @@ sealed interface WorkspaceViewModel {
 
     companion object {
 
-        fun from(resolution: WorkspaceResolution, pendingPacks: Int = 0): WorkspaceViewModel = when (resolution) {
+        fun from(
+            resolution: WorkspaceResolution,
+            pendingPacks: Int = 0,
+            installedPacks: List<PackRow> = emptyList(),
+        ): WorkspaceViewModel = when (resolution) {
             is WorkspaceResolution.NotConfigured -> NotConfigured(resolution.projectName)
 
             is WorkspaceResolution.Ambiguous -> Ambiguous(
@@ -50,21 +62,21 @@ sealed interface WorkspaceViewModel {
                 Configured(
                     workspaceId = context.workspace.id,
                     workspaceName = context.workspace.name,
-                    workspaceType = context.workspace.type.name,
+                    workspaceTypeKey = context.workspace.type.labelKey,
                     currentRepositoryName = context.currentRepository.name,
                     repositories = context.workspace.repositories.map {
                         RepositoryRow(
                             name = it.name,
-                            role = it.role.name,
-                            accessMode = it.accessMode.name,
+                            roleKey = it.role.labelKey,
+                            accessModeKey = it.accessMode.labelKey,
                             current = it.id == context.currentRepository.id,
                         )
                     },
                     pendingPacks = pendingPacks,
+                    installedPacks = installedPacks,
                     policies = listOf(
                         PolicyRow("policy.referenceWrite", context.policies.referenceWrite),
                         PolicyRow("policy.databaseWrite", context.policies.databaseWrite),
-                        PolicyRow("policy.externalPathAccess", context.policies.externalPathAccess),
                         PolicyRow("policy.processExecution", context.policies.processExecution),
                         PolicyRow("policy.gitWrite", context.policies.gitWrite),
                     ),

@@ -11,6 +11,7 @@ import io.prumo.mcp.pack.domain.PackToolKind
 import io.prumo.mcp.pack.execution.PackQueryRunner
 import io.prumo.mcp.pack.execution.PackToolRunner
 import io.prumo.mcp.policy.PolicyAction
+import io.prumo.mcp.datasource.security.ObfuscationGuidance
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import kotlinx.serialization.Serializable
@@ -68,6 +69,8 @@ data class PackToolRunResponse(
     val rowCount: Int = 0,
     val truncated: Boolean = false,
     val durationMillis: Long = 0,
+    /** Como trabalhar com o que veio. Ausente quando o resultado não tocou dado pessoal. */
+    val guidance: String? = null,
 )
 
 @Serializable
@@ -137,7 +140,10 @@ class PackToolset : McpToolset {
     @McpTool(name = LIST_TOOL)
     @McpDescription(
         "Lists the Prumo Packs installed in the current workspace, with the capabilities each one " +
-            "declared. Packs are user-provided resources, not part of the product.",
+            "declared. Packs are user-provided resources, not part of the product. A pack you have " +
+            "submitted does not appear here until the developer accepts it in the IDE, so an empty " +
+            "list right after a submission is expected — submitting again only queues a duplicate. " +
+            "To write one, start from prumo_pack_get_authoring_spec.",
     )
     suspend fun list(
         @McpDescription("BCP-47 language tag for the pack titles, for example pt-BR. Defaults to English.")
@@ -229,7 +235,8 @@ class PackToolset : McpToolset {
                             packId = packId,
                             toolId = toolId,
                             kind = tool.kind.name,
-                            columns = outcome.columns.map { QueryColumnResponse(it.name, it.type, it.masked) },
+                            columns = outcome.columns.map { QueryColumnResponse(it.name, it.type, it.masked, it.obfuscatedAs.name) },
+                            guidance = ObfuscationGuidance.forResult(outcome),
                             rows = outcome.rows,
                             rowCount = outcome.rowCount,
                             truncated = outcome.truncated,

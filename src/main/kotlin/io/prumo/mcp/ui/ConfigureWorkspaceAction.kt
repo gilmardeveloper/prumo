@@ -3,18 +3,22 @@ package io.prumo.mcp.ui
 import com.intellij.openapi.project.Project
 import com.intellij.openapi.ui.DialogWrapper
 import com.intellij.openapi.ui.Messages
-import com.intellij.ui.dsl.builder.bindItem
-import com.intellij.ui.dsl.builder.bindText
+import com.intellij.openapi.ui.ComboBox
+import com.intellij.ui.SimpleListCellRenderer
+import com.intellij.ui.components.JBTextField
 import com.intellij.ui.dsl.builder.columns
 import com.intellij.ui.dsl.builder.panel
 import io.prumo.mcp.i18n.PrumoBundle
 import io.prumo.mcp.ide.PrumoWorkspaceService
 import io.prumo.mcp.repository.RepositoryFingerprint
+import io.prumo.mcp.workspace.application.ProjectDescriptor
+import io.prumo.mcp.workspace.application.WorkspaceRemoval
 import io.prumo.mcp.workspace.domain.AccessMode
 import io.prumo.mcp.workspace.domain.RepositoryBinding
 import io.prumo.mcp.workspace.domain.RepositoryRole
 import io.prumo.mcp.workspace.domain.Workspace
 import io.prumo.mcp.workspace.domain.WorkspaceType
+import java.nio.file.Path
 import java.time.Instant
 import java.util.Locale
 import javax.swing.JComponent
@@ -27,6 +31,12 @@ import javax.swing.JComponent
  */
 object ConfigureWorkspaceAction {
 
+    /**
+     * Pede nome e tipo, e grava o workspace com o projeto aberto como repositório primário.
+     *
+     * Nome cujo identificador já pertence a um workspace leva à pergunta de sobrescrita. Recusada a
+     * sobrescrita, o formulário reabre com o nome digitado, para que outro seja escolhido.
+     */
     fun run(project: Project) {
         val service = PrumoWorkspaceService.getInstance()
         val descriptor = service.describe(project)
@@ -40,21 +50,62 @@ object ConfigureWorkspaceAction {
             return
         }
 
-        val dialog = ConfigureWorkspaceDialog(project, descriptor.name)
-        if (!dialog.showAndGet()) {
+        var suggestedName = descriptor.name
+        while (true) {
+            val dialog = ConfigureWorkspaceDialog(project, suggestedName)
+            if (!dialog.showAndGet()) {
+                return
+            }
+
+            val id = slug(dialog.workspaceName)
+            val existing = service.store.load(id)
+            if (existing != null) {
+                if (!confirmOverwrite(project, existing.name)) {
+                    suggestedName = dialog.workspaceName
+                    continue
+                }
+                val leftover = WorkspaceRemoval(service.store, service.credentials).erase(existing)
+                if (leftover.isNotEmpty()) {
+                    Messages.showWarningDialog(
+                        project,
+                        PrumoBundle.message("workspace.overwrite.leftover", leftover.joinToString(", ")),
+                        "Prumo MCP",
+                    )
+                }
+            }
+
+            create(service, id, dialog, descriptor, basePath)
             return
         }
+    }
 
-        val id = slug(dialog.workspaceName)
-        if (service.store.load(id) != null) {
-            Messages.showErrorDialog(
-                project,
-                PrumoBundle.message("workspace.error.duplicate", dialog.workspaceName),
-                "Prumo MCP",
-            )
-            return
-        }
+    /**
+     * Pergunta se o workspace existente pode ser apagado para dar lugar a um novo.
+     *
+     * O botão padrão é o de cancelar: a confirmação apaga configuração e senhas sem volta.
+     */
+    private fun confirmOverwrite(project: Project, existingName: String): Boolean {
+        val chosen = Messages.showDialog(
+            project,
+            PrumoBundle.message("workspace.overwrite.question", existingName),
+            PrumoBundle.message("workspace.overwrite.title"),
+            arrayOf(
+                PrumoBundle.message("workspace.overwrite.confirm"),
+                PrumoBundle.message("workspace.overwrite.cancel"),
+            ),
+            1,
+            Messages.getWarningIcon(),
+        )
+        return chosen == 0
+    }
 
+    private fun create(
+        service: PrumoWorkspaceService,
+        id: String,
+        dialog: ConfigureWorkspaceDialog,
+        descriptor: ProjectDescriptor,
+        basePath: Path,
+    ) {
         val now = Instant.now().toString()
         service.store.save(
             Workspace(
@@ -115,8 +166,15 @@ class ConfigureWorkspaceDialog(
     suggestedName: String,
 ) : DialogWrapper(project) {
 
-    var workspaceName: String = suggestedName
-    var workspaceType: WorkspaceType = WorkspaceType.STANDALONE
+    private val nameField = JBTextField(suggestedName)
+
+    private val typeBox = ComboBox(WorkspaceType.entries.toTypedArray()).apply {
+        selectedItem = WorkspaceType.STANDALONE
+        renderer = SimpleListCellRenderer.create("") { PrumoBundle.message(it.labelKey) }
+    }
+
+    val workspaceName: String get() = nameField.text.trim()
+    val workspaceType: WorkspaceType get() = typeBox.selectedItem as? WorkspaceType ?: WorkspaceType.STANDALONE
 
     init {
         title = PrumoBundle.message("workspace.create.title")
@@ -125,17 +183,9 @@ class ConfigureWorkspaceDialog(
 
     override fun createCenterPanel(): JComponent = panel {
         row(PrumoBundle.message("workspace.create.name")) {
-            textField()
-                .bindText(::workspaceName)
-                .columns(30)
-                .focused()
+            cell(nameField).columns(30).focused()
         }
-        row(PrumoBundle.message("workspace.field.type")) {
-            comboBox(WorkspaceType.entries).bindItem(
-                { workspaceType },
-                { workspaceType = it ?: WorkspaceType.STANDALONE },
-            )
-        }
+        row(PrumoBundle.message("workspace.field.type")) { cell(typeBox) }
         row {
             comment(PrumoBundle.message("workspace.create.hint"))
         }

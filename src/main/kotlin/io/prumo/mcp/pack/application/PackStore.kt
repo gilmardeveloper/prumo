@@ -51,11 +51,11 @@ class PackStore(
     }
 
     fun load(workspaceId: String, packId: String): PackManifest? =
-        manifestOrNull(packRoot(workspaceId, packId))
+        manifestOrNull(rootOf(workspaceId, packId))
 
     fun save(workspaceId: String, manifest: PackManifest) {
         json.write(
-            packRoot(workspaceId, manifest.id).resolve(MANIFEST_FILE),
+            rootOf(workspaceId, manifest.id).resolve(MANIFEST_FILE),
             serializer<PackManifest>(),
             manifest,
         )
@@ -81,7 +81,7 @@ class PackStore(
     }
 
     fun remove(workspaceId: String, packId: String) {
-        val root = packRoot(workspaceId, packId)
+        val root = rootOf(workspaceId, packId)
         if (!Files.exists(root)) {
             return
         }
@@ -153,7 +153,7 @@ class PackStore(
 
     /** O arquivo de um item, resolvido contra a raiz do pack pelo validador de caminho. */
     private fun knowledgeFile(workspaceId: String, packId: String, item: KnowledgeItem): Path =
-        PathSecurityValidator.resolve(packRoot(workspaceId, packId), item.file)
+        PathSecurityValidator.resolve(rootOf(workspaceId, packId), item.file)
 
     private fun manifestOrNull(root: Path): PackManifest? =
         json.read(root.resolve(MANIFEST_FILE), serializer<PackManifest>())
@@ -161,7 +161,14 @@ class PackStore(
 
     private fun packsRoot(workspaceId: String): Path = storage.workspaceRoot(workspaceId).resolve(PACKS_DIRECTORY)
 
-    private fun packRoot(workspaceId: String, packId: String): Path {
+    /**
+     * Diretório do pack dentro do workspace.
+     *
+     * A validação do identificador acontece aqui, e não em quem monta o caminho.
+     *
+     * @throws IllegalArgumentException se `packId` não for um identificador simples.
+     */
+    fun rootOf(workspaceId: String, packId: String): Path {
         require(packId.matches(SAFE_ID)) { "Invalid pack id '$packId'." }
         return packsRoot(workspaceId).resolve(packId)
     }

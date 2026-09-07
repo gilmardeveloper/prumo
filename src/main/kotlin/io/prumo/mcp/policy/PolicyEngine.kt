@@ -10,7 +10,6 @@ enum class PolicyAction {
     READ_DOCUMENTATION,
     QUERY_DATABASE,
     WRITE_DATABASE,
-    ACCESS_EXTERNAL_PATH,
     EXECUTE_PROCESS,
     WRITE_GIT,
 }
@@ -29,7 +28,6 @@ enum class Capability {
 data class WorkspacePolicies(
     val referenceWrite: Boolean = false,
     val databaseWrite: Boolean = false,
-    val externalPathAccess: Boolean = false,
     val processExecution: Boolean = false,
     val gitWrite: Boolean = false,
 ) {
@@ -101,13 +99,6 @@ object PolicyEngine {
                 else -> PolicyDecision.Allowed
             }
 
-            PolicyAction.ACCESS_EXTERNAL_PATH ->
-                if (request.policies.externalPathAccess) {
-                    PolicyDecision.Allowed
-                } else {
-                    deny("workspace policy denies access to paths outside the bound repositories")
-                }
-
             PolicyAction.EXECUTE_PROCESS ->
                 if (request.policies.processExecution) {
                     PolicyDecision.Allowed
@@ -143,7 +134,7 @@ object PolicyEngine {
         PolicyAction.QUERY_DATABASE, PolicyAction.WRITE_DATABASE -> Capability.DATASOURCE_QUERY
         PolicyAction.READ_DOCUMENTATION -> Capability.DOCUMENTATION_READ
         PolicyAction.EXECUTE_PROCESS -> Capability.PROCESS_EXECUTE
-        PolicyAction.ACCESS_EXTERNAL_PATH, PolicyAction.WRITE_GIT -> null
+        PolicyAction.WRITE_GIT -> null
     }
 
     private fun deny(reason: String) = PolicyDecision.Denied("Prumo MCP denied the operation: $reason.")

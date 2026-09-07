@@ -51,7 +51,13 @@ class PackConsentDialog(
         row(PrumoBundle.message("pack.consent.checksum")) { label(preview.checksum.removePrefix("sha256:").take(CHECKSUM_DIGITS)) }
         if (!preview.checksumMatches) {
             row {
-                comment(PrumoBundle.message("pack.consent.changed"))
+                comment(
+                    if (preview.envelope.checksum.isBlank()) {
+                        PrumoBundle.message("pack.consent.unsigned")
+                    } else {
+                        PrumoBundle.message("pack.consent.changed")
+                    },
+                )
             }
         }
 

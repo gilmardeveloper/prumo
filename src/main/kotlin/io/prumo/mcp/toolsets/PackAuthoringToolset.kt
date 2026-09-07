@@ -10,6 +10,7 @@ import io.prumo.mcp.pack.authoring.PackValidator
 import io.prumo.mcp.pack.authoring.SubmissionQueue
 import io.prumo.mcp.pack.authoring.ValidationReport
 import io.prumo.mcp.pack.exchange.PackImporter
+import io.prumo.mcp.pack.exchange.PackOrigin
 import io.prumo.mcp.policy.PolicyAction
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
@@ -45,7 +46,10 @@ class PackAuthoringToolset : McpToolset {
     @McpTool(name = VALIDATE_TOOL)
     @McpDescription(
         "Checks a pack draft and returns what is wrong, where, and how to fix it. Installs nothing " +
-            "and changes nothing: call it as many times as needed until the draft is valid.",
+            "and changes nothing: call it as many times as needed until the draft is valid. The check " +
+            "covers structure, declared capabilities and risk — it never runs the SQL or the command " +
+            "a tool carries, so a valid draft can still hold a query that fails or scans a whole " +
+            "table. Try each statement with the database tools before submitting.",
     )
     suspend fun validatePack(
         @McpDescription("The pack draft, as the JSON exchange file.")
@@ -82,7 +86,7 @@ class PackAuthoringToolset : McpToolset {
                 )
             }
 
-            val preview = PackImporter.preview(draft)
+            val preview = PackImporter.preview(draft, PackOrigin.DRAFT)
             val queue = SubmissionQueue(PrumoWorkspaceService.getInstance().storage)
             val submission = withContext(Dispatchers.IO) {
                 queue.submit(

@@ -3,6 +3,8 @@ package io.prumo.mcp.toolsets
 import com.intellij.mcpserver.McpToolset
 import com.intellij.mcpserver.annotations.McpDescription
 import com.intellij.mcpserver.annotations.McpTool
+import com.intellij.ide.plugins.PluginManagerCore
+import com.intellij.openapi.extensions.PluginId
 import io.prumo.mcp.ide.PrumoWorkspaceService
 import io.prumo.mcp.workspace.application.WorkspaceResolution
 import kotlinx.serialization.Serializable
@@ -17,21 +19,32 @@ class PrumoDiagnosticsToolset : McpToolset {
     @Suppress("FunctionName")
     @McpTool
     @McpDescription(
-        "Reports whether Prumo MCP is active and which open project the current call resolves to. " +
-            "Use it to confirm connectivity before calling any other Prumo tool.",
+        "Use this tool to check whether Prumo MCP is active and which open project the current " +
+            "call resolves to. Prumo gives you the workspace this project belongs to — its " +
+            "repositories, documentation and databases — and enforces its boundary. When it is " +
+            "active, call prumo_workspace_prepare next.",
     )
     suspend fun prumo_diagnostics(): PrumoDiagnostics {
         val project = McpProjectResolver.resolve(coroutineContext)
         val resolution = PrumoWorkspaceService.getInstance().resolve(project)
         return PrumoDiagnostics(
-            pluginVersion = PLUGIN_VERSION,
+            pluginVersion = installedVersion(),
             projectName = project.name,
             workspaceConfigured = resolution is WorkspaceResolution.Resolved,
         )
     }
 
+    /**
+     * Versão lida do descritor instalado, e não de uma constante no código.
+     *
+     * Esta tool existe para dizer o que está rodando. Uma constante escrita à mão envelhece na
+     * primeira release e passa a mentir justamente para quem tenta descobrir se a correção chegou.
+     */
+    private fun installedVersion(): String =
+        PluginManagerCore.getPlugin(PluginId.getId(PLUGIN_ID))?.version ?: "unknown"
+
     private companion object {
-        const val PLUGIN_VERSION = "0.1.0"
+        const val PLUGIN_ID = "io.prumo.mcp"
     }
 }
 

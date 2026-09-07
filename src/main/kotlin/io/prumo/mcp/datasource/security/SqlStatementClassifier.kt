@@ -38,6 +38,24 @@ sealed interface SqlClassification {
  */
 object SqlStatementClassifier {
 
+    /**
+     * Primeira linha util da reclamacao do parser.
+     *
+     * A mensagem do JSqlParser costuma trazer a posicao e o token inesperado, e e o que permite a
+     * quem chamou corrigir o proprio texto. O resto e rastro de pilha da gramatica, sem valor aqui.
+     */
+    private fun parserComplaint(failure: Throwable): String {
+        val bruto = (failure.cause ?: failure).message.orEmpty()
+            .replace(WHITESPACE, " ")
+            .trim()
+        val primeira = bruto.substringBefore(" Was expecting").trim()
+        return when {
+            primeira.isBlank() -> "the parser gave no detail."
+            primeira.length > MAX_COMPLAINT -> primeira.take(MAX_COMPLAINT) + "…"
+            else -> primeira
+        }
+    }
+
     fun classify(sql: String): SqlClassification {
         if (sql.isBlank()) {
             return SqlClassification.Denied(SqlStatementType.UNPARSEABLE, "The statement is empty.")
@@ -48,8 +66,9 @@ object SqlStatementClassifier {
         } catch (failure: Exception) {
             return SqlClassification.Denied(
                 SqlStatementType.UNPARSEABLE,
-                "Prumo could not parse this statement, so it will not run it. " +
-                    "Only SELECT, WITH … SELECT and EXPLAIN are accepted.",
+                "Prumo could not read this statement as SQL, so it will not run it: " +
+                    parserComplaint(failure) +
+                    " This is a syntax problem, not a refusal of the statement type.",
             )
         }
 
@@ -152,6 +171,9 @@ object SqlStatementClassifier {
             SqlStatementType.OTHER
         }
     }
+
+    private const val MAX_COMPLAINT = 200
+    private val WHITESPACE = Regex("""\s+""")
 
     private val WRITING_STATEMENTS = listOf(
         "Insert", "Update", "Delete", "Merge", "Upsert", "Truncate", "Create", "Alter", "Drop",

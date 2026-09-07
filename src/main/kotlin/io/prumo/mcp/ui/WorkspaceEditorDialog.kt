@@ -3,12 +3,17 @@ package io.prumo.mcp.ui
 import com.intellij.openapi.fileChooser.FileChooser
 import com.intellij.openapi.fileChooser.FileChooserDescriptor
 import com.intellij.openapi.project.Project
+import com.intellij.openapi.ui.ComboBox
 import com.intellij.openapi.ui.DialogWrapper
+import com.intellij.openapi.ui.Messages
+import com.intellij.openapi.ui.ValidationInfo
+import com.intellij.ui.SimpleListCellRenderer
 import com.intellij.ui.ToolbarDecorator
+import com.intellij.ui.components.JBCheckBox
 import com.intellij.ui.components.JBList
-import com.intellij.ui.dsl.builder.bindItem
-import com.intellij.ui.dsl.builder.bindSelected
-import com.intellij.ui.dsl.builder.bindText
+import com.intellij.ui.components.JBScrollPane
+import com.intellij.ui.components.JBTextArea
+import com.intellij.ui.components.JBTextField
 import com.intellij.ui.dsl.builder.columns
 import com.intellij.ui.dsl.builder.panel
 import com.intellij.util.ui.JBUI
@@ -26,6 +31,8 @@ import io.prumo.mcp.workspace.domain.RepositoryBinding
 import io.prumo.mcp.workspace.domain.RepositoryRole
 import io.prumo.mcp.workspace.domain.Workspace
 import io.prumo.mcp.workspace.domain.WorkspaceType
+import java.awt.Dimension
+import java.awt.Toolkit
 import java.nio.file.Path
 import javax.swing.DefaultListModel
 import javax.swing.JComponent
@@ -37,8 +44,15 @@ class WorkspaceEditorDialog(
     private val primaryRepositoryId: String,
 ) : DialogWrapper(project) {
 
-    var workspaceName: String = original.name
-    var workspaceType: WorkspaceType = original.type
+    private val nameField = JBTextField(original.name)
+
+    private val typeBox = ComboBox(WorkspaceType.entries.toTypedArray()).apply {
+        selectedItem = original.type
+        renderer = SimpleListCellRenderer.create("") { PrumoBundle.message(it.labelKey) }
+    }
+
+    val workspaceName: String get() = nameField.text.trim()
+    val workspaceType: WorkspaceType get() = typeBox.selectedItem as? WorkspaceType ?: original.type
 
     private val repositories = DefaultListModel<RepositoryBinding>().apply {
         original.repositories.forEach(::addElement)
@@ -51,11 +65,13 @@ class WorkspaceEditorDialog(
     }
     private val credentials = PasswordSafeCredentialProvider()
 
-    private var referenceWrite = original.policies.referenceWrite
-    private var databaseWrite = original.policies.databaseWrite
-    private var externalPathAccess = original.policies.externalPathAccess
-    private var processExecution = original.policies.processExecution
-    private var gitWrite = original.policies.gitWrite
+    private val referenceWriteBox = policyBox("workspace.policy.referenceWrite", original.policies.referenceWrite)
+    private val databaseWriteBox = policyBox("workspace.policy.databaseWrite", original.policies.databaseWrite)
+    private val processExecutionBox = policyBox("workspace.policy.processExecution", original.policies.processExecution)
+    private val gitWriteBox = policyBox("workspace.policy.gitWrite", original.policies.gitWrite)
+
+    private fun policyBox(labelKey: String, selected: Boolean) =
+        JBCheckBox(PrumoBundle.message(labelKey), selected)
 
     init {
         title = PrumoBundle.message("workspace.dialog.title")
@@ -63,16 +79,34 @@ class WorkspaceEditorDialog(
         init()
     }
 
-    override fun createCenterPanel(): JComponent = panel {
+    override fun createCenterPanel(): JComponent = scrollable(form())
+
+    /**
+     * Envolve o formulário num painel rolável limitado a parte da altura da tela.
+     *
+     * `DialogWrapper` dimensiona pelo tamanho preferido do conteúdo e corta o que não couber na
+     * tela, sem oferecer gesto para alcançar o excedente. O teto só entra em ação quando o
+     * formulário é mais alto que ele, então tela grande continua sem barra.
+     *
+     * Envolver o painel faz `DialogWrapper` deixar de reconhecê-lo como `DialogPanel`, e com isso
+     * `apply()` nunca roda — por isso todo campo deste diálogo é lido do próprio componente.
+     */
+    private fun scrollable(form: JComponent): JComponent = JBScrollPane(form).apply {
+        border = JBUI.Borders.empty()
+        horizontalScrollBarPolicy = javax.swing.ScrollPaneConstants.HORIZONTAL_SCROLLBAR_NEVER
+        verticalScrollBar.unitIncrement = SCROLL_UNIT
+        val ceiling = (Toolkit.getDefaultToolkit().screenSize.height * MAX_HEIGHT_RATIO).toInt()
+        preferredSize = Dimension(
+            form.preferredSize.width + verticalScrollBar.preferredSize.width,
+            minOf(form.preferredSize.height, ceiling),
+        )
+    }
+
+    private fun form(): JComponent = panel {
         row(PrumoBundle.message("workspace.field.name")) {
-            textField().bindText(::workspaceName).columns(34).focused()
+            cell(nameField).columns(34).focused()
         }
-        row(PrumoBundle.message("workspace.field.type")) {
-            comboBox(WorkspaceType.entries).bindItem(
-                { workspaceType },
-                { workspaceType = it ?: WorkspaceType.STANDALONE },
-            )
-        }
+        row(PrumoBundle.message("workspace.field.type")) { cell(typeBox) }
         row { comment(PrumoBundle.message("workspace.typeHint"), maxLineLength = 72) }
 
         group(PrumoBundle.message("workspace.section.repositories")) {
@@ -103,11 +137,10 @@ class WorkspaceEditorDialog(
         }
 
         group(PrumoBundle.message("workspace.section.policies")) {
-            row { checkBox(PrumoBundle.message("workspace.policy.referenceWrite")).bindSelected(::referenceWrite) }
-            row { checkBox(PrumoBundle.message("workspace.policy.databaseWrite")).bindSelected(::databaseWrite) }
-            row { checkBox(PrumoBundle.message("workspace.policy.externalPathAccess")).bindSelected(::externalPathAccess) }
-            row { checkBox(PrumoBundle.message("workspace.policy.processExecution")).bindSelected(::processExecution) }
-            row { checkBox(PrumoBundle.message("workspace.policy.gitWrite")).bindSelected(::gitWrite) }
+            row { cell(referenceWriteBox) }
+            row { cell(databaseWriteBox) }
+            row { cell(processExecutionBox) }
+            row { cell(gitWriteBox) }
             row {
                 comment(PrumoBundle.message("workspace.section.policies.hint"))
             }
@@ -156,7 +189,7 @@ class WorkspaceEditorDialog(
         if (!dialog.showAndGet()) {
             return
         }
-        val profile = dialog.toProfile()
+        val profile = profileOrReport(dialog) ?: return
         if (datasources.elements().toList().any { it.id == profile.id }) {
             return
         }
@@ -168,8 +201,26 @@ class WorkspaceEditorDialog(
         if (!dialog.showAndGet()) {
             return
         }
-        datasources.set(index, dialog.toProfile())
+        datasources.set(index, profileOrReport(dialog) ?: return)
     }
+
+    /**
+     * Monta o perfil, e diz na tela o que houve quando o domínio o recusa.
+     *
+     * Sem isto a recusa some com o banco sem uma palavra: o diálogo fecha e a lista continua como
+     * estava, como se nada tivesse sido pedido.
+     */
+    private fun profileOrReport(dialog: DataSourceDialog): DataSourceProfile? =
+        try {
+            dialog.toProfile()
+        } catch (recusa: IllegalArgumentException) {
+            Messages.showErrorDialog(
+                project,
+                PrumoBundle.message("datasource.invalid", recusa.message.orEmpty()),
+                "Prumo MCP",
+            )
+            null
+        }
 
     /** Remove o perfil e a senha correspondente no cofre. */
     private fun removeDatasource(index: Int) {
@@ -188,11 +239,11 @@ class WorkspaceEditorDialog(
             return
         }
 
-        val binding = RepositoryBindingDialog(project, id, path).let { dialog ->
-            if (!dialog.showAndGet()) return
-            dialog.toBinding()
+        val dialog = RepositoryBindingDialog(project, id, path)
+        if (!dialog.showAndGet()) {
+            return
         }
-        repositories.addElement(binding)
+        repositories.addElement(bindingOrReport(dialog) ?: return)
     }
 
     private fun editRepository(index: Int) {
@@ -201,8 +252,26 @@ class WorkspaceEditorDialog(
         if (!dialog.showAndGet()) {
             return
         }
-        repositories.set(index, dialog.toBinding())
+        repositories.set(index, bindingOrReport(dialog) ?: return)
     }
+
+    /**
+     * Monta o vínculo, e diz na tela o que houve quando o domínio o recusa.
+     *
+     * Sem isto a recusa some com o repositório sem uma palavra: o diálogo fecha e a lista continua
+     * como estava, como se nada tivesse sido pedido.
+     */
+    private fun bindingOrReport(dialog: RepositoryBindingDialog): RepositoryBinding? =
+        try {
+            dialog.toBinding()
+        } catch (recusa: IllegalArgumentException) {
+            Messages.showErrorDialog(
+                project,
+                PrumoBundle.message("workspace.repository.invalid", recusa.message.orEmpty()),
+                "Prumo MCP",
+            )
+            null
+        }
 
     private fun removeRepository(index: Int) {
         val binding = repositories.get(index)
@@ -239,38 +308,70 @@ class WorkspaceEditorDialog(
         documentation = documentation.elements().toList(),
         datasources = datasources.elements().toList(),
         policies = WorkspacePolicies(
-            referenceWrite = referenceWrite,
-            databaseWrite = databaseWrite,
-            externalPathAccess = externalPathAccess,
-            processExecution = processExecution,
-            gitWrite = gitWrite,
+            referenceWrite = referenceWriteBox.isSelected,
+            databaseWrite = databaseWriteBox.isSelected,
+            processExecution = processExecutionBox.isSelected,
+            gitWrite = gitWriteBox.isSelected,
         ),
         updatedAt = now,
     )
 
     private fun repositoryRenderer() = javax.swing.ListCellRenderer<RepositoryBinding> { _, value, _, _, _ ->
-        com.intellij.ui.components.JBLabel("${value.name}  —  ${value.role} · ${value.accessMode}")
+        com.intellij.ui.components.JBLabel(
+            value.name + "  —  " + PrumoBundle.message(value.role.labelKey) + " · " +
+                PrumoBundle.message(value.accessMode.labelKey),
+        )
     }
 
     private fun documentationRenderer() = javax.swing.ListCellRenderer<DocumentationSource> { _, value, _, _, _ ->
-        com.intellij.ui.components.JBLabel("${value.name}  —  ${value.kind} · ${value.authority}")
+        com.intellij.ui.components.JBLabel(
+            value.name + "  —  " + PrumoBundle.message(value.kind.labelKey) + " · " +
+                PrumoBundle.message(value.authority.labelKey),
+        )
     }
 
     private fun datasourceRenderer() = javax.swing.ListCellRenderer<DataSourceProfile> { _, value, _, _, _ ->
-        com.intellij.ui.components.JBLabel("${value.name}  —  PostgreSQL · ${value.accessMode}")
+        com.intellij.ui.components.JBLabel(
+            value.name + "  —  PostgreSQL · " + PrumoBundle.message(value.accessMode.labelKey),
+        )
+    }
+
+    private companion object {
+        const val MAX_HEIGHT_RATIO = 0.75
+        const val SCROLL_UNIT = 16
     }
 }
 
 class RepositoryBindingDialog(
-    project: Project,
+    private val project: Project,
     private val id: String,
     private val path: Path,
     private val existing: RepositoryBinding? = null,
 ) : DialogWrapper(project) {
 
-    private var role: RepositoryRole = existing?.role ?: RepositoryRole.REFERENCE
-    private var accessMode: AccessMode = existing?.accessMode ?: AccessMode.READ_ONLY
-    private var branchPolicy: String = existing?.branchPolicy.orEmpty()
+    private val roleBox = ComboBox(RepositoryRole.entries.toTypedArray()).apply {
+        selectedItem = existing?.role ?: RepositoryRole.REFERENCE
+        renderer = SimpleListCellRenderer.create("") { PrumoBundle.message(it.labelKey) }
+    }
+
+    private val accessModeBox = ComboBox(AccessMode.entries.toTypedArray()).apply {
+        selectedItem = existing?.accessMode ?: AccessMode.READ_ONLY
+        renderer = SimpleListCellRenderer.create("") { PrumoBundle.message(it.labelKey) }
+    }
+
+    private val branchPolicyField = JBTextField(existing?.branchPolicy.orEmpty())
+
+    private val descriptionArea = JBTextArea(existing?.description.orEmpty(), DESCRIPTION_ROWS, DESCRIPTION_COLUMNS)
+        .apply { lineWrap = true; wrapStyleWord = true }
+
+    private val role: RepositoryRole get() = roleBox.selectedItem as? RepositoryRole ?: RepositoryRole.REFERENCE
+    private val accessMode: AccessMode get() = accessModeBox.selectedItem as? AccessMode ?: AccessMode.READ_ONLY
+    private val branchPolicy: String get() = branchPolicyField.text.trim()
+    private val description: String get() = descriptionArea.text.trim()
+
+    private val excluded = DefaultListModel<String>().apply {
+        existing?.excludedPaths?.forEach(::addElement)
+    }
 
     init {
         title = PrumoBundle.message("workspace.repository.dialog.title")
@@ -279,19 +380,41 @@ class RepositoryBindingDialog(
 
     override fun createCenterPanel(): JComponent = panel {
         row(PrumoBundle.message("workspace.repository.field.repository")) { label(path.fileName?.toString() ?: id) }
-        row(PrumoBundle.message("workspace.repository.field.role")) {
-            comboBox(RepositoryRole.entries).bindItem({ role }, { role = it ?: RepositoryRole.REFERENCE })
-        }
+        row(PrumoBundle.message("workspace.repository.field.role")) { cell(roleBox) }
         row { comment(PrumoBundle.message("workspace.repository.roleHint"), maxLineLength = 62) }
-        row(PrumoBundle.message("workspace.repository.field.access")) {
-            comboBox(AccessMode.entries).bindItem({ accessMode }, { accessMode = it ?: AccessMode.READ_ONLY })
-        }
+        row(PrumoBundle.message("workspace.repository.field.access")) { cell(accessModeBox) }
         row(PrumoBundle.message("workspace.repository.field.branchPolicy")) {
-            textField().bindText(::branchPolicy).columns(24)
+            cell(branchPolicyField).columns(24)
+        }
+        row(PrumoBundle.message("workspace.repository.field.description")) {
+            cell(JBScrollPane(descriptionArea))
+        }
+        row { comment(PrumoBundle.message("workspace.repository.descriptionHint"), maxLineLength = 62) }
+
+        group(PrumoBundle.message("workspace.repository.section.excluded")) {
+            row {
+                cell(excludedList()).align(com.intellij.ui.dsl.builder.AlignX.FILL)
+            }
+            row {
+                comment(PrumoBundle.message("workspace.repository.excludedHint"), maxLineLength = 62)
+            }
         }
         row {
             comment(PrumoBundle.message("workspace.repository.hint"))
         }
+    }
+
+    override fun doValidate(): ValidationInfo? = when {
+        description.length > RepositoryBinding.MAX_DESCRIPTION_LENGTH -> ValidationInfo(
+            PrumoBundle.message(
+                "workspace.repository.validation.description",
+                RepositoryBinding.MAX_DESCRIPTION_LENGTH,
+                description.length,
+            ),
+            descriptionArea,
+        )
+
+        else -> null
     }
 
     fun toBinding(): RepositoryBinding {
@@ -305,7 +428,60 @@ class RepositoryBindingDialog(
             accessMode = accessMode,
             branchPolicy = branchPolicy.ifBlank { null },
             fingerprint = RepositoryFingerprint.forDirectory(path).value,
+            description = description.ifBlank { null },
+            excludedPaths = excluded.elements().toList(),
         )
+    }
+
+    /**
+     * Lista editável dos caminhos que o Prumo recusa neste repositório.
+     *
+     * O `.git` não aparece aqui: ele é recusado sempre, sem depender de configuração.
+     */
+    private fun excludedList(): JComponent {
+        val list = JBList(excluded).apply { visibleRowCount = 4 }
+        return ToolbarDecorator.createDecorator(list)
+            .setAddAction {
+                val digitado = Messages.showInputDialog(
+                    project,
+                    PrumoBundle.message("workspace.repository.excluded.prompt"),
+                    PrumoBundle.message("workspace.repository.section.excluded"),
+                    null,
+                )?.trim().orEmpty()
+                if (digitado.isNotBlank()) {
+                    addExcluded(digitado)
+                }
+            }
+            .setRemoveAction { list.selectedIndex.takeIf { it >= 0 }?.let(excluded::remove) }
+            .createPanel()
+    }
+
+    /**
+     * Guarda o caminho na forma que o casamento de exclusão espera, ou explica por que não dá.
+     *
+     * Digitar `/FONTES/curl` é natural para quem pensa a partir da raiz do repositório, e a lista
+     * já é relativa a ela; o que o caminho não pode ser é ambíguo — subir de diretório ou nomear
+     * uma unidade de disco não tem leitura dentro do repositório.
+     */
+    private fun addExcluded(digitado: String) {
+        val canonico = RepositoryBinding.normalizeExcludedPath(digitado)
+        if (canonico == null) {
+            Messages.showErrorDialog(
+                project,
+                PrumoBundle.message("workspace.repository.excluded.invalid", digitado),
+                PrumoBundle.message("workspace.repository.section.excluded"),
+            )
+            return
+        }
+        val jaExiste = excluded.elements().toList().any { it.equals(canonico, ignoreCase = true) }
+        if (!jaExiste) {
+            excluded.addElement(canonico)
+        }
+    }
+
+    private companion object {
+        const val DESCRIPTION_ROWS = 4
+        const val DESCRIPTION_COLUMNS = 44
     }
 }
 

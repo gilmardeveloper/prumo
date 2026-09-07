@@ -33,6 +33,15 @@ data class DataSourceProfile(
     val accessMode: AccessMode = AccessMode.READ_ONLY,
     val sslMode: SslMode = SslMode.PREFER,
     val defaultSchema: String? = null,
+    /** O que este banco e, escrito pelo desenvolvedor e entregue ao cliente de IA. */
+    val description: String? = null,
+    /**
+     * Ofusca parcialmente o dado pessoal devolvido por uma consulta.
+     *
+     * Nasce ligado: um banco recém-vinculado protege sem depender de alguém lembrar de ativar. Não
+     * afeta metadado — estrutura, tipo e comentário continuam íntegros.
+     */
+    val obfuscatePersonalData: Boolean = true,
 ) {
     init {
         require(id.matches(IDENTIFIER)) { "Invalid datasource id '$id'." }
@@ -41,6 +50,9 @@ data class DataSourceProfile(
         require(database.isNotBlank()) { "Datasource database must not be blank." }
         require(user.isNotBlank()) { "Datasource user must not be blank." }
         require(port in 1..65535) { "Invalid datasource port '$port'." }
+        require((description?.length ?: 0) <= MAX_DESCRIPTION_LENGTH) {
+            "Datasource description must not exceed $MAX_DESCRIPTION_LENGTH characters."
+        }
     }
 
     val writable: Boolean get() = accessMode == AccessMode.READ_WRITE
@@ -50,6 +62,7 @@ data class DataSourceProfile(
 
     companion object {
         const val DEFAULT_PORT = 5432
+        const val MAX_DESCRIPTION_LENGTH = 500
         private val IDENTIFIER = Regex("^[A-Za-z0-9_-]{1,64}$")
     }
 }

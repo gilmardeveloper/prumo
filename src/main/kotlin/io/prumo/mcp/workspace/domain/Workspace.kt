@@ -16,11 +16,16 @@ enum class WorkspaceType {
     CUSTOM,
 }
 
-/** Papel de um repositório dentro do workspace. */
-@Serializable
+/**
+ * Papel de um repositório dentro do workspace.
+ *
+ * Descreve o repositório para o cliente de IA e não concede acesso: quem concede é o [AccessMode].
+ * Valor gravado que não exista mais aqui é resolvido por [RepositoryRoleSerializer].
+ */
+@Serializable(with = RepositoryRoleSerializer::class)
 enum class RepositoryRole {
+    /** O que está sendo construído, incluindo o projeto aberto na IDE. */
     PRIMARY,
-    TARGET,
     REFERENCE,
     LEGACY_REFERENCE,
     RELATED_COMPONENT,
@@ -47,14 +52,63 @@ data class RepositoryBinding(
     val accessMode: AccessMode,
     val branchPolicy: String? = null,
     val fingerprint: String? = null,
+    /** O que este repositorio e, escrito pelo desenvolvedor e entregue ao cliente de IA. */
+    val description: String? = null,
+    /**
+     * Caminhos que o Prumo nunca le, lista, nem varre neste repositorio.
+     *
+     * Diferente da [description], que é contexto entregue à IA e que ela pode ignorar, esta lista é
+     * imposta pelas tools. Vale para a superfície do Prumo: outra família de ferramentas do servidor
+     * MCP continua alcançando o disco por conta própria.
+     */
+    val excludedPaths: List<String> = emptyList(),
 ) {
     init {
         require(id.matches(IDENTIFIER)) { "Invalid repository id '$id'." }
         require(name.isNotBlank()) { "Repository name must not be blank." }
         require(localPath.isNotBlank()) { "Repository local path must not be blank." }
+        require((description?.length ?: 0) <= MAX_DESCRIPTION_LENGTH) {
+            "Repository description must not exceed $MAX_DESCRIPTION_LENGTH characters."
+        }
+        require(excludedPaths.size <= MAX_EXCLUDED_PATHS) {
+            "A repository must not exclude more than $MAX_EXCLUDED_PATHS paths."
+        }
+        excludedPaths.forEach { entry ->
+            require(entry.isNotBlank()) { "An excluded path must not be blank." }
+            require(entry.trim() == entry) { "Excluded path '$entry' has surrounding blanks." }
+            require(!entry.contains("..")) { "Excluded path '$entry' must not contain '..'." }
+            require(!ABSOLUTE_LOOKING.containsMatchIn(entry)) {
+                "Excluded path '$entry' must be relative to the repository root."
+            }
+        }
     }
 
     val writable: Boolean get() = accessMode == AccessMode.READ_WRITE
+
+    companion object {
+        const val MAX_DESCRIPTION_LENGTH = 500
+        const val MAX_EXCLUDED_PATHS = 100
+
+        /**
+         * Reduz um caminho digitado à forma que o casamento de exclusão espera.
+         *
+         * Troca barra invertida por barra e descarta barra inicial e final. A lista é sempre
+         * relativa à raiz do repositório, então `/FONTES/curl` e `FONTES/curl` nomeiam a mesma
+         * coisa, e só a segunda forma casa.
+         *
+         * @return a forma canônica, ou `null` para o que não tem leitura relativa: vazio, `..` e
+         *   unidade de disco do Windows.
+         */
+        fun normalizeExcludedPath(raw: String): String? {
+            val normalized = raw.trim().replace('\\', '/').trim('/').trim()
+            return normalized.takeIf {
+                it.isNotEmpty() && !it.contains("..") && !ABSOLUTE_LOOKING.containsMatchIn(it)
+            }
+        }
+
+        /** Barra inicial, barra invertida inicial e unidade do Windows. */
+        private val ABSOLUTE_LOOKING = Regex("""^([/\\]|[A-Za-z]:)""")
+    }
 }
 
 /**

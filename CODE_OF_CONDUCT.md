@@ -1,32 +1,35 @@
-# Code of Conduct
+# Código de Conduta
 
-## Our pledge
+**Português (Brasil)** · [English](CODE_OF_CONDUCT.en.md)
 
-We pledge to make participation in this project a harassment-free experience for everyone,
-regardless of age, body size, disability, ethnicity, gender identity and expression, level of
-experience, nationality, personal appearance, race, religion, or sexual identity and orientation.
+## Nosso compromisso
 
-## Our standards
+Assumimos o compromisso de fazer da participação neste projeto uma experiência livre de assédio para
+todas as pessoas, independentemente de idade, tamanho corporal, deficiência, etnia, identidade e
+expressão de gênero, nível de experiência, nacionalidade, aparência pessoal, raça, religião, ou
+identidade e orientação sexual.
 
-Behaviour that contributes to a positive environment:
+## Nossos padrões
 
-- being respectful of differing viewpoints and experiences;
-- giving and accepting technical criticism gracefully — about the work, never about the person;
-- being explicit about uncertainty instead of asserting what you have not verified;
-- focusing on what is best for the project and for the people who use it.
+Comportamentos que contribuem para um ambiente positivo:
 
-Behaviour that is not acceptable:
+- respeitar pontos de vista e experiências diferentes;
+- dar e receber crítica técnica com elegância — sobre o trabalho, nunca sobre a pessoa;
+- dizer com clareza o que não se sabe, em vez de afirmar o que não foi verificado;
+- focar no que é melhor para o projeto e para quem o usa.
 
-- harassment, insults, or derogatory comments of any kind;
-- publishing others' private information without explicit permission;
-- sustained disruption of technical discussion.
+Comportamentos inaceitáveis:
 
-## Enforcement
+- assédio, insulto ou comentário depreciativo de qualquer natureza;
+- divulgar informação privada de terceiros sem autorização explícita;
+- perturbação continuada da discussão técnica.
 
-Report unacceptable behaviour to **gilmarsilva.developer@gmail.com**. Reports are handled
-confidentially. Maintainers may remove comments, commits, issues and pull requests that violate this
-code, and may ban contributors for repeated or severe violations.
+## Aplicação
 
-## Attribution
+Relate comportamento inaceitável para **gilmarsilva.developer@gmail.com**. Os relatos são tratados
+com confidencialidade. A manutenção do projeto pode remover comentários, commits, issues e pull
+requests que violem este código, e pode banir quem reincidir ou cometer violação grave.
 
-Adapted from the [Contributor Covenant](https://www.contributor-covenant.org), version 2.1.
+## Atribuição
+
+Adaptado do [Contributor Covenant](https://www.contributor-covenant.org), versão 2.1.

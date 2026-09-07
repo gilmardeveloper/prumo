@@ -32,14 +32,28 @@ data class PackEnvelope(
 }
 
 /**
+ * De onde veio o pack que está sendo lido.
+ *
+ * A distinção decide o que se pode exigir dele: um arquivo de troca sempre passou pelo exportador e
+ * por isso carrega checksum, enquanto um rascunho escrito por um cliente MCP nunca foi empacotado e
+ * não tem o que conferir.
+ */
+enum class PackOrigin {
+    EXPORTED_FILE,
+    DRAFT,
+}
+
+/**
  * O que o usuário vê antes de decidir: a leitura do arquivo mais a análise de risco.
  *
  * Não instala nada.
  */
 data class PackImportPreview(
     val envelope: PackEnvelope,
+    val origin: PackOrigin,
     val assessment: RiskAssessment,
     val checksum: String,
+    /** Verdadeiro só quando o arquivo traz checksum e ele confere com o recalculado. */
     val checksumMatches: Boolean,
     val scripts: Map<String, String>,
 ) {
@@ -108,7 +122,7 @@ object PackExporter {
  */
 object PackImporter {
 
-    fun preview(content: String): PackImportPreview {
+    fun preview(content: String, origin: PackOrigin): PackImportPreview {
         val envelope = try {
             JSON.decodeFromString(serializer<PackEnvelope>(), content)
         } catch (failure: Exception) {
@@ -128,9 +142,13 @@ object PackImporter {
 
         return PackImportPreview(
             envelope = envelope,
+            origin = origin,
             assessment = RiskClassifier.assess(envelope.manifest),
             checksum = expected,
-            checksumMatches = envelope.checksum.isBlank() || envelope.checksum == expected,
+            checksumMatches = when {
+                envelope.checksum.isNotBlank() -> envelope.checksum == expected
+                else -> origin == PackOrigin.DRAFT
+            },
             scripts = scripts,
         )
     }
@@ -138,7 +156,9 @@ object PackImporter {
     /**
      * Instala o pack revisado.
      *
-     * Exige o aceite, recusa `BLOCKED` e recusa quando o checksum não confere.
+     * Exige o aceite, recusa `BLOCKED` e recusa checksum que não confira. Arquivo de troca sem
+     * checksum também é recusado; rascunho sem checksum não, porque nunca houve empacotamento a
+     * conferir — o que o usuário aceita ali é o conteúdo que a tela mostrou.
      */
     fun install(
         store: PackStore,
@@ -154,7 +174,11 @@ object PackImporter {
         }
         if (!preview.checksumMatches) {
             throw PackExchangeException(
-                "The pack file changed after it was packaged. Ask the author for a fresh export.",
+                if (preview.envelope.checksum.isBlank()) {
+                    "This pack file carries no checksum. Ask the author for a fresh export."
+                } else {
+                    "The pack file changed after it was packaged. Ask the author for a fresh export."
+                },
             )
         }
         val accepted = acceptance
