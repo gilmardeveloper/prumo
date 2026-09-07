@@ -119,12 +119,17 @@ Three limits the description states to the client, and that hold here:
 - `shortName` is stable and always English, `displayName` follows the IDE language, and severity is
   not a closed vocabulary: a plugin may register its own.
 
-The response opens by saying **which profile answered**. `profileScope` is `PROJECT` when the
-profile travels with the project, in `.idea/inspectionProfiles` — the ruleset that project agreed
-on, and the one anyone cloning the repository gets. It is `APPLICATION` when the project declares no
-profile of its own: the answer is then the configuration of whoever opened the IDE, and another
-developer may see something else. The IDE decides, through the project's `USE_PROJECT_PROFILE`;
-Prumo only reports which of the two answered.
+The response opens by saying **which profile answered**. `profileScope` is `PROJECT` when a profile
+is stored in `.idea/inspectionProfiles` and that profile answers — the ruleset the project agreed
+on, and the one anyone cloning the repository gets. It is `APPLICATION` when no profile is versioned
+with the project: the answer is then the configuration of that IDE installation, and another
+developer may see something else.
+
+The distinction needs the file because **the IDE materialises a `Project Default` profile in the
+project even when the project brings none** — it is born as a copy of the application profile.
+Asking the platform who manages the current profile answers "the project" in both cases; only the
+versioned file separates an agreed ruleset from a local copy. A project in the old single-file
+`.ipr` format has no such directory and reads as `APPLICATION`.
 
 A filter value the catalogue does not know comes back in `unknownFilters`, with the accepted values
 in `knownValues` — so `severity: "WARNIG"` is never confused with a filter that legitimately matched
