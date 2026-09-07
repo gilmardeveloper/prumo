@@ -1,5 +1,6 @@
 package io.prumo.mcp.ui
 
+import com.intellij.icons.AllIcons
 import com.intellij.openapi.actionSystem.DefaultActionGroup
 import com.intellij.openapi.options.ShowSettingsUtil
 import com.intellij.openapi.project.DumbAwareAction
@@ -16,14 +17,12 @@ import com.intellij.util.ui.JBUI
 import io.prumo.mcp.i18n.PrumoBundle
 import io.prumo.mcp.ide.PrumoWorkspaceService
 import io.prumo.mcp.settings.PrumoLanguageConfigurable
+import javax.swing.Icon
 import javax.swing.JComponent
 import javax.swing.JPanel
 
 /**
- * Painel do Prumo, sempre restrito ao workspace do projeto aberto.
- *
- * A lista de todos os workspaces é tela administrativa e não passa por aqui: enxergar os demais
- * workspaces já é uma quebra de isolamento, mesmo sem acesso ao conteúdo deles.
+ * Janela do Prumo: uma aba por domínio, montadas a partir de [PrumoTabRegistry].
  */
 class PrumoToolWindowFactory : ToolWindowFactory {
 
@@ -37,7 +36,7 @@ class PrumoToolWindowFactory : ToolWindowFactory {
 
     override fun createToolWindowContent(project: Project, toolWindow: ToolWindow) {
         toolWindow.setAdditionalGearActions(DefaultActionGroup(settingsAction(project)))
-        toolWindow.contentManager.addContent(content(project))
+        install(project, toolWindow)
     }
 
     /** Caminho visível para a preferência de idioma, que de outro modo só existe em *Settings*. */
@@ -60,21 +59,49 @@ class PrumoToolWindowFactory : ToolWindowFactory {
                 val toolWindow = ToolWindowManager.getInstance(project).getToolWindow(TOOL_WINDOW_ID)
                     ?: return@forEach
                 toolWindow.stripeTitle = PrumoBundle.message("toolwindow.title")
-                toolWindow.contentManager.apply {
-                    removeAllContents(true)
-                    addContent(content(project))
-                }
+                toolWindow.contentManager.removeAllContents(true)
+                install(project, toolWindow)
             }
         }
 
-        private fun content(project: Project): Content =
-            ContentFactory.getInstance().createContent(PrumoWorkspacePanel(project).component, null, false)
+        /**
+         * Monta uma aba por entrada do registro.
+         *
+         * `setDisposer` amarra a aba ao conteúdo: quando a janela é remontada, `removeAllContents`
+         * descarta as abas antigas antes de as novas nascerem.
+         */
+        private fun install(project: Project, toolWindow: ToolWindow) {
+            val factory = ContentFactory.getInstance()
+            PrumoTabRegistry.tabsFor(project).forEach { tab ->
+                val content: Content = factory.createContent(
+                    tab.createComponent(),
+                    PrumoBundle.message(tab.titleKey),
+                    false,
+                )
+                content.icon = tab.icon
+                content.isCloseable = false
+                content.setDisposer(tab)
+                toolWindow.contentManager.addContent(content)
+            }
+        }
     }
 }
 
-class PrumoWorkspacePanel(private val project: Project) {
+/**
+ * Aba do workspace: identidade, repositórios, políticas e packs do projeto aberto.
+ *
+ * A lista de todos os workspaces é tela administrativa e não passa por aqui: enxergar os demais
+ * workspaces já é uma quebra de isolamento, mesmo sem acesso ao conteúdo deles.
+ */
+class WorkspaceTab(private val project: Project) : PrumoTab {
 
-    val component: JComponent get() = render()
+    override val id = "workspace"
+
+    override val titleKey = "toolwindow.tab.workspace"
+
+    override val icon: Icon = AllIcons.General.ProjectStructure
+
+    override fun createComponent(): JComponent = render()
 
     private fun render(): JPanel {
         val service = PrumoWorkspaceService.getInstance()
