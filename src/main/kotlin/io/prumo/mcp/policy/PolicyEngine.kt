@@ -15,6 +15,7 @@ enum class PolicyAction {
     READ_QUALITY_CATALOG,
     READ_KNOWLEDGE,
     WRITE_KNOWLEDGE,
+    SUBMIT_PACK,
 }
 
 /** Capacidades que um recurso trazido de fora precisa declarar e o usuário precisa conceder. */
@@ -121,6 +122,10 @@ object PolicyEngine {
             // A base de conhecimento é derivada: o que entra nela precisa apontar para uma fonte
             // que já estava ao alcance, e essa verificação é da admissão, não da política.
             PolicyAction.READ_KNOWLEDGE, PolicyAction.WRITE_KNOWLEDGE -> PolicyDecision.Allowed
+
+            // Enfileirar uma proposta é escrita, e escrita não consome decisão de leitura. Instalar
+            // continua sendo ato do desenvolvedor na tela de consentimento, fora da política.
+            PolicyAction.SUBMIT_PACK -> PolicyDecision.Allowed
         }
     }
 
@@ -147,6 +152,7 @@ object PolicyEngine {
         PolicyAction.READ_QUALITY_CATALOG,
         PolicyAction.READ_KNOWLEDGE,
         PolicyAction.WRITE_KNOWLEDGE,
+        PolicyAction.SUBMIT_PACK,
         -> null
     }
 
