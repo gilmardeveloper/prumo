@@ -31,7 +31,22 @@ sealed interface WorkspaceViewModel {
         val pendingPacks: Int = 0,
         /** Os packs já instalados neste workspace, na ordem em que a tela os mostra. */
         val installedPacks: List<PackRow> = emptyList(),
+        /** Os bancos vinculados a este workspace. */
+        val dataSources: List<DataSourceRow> = emptyList(),
     ) : WorkspaceViewModel
+
+    /**
+     * Um banco na tela.
+     *
+     * Não carrega host, porta, usuário nem nome do banco: identificar o servidor não é necessário
+     * para o dono reconhecer a fonte, e o que não chega à tela não vaza por ela.
+     */
+    data class DataSourceRow(
+        val name: String,
+        val accessModeKey: String,
+        val defaultSchema: String?,
+        val personalDataObfuscated: Boolean,
+    )
 
     data class PackRow(
         val packId: String,
@@ -85,6 +100,14 @@ sealed interface WorkspaceViewModel {
                     },
                     pendingPacks = pendingPacks,
                     installedPacks = installedPacks,
+                    dataSources = context.workspace.datasources.map {
+                        DataSourceRow(
+                            name = it.name,
+                            accessModeKey = it.accessMode.labelKey,
+                            defaultSchema = it.defaultSchema,
+                            personalDataObfuscated = it.obfuscatePersonalData,
+                        )
+                    },
                     policies = listOf(
                         PolicyRow("policy.referenceWrite", context.policies.referenceWrite),
                         PolicyRow("policy.databaseWrite", context.policies.databaseWrite),
