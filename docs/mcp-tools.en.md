@@ -131,10 +131,16 @@ Asking the platform who manages the current profile answers "the project" in bot
 versioned file separates an agreed ruleset from a local copy. A project in the old single-file
 `.ipr` format has no such directory and reads as `APPLICATION`.
 
-A filter value the catalogue does not know comes back in `unknownFilters`, with the accepted values
-in `knownValues` — so `severity: "WARNIG"` is never confused with a filter that legitimately matched
-nothing. Group stays out of `knownValues` because an installation has hundreds of them: to learn
-them, call without a filter and read `byGroup`.
+A filter value the catalogue does not know comes back in `unknownFilters` — so `severity: "WARNIG"`
+is never confused with a filter that legitimately matched nothing. The accepted values come in
+`knownValues`, and only for `severity` and `language`: group stays out because an installation has
+hundreds of them, and whoever misspelled a group finds the valid ones by calling with no filter and
+reading `byGroup`.
+
+`maxResults` defaults to 50 and is capped at 200; a request outside that range is pulled into it,
+without an error. **There is no paging:** with 1,577 rules registered in a common installation, the
+way past the window is a narrower filter, not a next page — and `matchCount` still states the real
+size of what matched.
 
 Finding the problems of one specific file is a different job, and `get_file_problems`, from the
 IDE's own MCP server, is the tool for it. Prumo does not replace it.

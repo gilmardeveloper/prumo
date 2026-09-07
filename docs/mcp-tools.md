@@ -135,10 +135,15 @@ plataforma quem administra o perfil corrente responde "o projeto" nos dois casos
 versionado separa regra combinada de cópia local. Projeto no formato antigo, de arquivo `.ipr`
 único, não tem esse diretório e é lido como `APPLICATION`.
 
-Filtro com valor que o catálogo não conhece volta em `unknownFilters`, com os valores aceitos em
-`knownValues` — assim `severity: "WARNIG"` não se confunde com um recorte que legitimamente não
-casou nada. Grupo fica fora de `knownValues` porque uma instalação tem centenas deles: para
-conhecê-los, chame sem filtro e leia `byGroup`.
+Filtro com valor que o catálogo não conhece volta em `unknownFilters` — assim `severity: "WARNIG"`
+não se confunde com um recorte que legitimamente não casou nada. Os valores aceitos vêm em
+`knownValues`, e só para `severity` e `language`: grupo fica de fora porque uma instalação tem
+centenas deles, e quem errou o grupo descobre os válidos chamando sem filtro e lendo `byGroup`.
+
+`maxResults` vale 50 por padrão e no máximo 200; pedido fora dessa faixa é puxado para dentro dela,
+sem erro. **Não há paginação:** com 1.577 regras registradas numa instalação comum, o caminho para
+alcançar o resto é estreitar o recorte, não pedir a página seguinte — e `matchCount` continua
+dizendo o tamanho real do que casou.
 
 Encontrar os problemas de um arquivo específico é outro trabalho, e quem o faz é a
 `get_file_problems`, do próprio servidor MCP da IDE. O Prumo não a substitui.
