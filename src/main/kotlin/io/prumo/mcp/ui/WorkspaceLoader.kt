@@ -2,6 +2,7 @@ package io.prumo.mcp.ui
 
 import com.intellij.openapi.diagnostic.Logger
 import com.intellij.openapi.project.Project
+import io.prumo.mcp.ide.PrumoProjectContext
 import io.prumo.mcp.ide.PrumoWorkspaceService
 import io.prumo.mcp.pack.application.PackStore
 import io.prumo.mcp.pack.authoring.SubmissionQueue
@@ -28,7 +29,7 @@ object WorkspaceLoader {
      */
     fun load(project: Project): WorkspaceViewModel = try {
         val service = PrumoWorkspaceService.getInstance()
-        val resolution = service.resolve(project)
+        val resolution = PrumoProjectContext.getInstance(project).resolve()
         val workspaceId = (resolution as? WorkspaceResolution.Resolved)?.context?.workspace?.id
 
         WorkspaceViewModel.from(
