@@ -76,6 +76,9 @@ object QualityReports {
 
     const val MAX_INSPECTIONS = 200
 
+    /** Tamanho da janela quando o cliente não pede outro. */
+    const val DEFAULT_MAX_RESULTS = 50
+
     fun catalog(
         catalog: InspectionCatalog,
         criteria: InspectionFilter,

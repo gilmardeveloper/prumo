@@ -85,11 +85,16 @@ unificado daquele arquivo. Aceita `staged`. Nunca roda comando Git que altere es
 
 ### `prumo_repository_read_file`
 Lê um arquivo de texto por `path` relativo à raiz do repositório, com `firstLine` e `maxLines`.
-Caminho absoluto e `..` são recusados. Arquivo binário é recusado com mensagem explícita.
+Caminho absoluto e `..` são recusados. Arquivo binário é recusado com mensagem explícita. Pedir um
+diretório é recusado dizendo que é diretório, e apontando a tool que o lista — não se diz que ele
+não existe.
 
 ### `prumo_repository_search_text`
-Busca literal dentro de um repositório vinculado, opcionalmente restrita a um subdiretório. Arquivo
-binário e `.git` nunca são lidos.
+Busca literal dentro de um repositório vinculado, opcionalmente restrita a um subdiretório por
+`scope`. Arquivo binário e `.git` nunca são lidos. `scope` que não existe é recusado, e não devolve
+busca vazia: escopo digitado errado e busca que percorreu tudo sem achar levam a conclusões opostas.
+`scope` dentro de área excluída continua respondendo que é excluído, para que a recusa não vire um
+oráculo de existência sobre o que o workspace decidiu não mostrar.
 
 ### `prumo_repository_get_structure`
 Diretórios e arquivos de um repositório vinculado. Serve para descobrir o layout de um repositório
@@ -102,8 +107,12 @@ que **não** é o projeto aberto — para o projeto aberto as ferramentas da pr�
 ### `prumo_ide_get_current_context`
 Onde o desenvolvedor está agora: o arquivo como `repositoryId` mais caminho relativo, linha e coluna
 do cursor, intervalo selecionado, a cadeia de símbolos que contém o cursor, linguagem e módulo. Se o
-arquivo aberto não pertence a repositório algum deste workspace, a resposta é só
-`insideWorkspace: false` — nomear um arquivo fora da fronteira já seria contar sobre ele.
+arquivo aberto não está ao alcance, a resposta é `insideWorkspace: false` — nomeá-lo já seria
+contar sobre ele —, acompanhada de `reason`: `NO_FILE_OPEN` quando nenhum editor está selecionado,
+`FILE_NOT_ON_DISK` quando o que está aberto vive num jar, num scratch ou em sistema remoto, e
+`OUT_OF_REACH` quando o arquivo não está ao alcance do workspace. Fora dos repositórios vinculados e
+dentro de caminho excluído devolvem o mesmo `OUT_OF_REACH`, de propósito: distinguir os dois diria
+que existe algo escondido ali.
 
 ---
 
@@ -135,10 +144,15 @@ plataforma quem administra o perfil corrente responde "o projeto" nos dois casos
 versionado separa regra combinada de cópia local. Projeto no formato antigo, de arquivo `.ipr`
 único, não tem esse diretório e é lido como `APPLICATION`.
 
-Filtro com valor que o catálogo não conhece volta em `unknownFilters`, com os valores aceitos em
-`knownValues` — assim `severity: "WARNIG"` não se confunde com um recorte que legitimamente não
-casou nada. Grupo fica fora de `knownValues` porque uma instalação tem centenas deles: para
-conhecê-los, chame sem filtro e leia `byGroup`.
+Filtro com valor que o catálogo não conhece volta em `unknownFilters` — assim `severity: "WARNIG"`
+não se confunde com um recorte que legitimamente não casou nada. Os valores aceitos vêm em
+`knownValues`, e só para `severity` e `language`: grupo fica de fora porque uma instalação tem
+centenas deles, e quem errou o grupo descobre os válidos chamando sem filtro e lendo `byGroup`.
+
+`maxResults` vale 50 por padrão e no máximo 200; pedido fora dessa faixa é puxado para dentro dela,
+sem erro. **Não há paginação:** com 1.577 regras registradas numa instalação comum, o caminho para
+alcançar o resto é estreitar o recorte, não pedir a página seguinte — e `matchCount` continua
+dizendo o tamanho real do que casou.
 
 Encontrar os problemas de um arquivo específico é outro trabalho, e quem o faz é a
 `get_file_problems`, do próprio servidor MCP da IDE. O Prumo não a substitui.

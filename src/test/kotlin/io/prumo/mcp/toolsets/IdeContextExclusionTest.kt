@@ -1,6 +1,7 @@
 package io.prumo.mcp.toolsets
 
 import io.prumo.mcp.ide.EditorSnapshot
+import io.prumo.mcp.ide.EditorState
 import io.prumo.mcp.policy.WorkspacePolicies
 import io.prumo.mcp.workspace.application.WorkspaceContext
 import io.prumo.mcp.workspace.domain.AccessMode
@@ -114,6 +115,21 @@ class IdeContextExclusionTest {
         assertFalse(response.insideWorkspace)
     }
 
+    /**
+     * O motivo devolvido não pode separar excluído de inexistente: seriam duas respostas onde a
+     * exclusão promete uma, e a diferença entre elas contaria que existe algo escondido ali.
+     */
+    @Test
+    fun `o motivo nao distingue caminho excluido de caminho fora do workspace`() {
+        val excluido = RepositoryReports.ideContext(context, snapshot("C:/repos/consumidor/segredos/Chaves.kt"))
+        val fora = RepositoryReports.ideContext(context, snapshot("C:/outro/lugar/A.kt"))
+        val gitInterno = RepositoryReports.ideContext(context, snapshot("C:/repos/consumidor/.git/config"))
+
+        assertEquals("OUT_OF_REACH", excluido.reason)
+        assertEquals(excluido.reason, fora.reason, "excluído e fora precisam falar a mesma coisa")
+        assertEquals(excluido.reason, gitInterno.reason)
+    }
+
     private fun context(vararg repositories: RepositoryBinding) = WorkspaceContext(
         Workspace(
             id = "modernizacao-folha",
@@ -127,15 +143,17 @@ class IdeContextExclusionTest {
         repositories.first(),
     )
 
-    private fun snapshot(absolutePath: String) = EditorSnapshot(
-        absolutePath = absolutePath,
-        line = 12,
-        column = 4,
-        selectionStartLine = null,
-        selectionEndLine = null,
-        selectionLength = null,
-        symbolPath = listOf("Prumo", "calcula"),
-        language = "Kotlin",
-        moduleName = "app",
+    private fun snapshot(absolutePath: String) = EditorState.At(
+        EditorSnapshot(
+            absolutePath = absolutePath,
+            line = 12,
+            column = 4,
+            selectionStartLine = null,
+            selectionEndLine = null,
+            selectionLength = null,
+            symbolPath = listOf("Prumo", "calcula"),
+            language = "Kotlin",
+            moduleName = "app",
+        ),
     )
 }

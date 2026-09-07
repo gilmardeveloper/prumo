@@ -2,6 +2,7 @@ package io.prumo.mcp.repository
 
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertFalse
+import org.junit.jupiter.api.Assertions.assertNotEquals
 import org.junit.jupiter.api.Assertions.assertTrue
 import org.junit.jupiter.api.Tag
 import org.junit.jupiter.api.Test
@@ -268,4 +269,65 @@ class RepositoryReaderTest {
         assertTrue(busca.message.orEmpty().contains("excluded"), busca.message.orEmpty())
     }
 
+    @Test
+    fun `pedir um diretorio pela leitura de arquivo nao o declara inexistente`(@TempDir root: Path) {
+        val repo = repository(root)
+        root.resolve("docs").createDirectories()
+        root.resolve("docs/BUILD.md").writeText("como compilar")
+
+        val diretorio = assertThrows<RepositoryReadException> {
+            RepositoryReader.readFile(repo, "docs")
+        }
+        val ausente = assertThrows<RepositoryReadException> {
+            RepositoryReader.readFile(repo, "docs-que-nao-existem")
+        }
+
+        assertTrue(diretorio.message.orEmpty().contains("is a directory"), diretorio.message.orEmpty())
+        assertTrue(
+            diretorio.message.orEmpty().contains("prumo_repository_get_structure"),
+            "a recusa precisa apontar por onde listar: ${diretorio.message}",
+        )
+        assertTrue(ausente.message.orEmpty().contains("does not exist"), ausente.message.orEmpty())
+        assertNotEquals(
+            diretorio.message,
+            ausente.message,
+            "diretório existente e caminho inexistente não podem falar a mesma coisa",
+        )
+    }
+
+    @Test
+    fun `busca com escopo inexistente e recusada, e nao devolve busca vazia`(@TempDir root: Path) {
+        val repo = repository(root)
+        root.resolve("docs").createDirectories()
+        root.resolve("docs/BUILD.md").writeText("como compilar")
+
+        val falha = assertThrows<RepositoryReadException> {
+            RepositoryReader.searchText(repo, "compilar", scope = "docs-que-nao-existem")
+        }
+
+        assertTrue(falha.message.orEmpty().contains("does not exist"), falha.message.orEmpty())
+        assertTrue(
+            RepositoryReader.searchText(repo, "compilar", scope = "docs").matches.isNotEmpty(),
+            "o escopo que existe continua achando",
+        )
+    }
+
+    @Test
+    fun `escopo excluido continua se dizendo excluido, e nao inexistente`(@TempDir root: Path) {
+        val repo = repository(root)
+        root.resolve("segredos").createDirectories()
+
+        val existente = assertThrows<RepositoryReadException> {
+            RepositoryReader.searchText(repo, "x", scope = "segredos", excluded = listOf("segredos"))
+        }
+        val inexistente = assertThrows<RepositoryReadException> {
+            RepositoryReader.searchText(repo, "x", scope = "segredos/ausente", excluded = listOf("segredos"))
+        }
+
+        assertTrue(existente.message.orEmpty().contains("excluded"), existente.message.orEmpty())
+        assertTrue(
+            inexistente.message.orEmpty().contains("excluded"),
+            "dentro de área excluída a recusa não pode virar oráculo de existência: ${inexistente.message}",
+        )
+    }
 }

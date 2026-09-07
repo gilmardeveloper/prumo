@@ -25,15 +25,20 @@ class QualityToolset : McpToolset {
             "IDE may already have. This tool runs no inspection and reads no file. Finding the " +
             "problems of one specific file is a different job, and get_file_problems is the tool " +
             "for it. Registered and enabled is not the same as applicable: whether an inspection " +
-            "would run on a given file depends on the file, and this catalog does not say. The " +
-            "source field says which profile answered: PROJECT means the profile travels with the " +
-            "project and is the ruleset it agreed on, APPLICATION means it belongs to this IDE " +
-            "installation and another developer may see a different one. The counts describe this " +
-            "installation and its plugins, not the Prumo product, so they change with the IDE " +
-            "edition and the plugins installed. A filter value this catalog does not know comes " +
-            "back in unknownFilters, with the accepted values in knownValues, so an empty result " +
-            "is never confused with a misspelled filter. shortName is stable and always " +
-            "English; displayName follows the IDE language.",
+            "would run on a given file depends on the file, and this catalog does not say. " +
+            "source.profileScope says which profile answered: PROJECT means the profile travels " +
+            "with the project and is the ruleset it agreed on, APPLICATION means it belongs to " +
+            "this IDE installation and another developer may see a different one. The counts " +
+            "describe this installation and its plugins, not the Prumo product, so they change " +
+            "with the IDE edition and the plugins installed. A filter value this catalog does not " +
+            "know comes back in unknownFilters, so an empty result is never confused with a " +
+            "misspelled filter; knownValues then lists what severity and language accept, while " +
+            "group is answered by calling with no filter and reading byGroup. maxResults defaults " +
+            "to 50 and is capped at 200, a value outside that range is pulled into it, and there " +
+            "is no paging: narrow with filters to reach past the window. enabledByDefault is what " +
+            "the inspection declares out of the box, not whether it is on now, because everything " +
+            "listed is on. shortName is stable and always English; displayName follows the IDE " +
+            "language.",
     )
     suspend fun listInspections(
         @McpDescription(
@@ -50,10 +55,10 @@ class QualityToolset : McpToolset {
         @McpDescription("Keep only inspections shown under this group, spelled as displayName groups them.")
         group: String? = null,
         @McpDescription(
-            "How many inspections to return at most. The counts by severity and by group always " +
-                "cover the whole match, not just the returned window.",
+            "How many inspections to return at most, from 1 to 200. The counts by severity and by " +
+                "group always cover the whole match, not just the returned window.",
         )
-        maxResults: Int = 50,
+        maxResults: Int = QualityReports.DEFAULT_MAX_RESULTS,
     ): InspectionCatalogResponse =
         prumoToolCall(
             LIST_INSPECTIONS_TOOL,

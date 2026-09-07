@@ -1,6 +1,6 @@
 package io.prumo.mcp.toolsets
 
-import io.prumo.mcp.ide.EditorSnapshot
+import io.prumo.mcp.ide.EditorState
 import io.prumo.mcp.repository.DirectoryListing
 import io.prumo.mcp.repository.FileSlice
 import io.prumo.mcp.repository.GitBranchState
@@ -113,12 +113,23 @@ data class RepositoryStructureResponse(
 /**
  * Onde o desenvolvedor está agora, do ponto de vista do workspace.
  *
- * `insideWorkspace` falso significa que o arquivo aberto não pertence a repositório algum deste
- * workspace, e nesse caso nada além disso é informado.
+ * `insideWorkspace` falso vem sempre com [reason], porque as causas pedem providências diferentes:
+ * abrir um arquivo, ou olhar para outro repositório.
  */
 @Serializable
 data class IdeContextResponse(
     val insideWorkspace: Boolean,
+    /**
+     * Por que não há contexto, quando `insideWorkspace` é falso.
+     *
+     * `NO_FILE_OPEN` — nenhum editor de texto está selecionado na IDE.
+     * `FILE_NOT_ON_DISK` — o que está aberto não tem caminho em disco: jar, scratch ou remoto.
+     * `OUT_OF_REACH` — o arquivo aberto não está ao alcance deste workspace.
+     *
+     * Fora dos repositórios vinculados e dentro de caminho que o vínculo exclui dão a mesma
+     * resposta de propósito: distinguir os dois diria ao cliente que existe algo escondido ali.
+     */
+    val reason: String? = null,
     val repositoryId: String? = null,
     val path: String? = null,
     val line: Int? = null,
@@ -226,11 +237,18 @@ object RepositoryReports {
     /**
      * O que o cliente pode saber sobre a posição do editor.
      *
-     * Arquivo fora de todo repositório vinculado devolve apenas `insideWorkspace = false`.
+     * Sem contexto, a resposta nomeia a causa: sem editor, arquivo que não vive em disco, ou
+     * arquivo fora de todo repositório vinculado.
      */
-    fun ideContext(context: WorkspaceContext, snapshot: EditorSnapshot?): IdeContextResponse {
-        val located = snapshot?.let { locate(context, it.absolutePath) }
-            ?: return IdeContextResponse(insideWorkspace = false)
+    fun ideContext(context: WorkspaceContext, state: EditorState): IdeContextResponse {
+        val snapshot = when (state) {
+            EditorState.NoEditor -> return IdeContextResponse(insideWorkspace = false, reason = "NO_FILE_OPEN")
+            EditorState.NotOnDisk ->
+                return IdeContextResponse(insideWorkspace = false, reason = "FILE_NOT_ON_DISK")
+            is EditorState.At -> state.snapshot
+        }
+        val located = locate(context, snapshot.absolutePath)
+            ?: return IdeContextResponse(insideWorkspace = false, reason = "OUT_OF_REACH")
         val (binding, relativePath) = located
         return IdeContextResponse(
             insideWorkspace = true,
