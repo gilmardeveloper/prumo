@@ -41,6 +41,14 @@ data class KnowledgeRecallResponse(
 )
 
 @Serializable
+data class KnowledgeForgetResponse(
+    val knowledgeId: String,
+    /** Verdadeiro quando havia um registro e ele saiu. */
+    val removed: Boolean,
+    val message: String? = null,
+)
+
+@Serializable
 data class KnowledgeWriteResponse(
     val knowledgeId: String,
     val stored: Boolean,

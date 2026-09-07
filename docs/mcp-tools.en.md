@@ -173,6 +173,10 @@ Every read returns the freshness verdict beside the content:
 | `STALE` | the source changed, and the record may be wrong |
 | `ORPHAN` | the source is no longer in reach of the workspace |
 
+`FRESH` is about the **bytes of the source**, not about the record: it means nobody edited that
+file, never that Prumo checked the text against it. A record pointing at a PDF — whose content Prumo
+states it cannot extract — also comes back `FRESH`, because the file did not change.
+
 The verdict is recomputed on every call, comparing size, modification time and SHA-256 digest of the
 file. Any one of the three differing is enough for `STALE` — including when the change was elsewhere
 in the file. That is deliberate: a false `STALE` costs one redistillation, a false `FRESH` hands over
@@ -181,7 +185,10 @@ wrong content as if it were good.
 ### `prumo_knowledge_remember`
 Stores a distilled excerpt, naming the source it came from. **Prumo stamps the source itself**, never
 accepting the stamp from the client: a stamp supplied by the AI would prove only what the AI said.
-Knowledge that does not derive from a source of this workspace is refused, with the reason.
+What is refused is a record **naming a source it cannot reach** — an id that is not in the
+workspace, a path that does not exist inside it, or a path the developer excluded, and the three
+refusals arrive distinct. Prumo stamps where the text came from; it does **not** check that the text
+follows from there, and that judgement stays with whoever writes it.
 
 ### `prumo_knowledge_recall`
 Finds what was already distilled, by tag, by source, by text in the title or by freshness. Literal

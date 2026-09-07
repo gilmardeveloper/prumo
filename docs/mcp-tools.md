@@ -177,6 +177,10 @@ Toda leitura devolve o veredicto de frescor ao lado do conteúdo:
 | `STALE` | a fonte mudou, e o registro pode estar errado |
 | `ORPHAN` | a fonte não existe mais ao alcance do workspace |
 
+`FRESH` fala dos **bytes da fonte**, não do registro: quer dizer que ninguém editou aquele arquivo,
+nunca que o Prumo conferiu o texto contra ele. Um registro apontando para um PDF — cujo conteúdo o
+Prumo declara não conseguir extrair — também volta `FRESH`, porque o arquivo não mudou.
+
 O veredicto é recalculado a cada chamada, comparando tamanho, data de modificação e resumo SHA-256
 do arquivo. Divergir em qualquer um dos três basta para o registro ser `STALE` — inclusive quando a
 mudança foi em outra parte do arquivo. É deliberado: um falso `STALE` custa uma redestilação, um
@@ -185,7 +189,10 @@ falso `FRESH` entrega conteúdo errado como se fosse bom.
 ### `prumo_knowledge_remember`
 Guarda um trecho destilado, dizendo de que fonte ele veio. **O carimbo da fonte é calculado pelo
 Prumo**, nunca aceito do cliente: um carimbo informado pela IA provaria apenas o que ela disse.
-Conhecimento que não deriva de uma fonte deste workspace é recusado, com o motivo.
+O que é recusado é o registro que **nomeia uma fonte inalcançável** — id que não existe no
+workspace, caminho que não existe dentro dela, ou caminho excluído pelo desenvolvedor, e as três
+recusas chegam distintas. O Prumo carimba de onde o texto veio; ele **não** confere que o texto
+decorre dali, e esse juízo continua sendo de quem escreve.
 
 ### `prumo_knowledge_recall`
 Procura o que já foi destilado, por etiqueta, por fonte, por texto no título ou por frescor. Literal

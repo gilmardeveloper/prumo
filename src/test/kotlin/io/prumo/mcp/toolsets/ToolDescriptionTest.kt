@@ -171,6 +171,49 @@ class ToolDescriptionTest {
     }
 
     /**
+     * A validação em campo de 2026-09-07 pegou a descrição prometendo que conhecimento não derivado
+     * da fonte seria recusado. Não é o que acontece, nem o que pode acontecer: o Prumo carimba a
+     * origem, não julga o conteúdo. Um agente cego gravou um texto inventado carimbado num arquivo
+     * real e foi aceito — corretamente.
+     */
+    @Test
+    fun `a tool que grava nao promete recusar conteudo que nao decorre da fonte`() {
+        val remember = tools.single { it.name == KNOWLEDGE_REMEMBER }
+
+        assertFalse(
+            remember.description.contains("Knowledge that does not derive from a source"),
+            "a descrição promete um controle de conteúdo que o produto não faz",
+        )
+        assertTrue(
+            remember.description.contains("it cannot check that your text follows from there"),
+            "não declara que a fidelidade não é conferida",
+        )
+        assertTrue(
+            remember.description.contains("a source it cannot reach"),
+            "não diz o que de fato é recusado: fonte inalcançável",
+        )
+    }
+
+    /**
+     * Um agente cego leu `FRESH` como "o Prumo conferiu isto" e guardou um registro apontando para
+     * um PDF cujo texto o próprio Prumo declara não extrair — e recebeu `FRESH`, corretamente,
+     * porque o arquivo não mudou. A descrição precisa dizer de que o veredicto fala.
+     */
+    @Test
+    fun `a busca explica que frescor fala dos bytes da fonte, nao do conteudo do registro`() {
+        val recall = tools.single { it.name == KNOWLEDGE_RECALL }
+
+        assertTrue(
+            recall.description.contains("about the bytes of the source"),
+            "não diz que o veredicto é sobre o arquivo",
+        )
+        assertTrue(
+            recall.description.contains("never that Prumo checked the text"),
+            "não desfaz a leitura de que FRESH significaria conteúdo conferido",
+        )
+    }
+
+    /**
      * O veredicto de frescor só serve se o cliente souber o que fazer com cada valor. Os três
      * precisam estar explicados onde ele os encontra.
      */

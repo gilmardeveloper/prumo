@@ -40,9 +40,10 @@ class KnowledgeToolset : McpToolset {
             "Prumo guarantees about a record is where it came from, whether the source has changed " +
             "since, who wrote it and when. What Prumo does NOT guarantee is that your summary is " +
             "faithful to the source, or that it can replace the source: it cites, it does not " +
-            "substitute. Knowledge that does not derive from a source of this workspace is " +
-            "refused — for material brought from outside, packs are the channel, and they need the " +
-            "developer's consent.",
+            "substitute — Prumo stamps where your text came from, it cannot check that your text " +
+            "follows from there, and that judgement stays yours. What it does refuse is a record " +
+            "naming a source it cannot reach: for material brought from outside this workspace, " +
+            "packs are the channel, and they need the developer's consent.",
     )
     suspend fun remember(
         @McpDescription("Stable id for this record: letters, digits, hyphen or underscore. Reusing an id replaces it.")
@@ -123,9 +124,10 @@ class KnowledgeToolset : McpToolset {
             "by text in the title. Call it BEFORE reading a large document again: what you need may " +
             "already be here. Every result carries its freshness — FRESH means the source has not " +
             "changed since the record was written, STALE means it has and the record may be wrong, " +
-            "ORPHAN means the source is gone. Matching is literal and deterministic: no embedding " +
-            "and no model ranking. The text itself is not returned here; read it with " +
-            "prumo_knowledge_read.",
+            "ORPHAN means the source is gone. FRESH is about the bytes of the source, not about " +
+            "the record: it means nobody edited that file, never that Prumo checked the text " +
+            "against it. Matching is literal and deterministic: no embedding and no model " +
+            "ranking. The text itself is not returned here; read it with prumo_knowledge_read.",
     )
     suspend fun recall(
         @McpDescription("Text to look for in the title. Case-insensitive, matched as a substring.")
@@ -182,14 +184,14 @@ class KnowledgeToolset : McpToolset {
     suspend fun forget(
         @McpDescription("Id of the record to remove.")
         knowledgeId: String,
-    ): KnowledgeWriteResponse =
+    ): KnowledgeForgetResponse =
         prumoToolCall(FORGET_TOOL, "knowledge.forget", PolicyAction.WRITE_KNOWLEDGE) { call ->
             val store = PrumoWorkspaceService.getInstance().knowledge
             val removed = withContext(Dispatchers.IO) { store.remove(call.context.workspace.id, knowledgeId) }
             call.auditDetails["knowledgeId"] = knowledgeId
-            KnowledgeWriteResponse(
+            KnowledgeForgetResponse(
                 knowledgeId = knowledgeId,
-                stored = false,
+                removed = removed,
                 message = if (removed) null else "There was no record with id '$knowledgeId' to remove.",
             )
         }
