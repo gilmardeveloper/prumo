@@ -132,6 +132,6 @@ object QualityReports {
             "project agreed on. $COUNTS"
 
     private const val APPLICATION_NOTE =
-        "This project declares no profile of its own, so the answer comes from the IDE-wide " +
-            "profile of whoever opened it, and another developer may see a different ruleset. $COUNTS"
+        "No inspection profile is versioned with this project, so this ruleset is the one this IDE " +
+            "installation carries, and another developer may see a different one. $COUNTS"
 }

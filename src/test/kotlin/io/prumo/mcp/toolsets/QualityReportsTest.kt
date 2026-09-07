@@ -138,7 +138,7 @@ class QualityReportsTest {
 
         assertEquals("APPLICATION", daInstalacao.source.profileScope)
         assertTrue(
-            daInstalacao.source.note.contains("different ruleset"),
+            daInstalacao.source.note.contains("No inspection profile is versioned"),
             "a nota do perfil da instalação: ${daInstalacao.source.note}",
         )
     }

@@ -123,12 +123,17 @@ Três limites que a descrição declara ao cliente e que valem aqui:
 - `shortName` é estável e sempre em inglês, `displayName` acompanha o idioma da IDE, e a severidade
   não é vocabulário fechado: um plugin pode registrar a sua.
 
-A resposta abre dizendo **de qual perfil ela veio**. `profileScope` é `PROJECT` quando o perfil
-acompanha o projeto, em `.idea/inspectionProfiles` — é o conjunto de regras que aquele projeto
-combinou, e vale para quem clonar o repositório. É `APPLICATION` quando o projeto não declara perfil
-próprio: aí a resposta é a configuração de quem abriu a IDE, e outro desenvolvedor pode ver outra
-coisa. Quem decide é a própria IDE, pelo `USE_PROJECT_PROFILE` do projeto; o Prumo apenas informa
-qual dos dois respondeu.
+A resposta abre dizendo **de qual perfil ela veio**. `profileScope` é `PROJECT` quando existe
+perfil gravado em `.idea/inspectionProfiles` e é ele que responde — o conjunto de regras que aquele
+projeto combinou, e que vale para quem clonar o repositório. É `APPLICATION` quando não existe perfil
+versionado: a resposta é a configuração daquela instalação da IDE, e outro desenvolvedor pode ver
+outra coisa.
+
+A distinção precisa do arquivo porque **a IDE materializa um perfil `Project Default` no projeto
+mesmo quando o projeto não traz nenhum** — ele nasce copiado do perfil da aplicação. Perguntar à
+plataforma quem administra o perfil corrente responde "o projeto" nos dois casos; só o arquivo
+versionado separa regra combinada de cópia local. Projeto no formato antigo, de arquivo `.ipr`
+único, não tem esse diretório e é lido como `APPLICATION`.
 
 Filtro com valor que o catálogo não conhece volta em `unknownFilters`, com os valores aceitos em
 `knownValues` — assim `severity: "WARNIG"` não se confunde com um recorte que legitimamente não

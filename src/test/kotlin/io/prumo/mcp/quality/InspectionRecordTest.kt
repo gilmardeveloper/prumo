@@ -1,6 +1,7 @@
 package io.prumo.mcp.quality
 
 import org.junit.jupiter.api.Assertions.assertEquals
+import org.junit.jupiter.api.Assertions.assertFalse
 import org.junit.jupiter.api.Assertions.assertNull
 import org.junit.jupiter.api.Assertions.assertTrue
 import org.junit.jupiter.api.Test
@@ -160,4 +161,51 @@ class InspectionRecordTest {
         language = language,
         enabledByDefault = enabledByDefault,
     )
+}
+
+/**
+ * O nível do perfil, e o que a IDE faz por trás dele.
+ *
+ * A plataforma materializa um `Project Default` no gerenciador do projeto mesmo quando não há perfil
+ * versionado nenhum — ele nasce copiado do perfil da aplicação. Um catálogo que chamasse isso de
+ * regra do projeto atribuiria ao time a configuração da máquina de quem abriu a IDE.
+ */
+class InspectionProfileScopeTest {
+
+    @Test
+    fun `perfil do gerenciador do projeto com arquivo versionado e do projeto`() {
+        assertEquals(
+            InspectionProfileOrigin.Scope.PROJECT,
+            inspectionProfileScope(managedByProject = true, hasVersionedProfile = true),
+        )
+    }
+
+    @Test
+    fun `perfil do gerenciador do projeto sem arquivo versionado e da instalacao`() {
+        assertEquals(
+            InspectionProfileOrigin.Scope.APPLICATION,
+            inspectionProfileScope(managedByProject = true, hasVersionedProfile = false),
+        )
+    }
+
+    @Test
+    fun `arquivo versionado sozinho nao torna do projeto o perfil que o projeto nao administra`() {
+        assertEquals(
+            InspectionProfileOrigin.Scope.APPLICATION,
+            inspectionProfileScope(managedByProject = false, hasVersionedProfile = true),
+        )
+        assertEquals(
+            InspectionProfileOrigin.Scope.APPLICATION,
+            inspectionProfileScope(managedByProject = false, hasVersionedProfile = false),
+        )
+    }
+
+    @Test
+    fun `o arquivo de configuracao nao e um perfil`() {
+        assertFalse(isVersionedProfileFile("profiles_settings.xml"))
+        assertFalse(isVersionedProfileFile("Profiles_Settings.XML"))
+        assertFalse(isVersionedProfileFile("README.md"))
+        assertTrue(isVersionedProfileFile("Project_Default.xml"))
+        assertTrue(isVersionedProfileFile("Time.XML"))
+    }
 }
