@@ -14,7 +14,7 @@ see does not depend on the IDE**, so it can be tested without one.
 ├──────────────────────────────────────────────────────────────────────────┤
 │ ui/                  Tool window, workspace editor, consent screen.       │
 ├──────────────────────────────────────────────────────────────────────────┤
-│ ide/                 The only place that touches Project, PSI, Git4Idea.  │
+│ ide/                 The only place that touches PSI and Git4Idea.        │
 ├──────────────────────────────────────────────────────────────────────────┤
 │ workspace/ policy/ repository/ datasource/ pack/ audit/ storage/ quality/ │
 │ knowledge/           The deterministic core. No IntelliJ types.           │
@@ -85,7 +85,8 @@ picking one.
   those tests declare themselves skipped — the rest of the suite still means something.
 - Script confinement is tested against the real operating system, with commands chosen per OS so the
   same guarantees are checked on Windows and Linux.
-- Two tests read the project's own source: one pins the registered MCP tool names, another proves
-  that the authoring toolset contains no installation path.
+- Three tests read the project's own source: one pins the registered MCP tool names, another proves
+  that the authoring toolset contains no installation path, and `CoreIndependenceTest` scans the
+  packages and rejects any IDE type that crosses the core boundary.
 - `SecurityCoverageTest` maps each inviolable principle to the test that sustains it, and fails when
   one disappears.

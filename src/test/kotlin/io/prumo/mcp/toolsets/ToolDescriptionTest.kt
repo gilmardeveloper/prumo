@@ -123,6 +123,75 @@ class ToolDescriptionTest {
     }
 
     /**
+     * A resposta do catálogo vale conforme o perfil que a produziu: o do projeto obriga o time
+     * inteiro, o da instalação vale para quem abriu a IDE. Prometer o campo e não o entregar faria
+     * o cliente atribuir ao time uma regra que é de uma máquina só.
+     */
+    @Test
+    fun `a tool de catalogo promete dizer de qual perfil a resposta veio`() {
+        val catalogo = tools.single { it.name == QUALITY_CATALOG }
+
+        listOf("source", "PROJECT", "APPLICATION").forEach { termo ->
+            assertTrue(catalogo.description.contains(termo), "a descrição não cita '$termo'")
+        }
+        assertTrue(
+            catalogo.description.contains("unknownFilters") &&
+                catalogo.description.contains("knownValues"),
+            "a descrição não promete distinguir filtro errado de resultado vazio",
+        )
+
+        val reports = java.nio.file.Files.readString(
+            java.nio.file.Path.of("src/main/kotlin/io/prumo/mcp/toolsets/QualityReports.kt"),
+        )
+        listOf("profileScope", "unknownFilters", "knownValues").forEach { campo ->
+            assertTrue(reports.contains(campo), "a resposta não tem o campo '$campo' prometido")
+        }
+    }
+
+    /**
+     * O que a janela faz com o pedido do cliente é decidido em silêncio: pedido fora da faixa é
+     * puxado para dentro dela, e o resto do catálogo fica inalcançável sem novo recorte. Número que
+     * a descrição não declara é número que o cliente descobre por experimento, e conclusão tirada
+     * de uma janela que ele pensa ser a lista inteira é conclusão errada sobre o catálogo.
+     */
+    @Test
+    fun `a tool de catalogo declara a faixa da janela que o codigo aplica`() {
+        val catalogo = tools.single { it.name == QUALITY_CATALOG }
+
+        assertTrue(
+            catalogo.description.contains(QualityReports.MAX_INSPECTIONS.toString()),
+            "a descrição não declara o teto de ${QualityReports.MAX_INSPECTIONS} da janela",
+        )
+        assertTrue(
+            catalogo.description.contains(QualityReports.DEFAULT_MAX_RESULTS.toString()),
+            "a descrição não declara o padrão de ${QualityReports.DEFAULT_MAX_RESULTS}",
+        )
+        assertTrue(
+            catalogo.description.contains("no paging", ignoreCase = true),
+            "a descrição não avisa que a janela não pagina",
+        )
+    }
+
+    /**
+     * `knownValues` responde por `severity` e `language`, e não por `group`: uma instalação tem
+     * centenas de grupos. Prometer os valores aceitos sem essa ressalva deixa quem errou o grupo
+     * sabendo que errou e sem saber o que acertar.
+     */
+    @Test
+    fun `a tool de catalogo diz para quais criterios ela lista os valores aceitos`() {
+        val catalogo = tools.single { it.name == QUALITY_CATALOG }
+
+        assertTrue(
+            catalogo.description.contains("severity and language"),
+            "a descrição não limita knownValues a severity e language",
+        )
+        assertTrue(
+            catalogo.description.contains("byGroup"),
+            "a descrição não aponta byGroup como a via para os grupos",
+        )
+    }
+
+    /**
      * Descrição é contrato: a tool promete não executar inspeção, e o código precisa cumprir.
      * A API que executa está a um import de distância — `InspectionEngine` e `runInspectionOnFile`
      * vivem no mesmo pacote que a enumeração usa.
@@ -134,6 +203,7 @@ class ToolDescriptionTest {
             "src/main/kotlin/io/prumo/mcp/toolsets/QualityReports.kt",
             "src/main/kotlin/io/prumo/mcp/ide/InspectionCatalogService.kt",
             "src/main/kotlin/io/prumo/mcp/quality/InspectionRecord.kt",
+            "src/main/kotlin/io/prumo/mcp/quality/InspectionCatalog.kt",
         ).associateWith { java.nio.file.Files.readString(java.nio.file.Path.of(it)) }
 
         val infratores = fontes.filterValues { fonte ->

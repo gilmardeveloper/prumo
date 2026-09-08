@@ -6,6 +6,80 @@ All notable changes to this project are documented here. The format follows
 
 ## [Unreleased]
 
+## [0.6.2] - 2026-09-07
+
+### Fixed
+
+- **Asking for a directory said it did not exist.** `prumo_repository_read_file` answered a real
+  directory and a path that is truly absent with the same sentence, so a client concluded the
+  directory was not there. It now says the path is a directory and points at
+  `prumo_repository_get_structure`.
+- **A search scope that does not exist returned an empty search.** `prumo_repository_search_text`
+  answered a misspelled `scope` exactly like a search that covered everything and found nothing —
+  and the conclusion a client draws from those two is opposite. It is now refused. A `scope` inside
+  an excluded path still answers that it is excluded: the existence check runs after the exclusion
+  check, so the refusal never becomes an oracle over what the workspace chose not to show.
+- **`insideWorkspace: false` carried no reason.** The answer now names it: `NO_FILE_OPEN`,
+  `FILE_NOT_ON_DISK` or `OUT_OF_REACH`. Outside the bound repositories and inside an excluded path
+  deliberately share `OUT_OF_REACH` — telling them apart would say something is hidden there.
+- **The inspection catalogue promised more than it delivered.** The description offered accepted
+  values in `knownValues` without saying it covers only `severity` and `language`, leaving whoever
+  misspelled a group knowing they erred and not what to fix; it now points at `byGroup`. The window
+  limits were silent as well: `maxResults` defaults to 50, is capped at 200, out-of-range values are
+  pulled into that range, and there is no paging — all now stated, and a test fails the build if the
+  numbers in the description drift from the ones in the code.
+
+## [0.6.1] - 2026-09-07
+
+### Fixed
+
+- **`profileScope` called a project ruleset what was only a local copy.** The IDE materialises a
+  `Project Default` profile inside the project even when the project versions none, born as a copy
+  of the application profile, so asking the platform who manages the current profile answers "the
+  project" either way. A project with no `.idea/inspectionProfiles` was therefore told to the client
+  as the ruleset its team agreed on. The scope now also requires a versioned profile file, and the
+  `APPLICATION` note says plainly that nothing is versioned with the project. Found in the field on
+  0.6.0, before it was released.
+
+## [0.6.0] - 2026-09-07
+
+### Added
+
+- **The inspection catalogue says which profile answered.** `prumo_quality_list_inspections` now
+  opens its response with `source`: the profile name and a `profileScope` of `PROJECT` or
+  `APPLICATION`. `PROJECT` means the profile travels with the project, in `.idea/inspectionProfiles`,
+  and is the ruleset that project agreed on; `APPLICATION` means it belongs to this IDE
+  installation, and another developer may see a different one. Measured in the field before it was
+  written down: with a project profile in place, an inspection moved to `ERROR` came back `ERROR`,
+  and one disabled there disappeared from the catalogue.
+- **A filter value the catalogue does not know is no longer indistinguishable from an empty
+  result.** Unknown values come back in `unknownFilters`, and `knownValues` carries what the
+  catalogue accepts for `severity` and `language`. Group stays out on purpose: an installation has
+  hundreds of them, and `byGroup` on an unfiltered call already lists them.
+
+### Changed
+
+- **The response repeats what the counts measure.** The warning that the numbers describe this IDE
+  installation and its plugins — not Prumo — used to live only in the tool description; it now
+  travels in every answer, where a client reads the numbers.
+
+## [0.5.1] - 2026-09-07
+
+### Changed
+
+- **The deterministic core is once again free of IDE types.** Workspace removal had picked up the
+  platform logger; it now returns each credential the safe refused to erase along with the failure
+  that kept it there, and the screen that asked for the removal is the one that logs. A scan over
+  the production source fails the build when any package outside the boundary layers mentions an
+  IntelliJ type, and when PSI or Git4Idea appear outside `ide/`. The rule was already written in the
+  architecture document, was broken once without anyone noticing, and is now enforced.
+
+### Fixed
+
+- **Comparison links in this changelog pointed at tags that do not exist.** Versions 0.2.0 through
+  0.4.0 were accumulated on `develop` and never released, so their `compare/vX.Y.Z` links were dead
+  on GitHub. They now point at the commits that marked each version.
+
 ## [0.5.0] - 2026-09-07
 
 ### Added
@@ -707,12 +781,16 @@ full cycle with a real AI client — are still open.
 - Repository role and workspace type explain themselves in the dialog: both describe the work to the
   AI client and enforce nothing, which access modes and policies do.
 
-[Unreleased]: https://github.com/gilmardeveloper/prumo/compare/v0.5.0...HEAD
-[0.5.0]: https://github.com/gilmardeveloper/prumo/compare/v0.4.0...v0.5.0
-[0.4.0]: https://github.com/gilmardeveloper/prumo/compare/v0.3.0...v0.4.0
-[0.3.0]: https://github.com/gilmardeveloper/prumo/compare/v0.2.1...v0.3.0
-[0.2.1]: https://github.com/gilmardeveloper/prumo/compare/v0.2.0...v0.2.1
-[0.2.0]: https://github.com/gilmardeveloper/prumo/compare/v0.1.0...v0.2.0
+[Unreleased]: https://github.com/gilmardeveloper/prumo/compare/v0.6.2...HEAD
+[0.6.2]: https://github.com/gilmardeveloper/prumo/compare/v0.6.1...v0.6.2
+[0.6.1]: https://github.com/gilmardeveloper/prumo/compare/v0.6.0...v0.6.1
+[0.6.0]: https://github.com/gilmardeveloper/prumo/compare/68c27ae791b39a4b120b590b029ffd626b7116ea...v0.6.0
+[0.5.1]: https://github.com/gilmardeveloper/prumo/compare/v0.5.0...68c27ae791b39a4b120b590b029ffd626b7116ea
+[0.5.0]: https://github.com/gilmardeveloper/prumo/compare/663efff2f71f939ed7c3e9ecfb4dbce0760ec60b...v0.5.0
+[0.4.0]: https://github.com/gilmardeveloper/prumo/compare/18a34f975ce80d0a607dfe9101d42d75382f9f70...663efff2f71f939ed7c3e9ecfb4dbce0760ec60b
+[0.3.0]: https://github.com/gilmardeveloper/prumo/compare/b26bf42ab8136b5a60a510f1fc2eb4b80e080ae3...18a34f975ce80d0a607dfe9101d42d75382f9f70
+[0.2.1]: https://github.com/gilmardeveloper/prumo/compare/56f4020990f6f8597ecd856af43e8d880e87ef5b...b26bf42ab8136b5a60a510f1fc2eb4b80e080ae3
+[0.2.0]: https://github.com/gilmardeveloper/prumo/compare/v0.1.0...56f4020990f6f8597ecd856af43e8d880e87ef5b
 [0.1.0]: https://github.com/gilmardeveloper/prumo/compare/v0.1.0-rc.28...v0.1.0
 [0.1.0-rc.28]: https://github.com/gilmardeveloper/prumo/compare/v0.1.0-rc.27...v0.1.0-rc.28
 [0.1.0-rc.27]: https://github.com/gilmardeveloper/prumo/compare/v0.1.0-rc.26...v0.1.0-rc.27

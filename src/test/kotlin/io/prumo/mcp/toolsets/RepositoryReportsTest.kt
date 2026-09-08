@@ -2,6 +2,7 @@ package io.prumo.mcp.toolsets
 
 import com.intellij.mcpserver.annotations.McpTool
 import io.prumo.mcp.ide.EditorSnapshot
+import io.prumo.mcp.ide.EditorState
 import io.prumo.mcp.ide.GitCommandExecutor
 import io.prumo.mcp.policy.WorkspacePolicies
 import io.prumo.mcp.repository.DirectoryEntry
@@ -134,7 +135,7 @@ class RepositoryReportsTest {
     fun `o arquivo aberto e traduzido para o repositorio mais especifico`() {
         val response = RepositoryReports.ideContext(
             context,
-            snapshot("C:/repos/consumidor/modulos/interno/src/Calculo.kt"),
+            EditorState.At(snapshot("C:/repos/consumidor/modulos/interno/src/Calculo.kt")),
         )
 
         assertTrue(response.insideWorkspace)
@@ -146,7 +147,7 @@ class RepositoryReportsTest {
 
     @Test
     fun `arquivo fora dos repositorios do workspace nao revela nada alem disso`() {
-        val response = RepositoryReports.ideContext(context, snapshot("C:/outro-projeto/src/Segredo.kt"))
+        val response = RepositoryReports.ideContext(context, EditorState.At(snapshot("C:/outro-projeto/src/Segredo.kt")))
         val serialized = json.encodeToString(IdeContextResponse.serializer(), response)
 
         assertFalse(response.insideWorkspace)
@@ -161,9 +162,11 @@ class RepositoryReportsTest {
     fun `a cadeia de simbolos nao repete o nome da classe`() {
         val response = RepositoryReports.ideContext(
             context,
-            snapshot("C:/repos/consumidor/src/Politicas.kt").copy(
-                // O construtor primario do Kotlin responde pelo nome da propria classe.
-                symbolPath = listOf("WorkspacePolicies", "WorkspacePolicies", "databaseWrite"),
+            EditorState.At(
+                snapshot("C:/repos/consumidor/src/Politicas.kt").copy(
+                    // O construtor primario do Kotlin responde pelo nome da propria classe.
+                    symbolPath = listOf("WorkspacePolicies", "WorkspacePolicies", "databaseWrite"),
+                ),
             ),
         )
 
@@ -172,10 +175,35 @@ class RepositoryReportsTest {
 
     @Test
     fun `sem editor aberto a resposta e ausencia, nao invencao`() {
-        val response = RepositoryReports.ideContext(context, null)
+        val response = RepositoryReports.ideContext(context, EditorState.NoEditor)
 
         assertFalse(response.insideWorkspace)
         assertNull(response.line)
+    }
+
+
+    @Test
+    fun `sem contexto, a resposta diz por que, e cada causa tem a sua`() {
+        val semEditor = RepositoryReports.ideContext(context, EditorState.NoEditor)
+        val foraDoDisco = RepositoryReports.ideContext(context, EditorState.NotOnDisk)
+        val fora = RepositoryReports.ideContext(context, EditorState.At(snapshot("C:/outro/src/X.kt")))
+
+        assertEquals("NO_FILE_OPEN", semEditor.reason)
+        assertEquals("FILE_NOT_ON_DISK", foraDoDisco.reason)
+        assertEquals("OUT_OF_REACH", fora.reason)
+        assertEquals(3, setOf(semEditor.reason, foraDoDisco.reason, fora.reason).size)
+        listOf(semEditor, foraDoDisco, fora).forEach { assertFalse(it.insideWorkspace) }
+    }
+
+    @Test
+    fun `com contexto, nao sobra motivo nenhum`() {
+        val response = RepositoryReports.ideContext(
+            context,
+            EditorState.At(snapshot("C:/repos/consumidor/modulos/interno/src/Calculo.kt")),
+        )
+
+        assertTrue(response.insideWorkspace)
+        assertNull(response.reason)
     }
 
     private fun snapshot(path: String) = EditorSnapshot(
