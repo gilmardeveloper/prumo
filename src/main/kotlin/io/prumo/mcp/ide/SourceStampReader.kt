@@ -45,8 +45,6 @@ sealed interface StampResult {
  */
 object SourceStampReader {
 
-    private const val BACKSLASH = '\\'
-
     fun stamp(context: WorkspaceContext, provenance: Provenance): StampResult = when (provenance.sourceKind) {
         SourceKind.DOCUMENTATION -> stampDocumentation(context, provenance)
         SourceKind.REPOSITORY -> stampRepository(context, provenance)
@@ -105,9 +103,10 @@ object SourceStampReader {
      * Um caminho excluído por qualquer vínculo do workspace não é carimbado por nenhum outro.
      *
      * Mesma regra e mesma forma do `RepositoryReports.locate`: a exclusão vale para o caminho, e um
-     * vínculo mais abrangente não desfaz o alcance que o mais próximo recusou. A decisão delega a
-     * `RepositoryReader.isExcludedPath`, que é onde a regra mora — reescrevê-la aqui foi como o
-     * `.git` acabou carimbável e a exclusão deixou de valer no meio do caminho.
+     * vínculo mais abrangente não desfaz o alcance que o mais próximo recusou. Tanto o caminho sobre
+     * o qual se decide quanto o casamento em si vêm do `RepositoryReader` — reescrever qualquer um
+     * dos dois aqui já deixou o `.git` carimbável, já fez a exclusão parar no começo do caminho, e
+     * deixou passar junção apontando para dentro da área excluída.
      */
     private fun excludedByAnyBinding(context: WorkspaceContext, target: Path): Boolean {
         val absolute = target.toAbsolutePath().normalize()
@@ -115,7 +114,7 @@ object SourceStampReader {
             val root = pathOrNull(binding.localPath)?.toAbsolutePath()?.normalize()
             root != null && absolute.startsWith(root) &&
                 RepositoryReader.isExcludedPath(
-                    root.relativize(absolute).toString().replace(BACKSLASH, '/'),
+                    RepositoryReader.relativeForExclusion(root, absolute),
                     binding.excludedPaths,
                 )
         }

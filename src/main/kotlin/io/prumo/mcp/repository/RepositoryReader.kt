@@ -268,7 +268,17 @@ object RepositoryReader {
      * `CLAUDE.md` sem motor de padrões — e sem canto escuro onde um caminho escape por acidente.
      */
     private fun isExcluded(root: Path, candidate: Path, excluded: List<String>): Boolean =
-        isExcludedPath(realRelative(root, candidate).map { it.name }.joinToString("/"), excluded)
+        isExcludedPath(relativeForExclusion(root, candidate), excluded)
+
+    /**
+     * O caminho relativo sobre o qual a exclusão decide, pela grafia que está no disco.
+     *
+     * Público porque a família de conhecimento decide o mesmo alcance sobre o mesmo repositório, e
+     * decidi-lo sobre o caminho que o cliente escreveu deixa a exclusão cair por outro nome do mesmo
+     * arquivo: junção e link simbólico apontando para dentro da área excluída passavam.
+     */
+    fun relativeForExclusion(root: Path, candidate: Path): String =
+        realRelative(root, candidate).map { it.name }.joinToString("/")
 
     /**
      * Decide a exclusão a partir do caminho relativo em texto, sem tocar o disco.

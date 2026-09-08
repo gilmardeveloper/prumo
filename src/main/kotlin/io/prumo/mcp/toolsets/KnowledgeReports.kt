@@ -107,14 +107,14 @@ object KnowledgeReports {
         matches: List<KnowledgeMatch>,
         maxResults: Int,
         searchedTerms: List<String>? = null,
-        outOfReach: Int = 0,
+        outOfReachCount: Int,
     ): KnowledgeRecallResponse {
         val window = matches.take(maxResults.coerceIn(1, MAX_RESULTS))
         return KnowledgeRecallResponse(
             workspaceId = workspaceId,
             storedCount = stored,
             matchCount = matches.size,
-            outOfReachCount = outOfReach,
+            outOfReachCount = outOfReachCount,
             byFreshness = matches.groupingBy { it.freshness.name }.eachCount().toSortedMap(),
             results = window.map { summary(it.record, it.freshness).copy(score = it.score) },
             truncated = window.size < matches.size,
