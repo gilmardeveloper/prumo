@@ -77,4 +77,7 @@ interface DocumentIndex {
 
     /** Quantos pedaços estão indexados agora. */
     fun size(): Int
+
+    /** Quantos pedaços vieram daquela fonte. */
+    fun countOf(documentationId: String): Int
 }

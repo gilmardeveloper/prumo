@@ -86,6 +86,14 @@ class LuceneDocumentIndex : DocumentIndex, AutoCloseable {
         runCatching { DirectoryReader.open(directory).use { it.numDocs() } }.getOrDefault(0)
 
     @Synchronized
+    override fun countOf(documentationId: String): Int =
+        runCatching {
+            DirectoryReader.open(directory).use { reader ->
+                IndexSearcher(reader).count(TermQuery(Term(SOURCE, documentationId)))
+            }
+        }.getOrDefault(0)
+
+    @Synchronized
     override fun close() {
         directory.close()
     }

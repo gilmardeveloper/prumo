@@ -97,6 +97,34 @@ class WorkspaceViewModelTest {
         outOfReach = outOfReach,
     )
 
+    /**
+     * A documentação é o que a IA alcança sem ler código. O desenvolvedor precisa ver, sem sair da
+     * IDE, o que o Prumo consegue ler dela e o que já está indexado para busca.
+     */
+    @Test
+    fun `a documentacao chega a tela com o que da para ler e o que ja esta indexado`() {
+        val model = WorkspaceViewModel.from(
+            WorkspaceResolution.Resolved(WorkspaceContext(workspace, target)),
+            documentation = listOf(
+                WorkspaceViewModel.DocumentationRow("mos", "MOS S-1.3", readable = true, indexedPassages = 1240),
+                WorkspaceViewModel.DocumentationRow("planta", "Planta antiga", readable = false, indexedPassages = 0),
+            ),
+        ) as WorkspaceViewModel.Configured
+
+        assertEquals(2, model.documentation.size)
+        assertEquals(1240, model.documentation.first().indexedPassages)
+        assertEquals(false, model.documentation.last().readable)
+    }
+
+    @Test
+    fun `workspace sem documentacao nao inventa linha`() {
+        val model = WorkspaceViewModel.from(
+            WorkspaceResolution.Resolved(WorkspaceContext(workspace, target)),
+        ) as WorkspaceViewModel.Configured
+
+        assertTrue(model.documentation.isEmpty())
+    }
+
     @Test
     fun `workspace sem memoria nao inventa linha`() {
         val model = WorkspaceViewModel.from(

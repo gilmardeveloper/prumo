@@ -30,5 +30,23 @@ class KnowledgeTab(project: Project) : WorkspaceBackedTab(project) {
         group(PrumoBundle.message("toolwindow.packs.queue")) {
             ApprovalQueuePanel(project, model.workspaceId).render(this)
         }
+
+        group(PrumoBundle.message("toolwindow.documentation.title")) {
+            if (model.documentation.isEmpty()) {
+                row { comment(PrumoBundle.message("toolwindow.documentation.none")) }
+                return@group
+            }
+            row { comment(PrumoBundle.message("toolwindow.documentation.hint")) }
+            model.documentation.forEach { fonte ->
+                row(fonte.name) {
+                    val estado = when {
+                        !fonte.readable -> PrumoBundle.message("toolwindow.documentation.unreadable")
+                        fonte.indexedPassages == 0 -> PrumoBundle.message("toolwindow.documentation.notIndexed")
+                        else -> PrumoBundle.message("toolwindow.documentation.indexed", fonte.indexedPassages)
+                    }
+                    comment(estado)
+                }
+            }
+        }
     }
 }
