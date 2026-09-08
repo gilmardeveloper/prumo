@@ -6,6 +6,41 @@ All notable changes to this project are documented here. The format follows
 
 ## [Unreleased]
 
+## [0.8.0] - 2026-09-08
+
+### Fixed
+
+- **Knowledge distilled from a path that is later excluded stayed reachable.** The exclusion was
+  checked when the record was written and never again: the record kept showing up in
+  `prumo_knowledge_recall`, `prumo_knowledge_read` returned its full text, and the only sign was a
+  freshness of `ORPHAN` — the very same sign a deleted source produces. Prumo had the answer all
+  along and threw it away: the stamp reader already refuses an excluded path on every call, and the
+  reading side collapsed that refusal into "no stamp". It no longer does. A record whose source is
+  out of reach is refused on read, and the refusal names the record rather than the path, because
+  naming the path would hand back through the error message exactly what the exclusion takes out of
+  view. Nothing is deleted: the record stays in the store and comes back whole if the exclusion is
+  undone.
+- **The exclusion could be walked around by another name for the same file.** The knowledge family
+  decided on the path as written, while file reading decided on the path as it exists on disk, so a
+  junction or symlink pointing into an excluded directory slipped through on one side and was
+  refused on the other — measured, not assumed. Both halves of the rule, the path and the match,
+  now have a single owner.
+
+### Changed
+
+- **`prumo_knowledge_recall` no longer searches or lists what is out of reach.** Those records are
+  removed before the exact filters and before ranking, so their text influences no answer. What the
+  response carries instead is `outOfReachCount`, counted over the whole base like `storedCount` and
+  never over the query: a number that moved with the text searched would be an oracle over what the
+  developer excluded.
+- **An exclusion is recorded in the audit trail as `DENIED`, not `ERROR`.** This covers the four
+  places that refuse an excluded path — file reading, search scope, diff and knowledge writing. A
+  refusal that works is not a failure, and whoever reads the trail later has to be able to tell them
+  apart.
+- **The AI Memory tab says "out of reach"** where it used to say `ORPHAN`, which reads as "the file
+  is gone" for something the developer deliberately put aside. The record can still be removed from
+  the window.
+
 ## [0.7.0] - 2026-09-08
 
 ### Changed
@@ -804,7 +839,8 @@ full cycle with a real AI client — are still open.
 - Repository role and workspace type explain themselves in the dialog: both describe the work to the
   AI client and enforce nothing, which access modes and policies do.
 
-[Unreleased]: https://github.com/gilmardeveloper/prumo/compare/141ca9dbe62d55f9b1402bb38d3c55776b589e30...HEAD
+[Unreleased]: https://github.com/gilmardeveloper/prumo/compare/v0.8.0...HEAD
+[0.8.0]: https://github.com/gilmardeveloper/prumo/compare/141ca9dbe62d55f9b1402bb38d3c55776b589e30...v0.8.0
 [0.7.0]: https://github.com/gilmardeveloper/prumo/compare/v0.6.2...141ca9dbe62d55f9b1402bb38d3c55776b589e30
 [0.6.2]: https://github.com/gilmardeveloper/prumo/compare/717f4374c7ead2329efc531d0e8dbc73e4a93211...v0.6.2
 [0.6.1]: https://github.com/gilmardeveloper/prumo/compare/f4ba8907b60731281af201f65526f623c40e9668...717f4374c7ead2329efc531d0e8dbc73e4a93211
