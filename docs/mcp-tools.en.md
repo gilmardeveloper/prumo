@@ -224,9 +224,22 @@ refusals arrive distinct. Prumo stamps where the text came from; it does **not**
 follows from there, and that judgement stays with whoever writes it.
 
 ### `prumo_knowledge_recall`
-Finds what was already distilled, by tag, by source, by text in the title or by freshness. Literal
-and deterministic — no embedding, no model ranking. It does not return the text: it returns the list
-with provenance and verdict.
+Finds what was already distilled, by text, by tag, by source or by freshness. It does not return the
+text: it returns the list with provenance and verdict.
+
+Text search is **by relevance**, over title, tags and body. The query is reduced to word stems before
+the search, so an inflection other than the one written finds the record: "pagamentos" finds
+"pagamento", and "payments" finds "payment". Portuguese and English are covered at once, because
+nothing in a record declares which language it was written in — every record is indexed in both. Very
+common words are dropped in both languages: searching for "de" or "the" returns nothing.
+
+**Still deterministic and explainable**: it is word matching with stemming and BM25 ranking, never a
+vector and never a model deciding what is similar. The weight of each field — title above tags, tags
+above body — tilts the result without deciding it: a rare term in the body can outrank a common one
+in the title. Tag, source and freshness remain exact filters.
+
+The index is built and discarded inside the call. There is no second copy of the data to drift from
+what is stored.
 
 ### `prumo_knowledge_read`
 The full text of a record, with its provenance and freshness beside it. A `STALE` record is still

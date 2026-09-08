@@ -12,6 +12,7 @@ import io.prumo.mcp.knowledge.AdmissionContext
 import io.prumo.mcp.knowledge.Freshness
 import io.prumo.mcp.knowledge.KnowledgeAdmission
 import io.prumo.mcp.knowledge.KnowledgeRecord
+import io.prumo.mcp.knowledge.KnowledgeSearch
 import io.prumo.mcp.knowledge.Provenance
 import io.prumo.mcp.knowledge.SourceKind
 import io.prumo.mcp.knowledge.SourceStamp
@@ -124,17 +125,27 @@ class KnowledgeToolset : McpToolset {
 
     @McpTool(name = RECALL_TOOL)
     @McpDescription(
-        "Use this tool to find what was already distilled in this workspace, by tag, by source or " +
-            "by text in the title. Call it BEFORE reading a large document again: what you need may " +
-            "already be here. Every result carries its freshness — FRESH means the source has not " +
-            "changed since the record was written, STALE means it has and the record may be wrong, " +
-            "ORPHAN means the source is gone. FRESH is about the bytes of the source, not about " +
-            "the record: it means nobody edited that file, never that Prumo checked the text " +
-            "against it. Matching is literal and deterministic: no embedding and no model " +
-            "ranking. The text itself is not returned here; read it with prumo_knowledge_read.",
+        "Use this tool to find what was already distilled in this workspace, by text, by tag or by " +
+            "source. Call it BEFORE reading a large document again: what you need may already be " +
+            "here. A text query is matched by relevance over title, tags and body, so a different " +
+            "inflection of the same word finds the record: \"pagamentos\" finds \"pagamento\", " +
+            "and \"payments\" finds \"payment\". Portuguese and English are both covered, and " +
+            "results come ordered by how well they answer, strongest first. This is still " +
+            "deterministic and explainable: it is word matching with stemming and BM25 ranking, " +
+            "never an embedding and never a model deciding what is similar. Tag, source and " +
+            "freshness stay exact filters. Every result carries its freshness — FRESH means the " +
+            "source has not changed since the record was written, STALE means it has and the " +
+            "record may be wrong, ORPHAN means the source is gone. FRESH is about the bytes of " +
+            "the source, not about the record: it means nobody edited that file, never that Prumo " +
+            "checked the text against it. The text itself is not returned here; read it with " +
+            "prumo_knowledge_read.",
     )
     suspend fun recall(
-        @McpDescription("Text to look for in the title. Case-insensitive, matched as a substring.")
+        @McpDescription(
+            "Text to look for in title, tags and body. Matched by relevance, not literally: the " +
+                "query is reduced to word stems before the search, so inflections of the same word " +
+                "match each other and very common words are dropped.",
+        )
         query: String? = null,
         @McpDescription("Keep only records carrying this tag.")
         tag: String? = null,
@@ -146,14 +157,16 @@ class KnowledgeToolset : McpToolset {
         maxResults: Int = 20,
     ): KnowledgeRecallResponse =
         prumoToolCall(RECALL_TOOL, "knowledge.recall", PolicyAction.READ_KNOWLEDGE) { call ->
-            val store = PrumoWorkspaceService.getInstance().knowledge
+            val service = PrumoWorkspaceService.getInstance()
             val workspaceId = call.context.workspace.id
-            val stored = withContext(Dispatchers.IO) { store.list(workspaceId) }
+            val stored = withContext(Dispatchers.IO) { service.knowledge.list(workspaceId) }
             val matches = withContext(Dispatchers.IO) {
-                stored
-                    .filter { record -> query.isNullOrBlank() || record.title.contains(query, ignoreCase = true) }
+                // Os recortes exatos vêm antes da relevância: buscar só no que o cliente já
+                // delimitou é mais barato e mantém o significado de cada filtro.
+                val filtered = stored
                     .filter { record -> tag.isNullOrBlank() || record.tags.any { it.equals(tag, ignoreCase = true) } }
                     .filter { record -> sourceId.isNullOrBlank() || record.provenance.sourceId == sourceId }
+                byRelevance(service.knowledgeSearch, filtered, query)
                     .map { record -> record to freshnessOf(record.provenance.stamp, stampOf(call.context, record)) }
                     .filter { (_, verdict) -> freshness.isNullOrBlank() || verdict.name.equals(freshness, true) }
             }
@@ -220,6 +233,23 @@ class KnowledgeToolset : McpToolset {
         // Substituir um registro que já existe não faz a base crescer.
         existingRecords = store.list(context.workspace.id).size - if (existing != null) 1 else 0,
     )
+
+    /**
+     * Os registros que respondem à consulta, do mais relevante para o menos.
+     *
+     * Consulta ausente devolve tudo na ordem em que veio — a de identificador, estável.
+     */
+    private fun byRelevance(
+        search: KnowledgeSearch,
+        records: List<KnowledgeRecord>,
+        query: String?,
+    ): List<KnowledgeRecord> {
+        if (query.isNullOrBlank()) {
+            return records
+        }
+        val byId = records.associateBy { it.id }
+        return search.search(records, query).hits.mapNotNull { byId[it.id] }
+    }
 
     private companion object {
         const val REMEMBER_TOOL = "prumo_knowledge_remember"
