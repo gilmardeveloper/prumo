@@ -241,6 +241,10 @@ nunca um vetor e nunca um modelo decidindo o que é parecido. O peso de cada cam
 etiqueta, etiqueta acima de corpo — inclina o resultado, mas não o decide: um termo raro no corpo
 pode superar um comum no título. Etiqueta, fonte e frescor seguem sendo recortes exatos.
 
+Cada resultado vem com o `score` que o colocou ali, comparável apenas com os outros da mesma
+resposta — é posição relativa, não nota. Empate é desfeito pelo identificador, então a mesma consulta
+devolve sempre a mesma ordem. Busca sem texto não traz `score`: não há o que pontuar.
+
 O índice nasce e morre dentro da chamada. Não há segunda cópia do dado para divergir do que está
 guardado.
 

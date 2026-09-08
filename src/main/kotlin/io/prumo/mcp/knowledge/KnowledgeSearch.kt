@@ -35,6 +35,9 @@ interface KnowledgeSearch {
     /**
      * Os registros que atendem à consulta, do mais relevante para o menos.
      *
+     * A ordem é determinística: score decrescente, e empate desempatado pelo identificador. Duas
+     * chamadas iguais devolvem a mesma lista na mesma ordem.
+     *
      * @param records os registros a considerar, já recortados por quem chamou.
      * @param query o texto procurado, como o cliente o escreveu.
      * @throws IllegalArgumentException quando a consulta é vazia ou só espaços.

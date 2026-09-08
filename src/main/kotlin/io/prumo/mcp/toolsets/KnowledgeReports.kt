@@ -28,6 +28,13 @@ data class KnowledgeRecordResponse(
     /** O texto destilado. Ausente na busca, presente na leitura. */
     val body: String? = null,
     val truncated: Boolean = false,
+    /**
+     * O quanto este registro responde à consulta de texto.
+     *
+     * Ausente quando a busca não teve texto: sem consulta não há o que pontuar. Só é comparável
+     * entre os resultados da mesma chamada — não é nota, é posição relativa.
+     */
+    val score: Float? = null,
 )
 
 @Serializable
@@ -57,6 +64,17 @@ data class KnowledgeWriteResponse(
 )
 
 /**
+ * Um registro que atendeu à busca: o que ele é, o quanto ele responde e como está a fonte dele.
+ *
+ * @property score ausente quando a busca não teve texto.
+ */
+data class KnowledgeMatch(
+    val record: KnowledgeRecord,
+    val freshness: Freshness,
+    val score: Float? = null,
+)
+
+/**
  * Respostas da base de conhecimento.
  *
  * Nenhuma delas devolve conteúdo sem a procedência e o frescor ao lado: o destilado cita a fonte,
@@ -70,7 +88,7 @@ object KnowledgeReports {
     fun search(
         workspaceId: String,
         stored: Int,
-        matches: List<Pair<KnowledgeRecord, Freshness>>,
+        matches: List<KnowledgeMatch>,
         maxResults: Int,
     ): KnowledgeRecallResponse {
         val window = matches.take(maxResults.coerceIn(1, MAX_RESULTS))
@@ -78,8 +96,8 @@ object KnowledgeReports {
             workspaceId = workspaceId,
             storedCount = stored,
             matchCount = matches.size,
-            byFreshness = matches.groupingBy { it.second.name }.eachCount().toSortedMap(),
-            results = window.map { (record, freshness) -> summary(record, freshness) },
+            byFreshness = matches.groupingBy { it.freshness.name }.eachCount().toSortedMap(),
+            results = window.map { summary(it.record, it.freshness).copy(score = it.score) },
             truncated = window.size < matches.size,
         )
     }

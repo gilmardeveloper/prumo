@@ -238,6 +238,10 @@ vector and never a model deciding what is similar. The weight of each field — 
 above body — tilts the result without deciding it: a rare term in the body can outrank a common one
 in the title. Tag, source and freshness remain exact filters.
 
+Every result carries the `score` that put it there, comparable only against the others in the same
+answer — it is relative position, not a grade. Ties are broken by id, so the same query always
+returns the same order. A search with no text carries no `score`: there is nothing to rank.
+
 The index is built and discarded inside the call. There is no second copy of the data to drift from
 what is stored.
 

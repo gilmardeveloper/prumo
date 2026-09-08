@@ -137,8 +137,10 @@ class KnowledgeToolset : McpToolset {
             "source has not changed since the record was written, STALE means it has and the " +
             "record may be wrong, ORPHAN means the source is gone. FRESH is about the bytes of " +
             "the source, not about the record: it means nobody edited that file, never that Prumo " +
-            "checked the text against it. The text itself is not returned here; read it with " +
-            "prumo_knowledge_read.",
+            "checked the text against it. Each result carries the score that put it there, " +
+            "comparable only against the others in the same answer, and ties are broken by id so " +
+            "the same query always returns the same order. The text itself is not returned here; " +
+            "read it with prumo_knowledge_read.",
     )
     suspend fun recall(
         @McpDescription(
@@ -167,8 +169,14 @@ class KnowledgeToolset : McpToolset {
                     .filter { record -> tag.isNullOrBlank() || record.tags.any { it.equals(tag, ignoreCase = true) } }
                     .filter { record -> sourceId.isNullOrBlank() || record.provenance.sourceId == sourceId }
                 byRelevance(service.knowledgeSearch, filtered, query)
-                    .map { record -> record to freshnessOf(record.provenance.stamp, stampOf(call.context, record)) }
-                    .filter { (_, verdict) -> freshness.isNullOrBlank() || verdict.name.equals(freshness, true) }
+                    .map { (record, score) ->
+                        KnowledgeMatch(
+                            record = record,
+                            freshness = freshnessOf(record.provenance.stamp, stampOf(call.context, record)),
+                            score = score,
+                        )
+                    }
+                    .filter { match -> freshness.isNullOrBlank() || match.freshness.name.equals(freshness, true) }
             }
             KnowledgeReports.search(workspaceId, stored.size, matches, maxResults)
         }
@@ -235,20 +243,21 @@ class KnowledgeToolset : McpToolset {
     )
 
     /**
-     * Os registros que respondem à consulta, do mais relevante para o menos.
+     * Os registros que respondem à consulta, do mais relevante para o menos, com o score de cada um.
      *
-     * Consulta ausente devolve tudo na ordem em que veio — a de identificador, estável.
+     * Consulta ausente devolve tudo na ordem em que veio — a de identificador — e sem score, porque
+     * não há o que pontuar.
      */
     private fun byRelevance(
         search: KnowledgeSearch,
         records: List<KnowledgeRecord>,
         query: String?,
-    ): List<KnowledgeRecord> {
+    ): List<Pair<KnowledgeRecord, Float?>> {
         if (query.isNullOrBlank()) {
-            return records
+            return records.map { it to null }
         }
         val byId = records.associateBy { it.id }
-        return search.search(records, query).hits.mapNotNull { byId[it.id] }
+        return search.search(records, query).hits.mapNotNull { hit -> byId[hit.id]?.let { it to hit.score } }
     }
 
     private companion object {

@@ -119,6 +119,34 @@ class LuceneKnowledgeSearchTest {
         assertTrue(search.search(records, "aeronave").hits.isEmpty())
     }
 
+    @Test
+    fun `empate no score sai sempre na mesma ordem`() {
+        val records = listOf(
+            record("zulu", "Folha de pagamento", "Mesmo texto."),
+            record("alfa", "Folha de pagamento", "Mesmo texto."),
+            record("mike", "Folha de pagamento", "Mesmo texto."),
+        )
+
+        val ordens = (1..5).map { search.search(records.shuffled(), "folha").hits.map { hit -> hit.id } }
+
+        assertEquals(listOf("alfa", "mike", "zulu"), ordens.first())
+        assertEquals(1, ordens.distinct().size, "ordens diferentes entre chamadas: $ordens")
+    }
+
+    @Test
+    fun `o score acompanha cada resultado e decresce ao longo da lista`() {
+        val records = listOf(
+            record("fraco", "Assunto qualquer", "Cita folha uma vez em meio a muito outro texto aqui."),
+            record("forte", "Folha de pagamento da folha", "Folha outra vez."),
+        )
+
+        val hits = search.search(records, "folha").hits
+
+        assertEquals(listOf("forte", "fraco"), hits.map { it.id })
+        assertTrue(hits.first().score > hits.last().score, "scores: ${hits.map { it.score }}")
+        assertTrue(hits.all { it.score > 0f }, "score precisa ser positivo: ${hits.map { it.score }}")
+    }
+
     private fun record(
         id: String,
         title: String,

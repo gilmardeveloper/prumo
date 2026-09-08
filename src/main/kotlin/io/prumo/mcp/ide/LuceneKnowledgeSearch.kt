@@ -54,9 +54,13 @@ class LuceneKnowledgeSearch : KnowledgeSearch {
                 val top = searcher.search(query(query), records.size)
                 KnowledgeSearchResult(
                     terms = terms,
-                    hits = top.scoreDocs.map { hit ->
-                        KnowledgeHit(searcher.storedFields().document(hit.doc)[ID_FIELD], hit.score)
-                    },
+                    hits = top.scoreDocs
+                        .map { hit ->
+                            KnowledgeHit(searcher.storedFields().document(hit.doc)[ID_FIELD], hit.score)
+                        }
+                        // O Lucene já entrega por score, mas não diz o que fazer com empate. Sem o
+                        // desempate pelo identificador, duas chamadas iguais podem trocar a ordem.
+                        .sortedWith(compareByDescending<KnowledgeHit> { it.score }.thenBy { it.id }),
                 )
             }
         }
