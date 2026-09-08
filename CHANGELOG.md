@@ -6,6 +6,17 @@ All notable changes to this project are documented here. The format follows
 
 ## [Unreleased]
 
+## [0.8.1] - 2026-09-08
+
+### Fixed
+
+- **`outOfReachCount` disappeared from the answer when it was zero.** The field was declared with a
+  default, and the serialiser omits what equals the default — so the count the tool description
+  promises was there only when something was out of reach. A client had to guess whether an absent
+  field meant none or meant a version of Prumo without the field. It now always travels, like
+  `storedCount` and `matchCount`. Found by exercising the real MCP transport against a live IDE, not
+  by the suite.
+
 ## [0.8.0] - 2026-09-08
 
 ### Fixed
@@ -839,7 +850,8 @@ full cycle with a real AI client — are still open.
 - Repository role and workspace type explain themselves in the dialog: both describe the work to the
   AI client and enforce nothing, which access modes and policies do.
 
-[Unreleased]: https://github.com/gilmardeveloper/prumo/compare/v0.8.0...HEAD
+[Unreleased]: https://github.com/gilmardeveloper/prumo/compare/v0.8.1...HEAD
+[0.8.1]: https://github.com/gilmardeveloper/prumo/compare/v0.8.0...v0.8.1
 [0.8.0]: https://github.com/gilmardeveloper/prumo/compare/141ca9dbe62d55f9b1402bb38d3c55776b589e30...v0.8.0
 [0.7.0]: https://github.com/gilmardeveloper/prumo/compare/v0.6.2...141ca9dbe62d55f9b1402bb38d3c55776b589e30
 [0.6.2]: https://github.com/gilmardeveloper/prumo/compare/717f4374c7ead2329efc531d0e8dbc73e4a93211...v0.6.2
