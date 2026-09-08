@@ -193,7 +193,13 @@ test.
   mistake; they do not turn a superuser connection into a safe one.
 - **The AI client can still be socially engineered** by content it reads. Prumo limits *what* it can
   reach, not what it concludes.
-- **PDF is catalogued, not parsed.** Nothing inside a PDF is analysed.
+- **Binary formats are extracted, not interpreted.** From `pdf`, `docx`, `xlsx` and `pptx` Prumo
+  takes the text and drops the rest, by parsing the format — never by a model. What comes out is
+  verbatim, carrying the page, spreadsheet row, paragraph or slide it came from. The file is treated
+  as hostile input: the XML reader is born with DTD and external entities off, a package entry
+  pointing outside refuses the whole document, and there is a ceiling on uncompressed bytes. The
+  extracted text lives in memory while the IDE is open and is never written to Prumo's storage — a
+  second copy of the user's content is exactly what path exclusion exists to prevent.
 - **A call from a project bound to no workspace leaves no audit entry.** It is refused before any
   access, and the trail is written per workspace: with no workspace resolved there is no file to
   record into. The refusal stays in the IDE log, which no tool can query.

@@ -51,14 +51,29 @@ configuração.
 Nunca um caminho local, nunca a URL crua do remote — uma URL pode carregar token embutido.
 
 ### `prumo_workspace_get_documentation_sources`
-A documentação anexada, com nível de autoridade e se o Prumo consegue lê-la como texto. PDF é
-reportado como catalogado e não extraível.
+A documentação anexada, com nível de autoridade e se o Prumo consegue lê-la. Formato de que ele não
+extrai conteúdo é reportado como catalogado e não extraível.
 
 ### `prumo_workspace_read_documentation`
 Lê o conteúdo de uma fonte de documentação, endereçada pelo `documentationId`. Quando a fonte é uma
 pasta, recebe também o caminho de um arquivo dentro dela. Pagina por linha. Caminho absoluto,
-travessia e qualquer caminho que escape da raiz cadastrada são recusados; formato apenas catalogado,
-como PDF, é recusado com a explicação.
+travessia e qualquer caminho que escape da raiz cadastrada são recusados; formato de que o Prumo não
+extrai conteúdo é recusado com a explicação.
+
+**Formato binário é lido por extração.** `pdf`, `docx`, `xlsx` e `pptx` entram pela mesma janela de
+linhas dos arquivos de texto, e o que volta é conteúdo: estilo, tema, propriedade do documento,
+relação e desenho ficam no arquivo. A extração é análise de formato, nunca modelo — o texto é
+verbatim, e o Prumo não resume, não reescreve e não interpreta.
+
+Nesses formatos **a linha não endereça nada** no arquivo original: ela é a linha do texto extraído.
+Por isso a resposta traz `coordinates`, faixas que dizem de onde cada pedaço veio — a página do PDF,
+a aba e a linha da planilha, o parágrafo do documento, o slide da apresentação. É a coordenada que se
+cita, não a linha. Linhas vizinhas de mesma origem vêm agrupadas numa faixa só, para a coordenada não
+custar mais tokens que o texto que ela endereça.
+
+PDF **digitalizado** — páginas que são imagem, sem camada de texto — é recusado, e não devolvido
+vazio: resposta vazia faria concluir que o documento não diz nada. O que o Prumo extrai de uma vez
+fica guardado enquanto a IDE está aberta, e é reextraído sozinho quando o arquivo muda.
 
 ### `prumo_workspace_prepare`
 Valida o workspace e devolve `READY`, `WARNING` ou `ERROR`, com uma verificação por repositório e por

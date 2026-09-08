@@ -39,18 +39,23 @@ data class DocumentationSource(
 }
 
 /**
- * Formatos que o Prumo lê como texto.
+ * Formatos que o Prumo lê.
  *
- * PDF é aceito para registro, mas o conteúdo não é extraído: o documento fica catalogado.
+ * São dois modos: texto puro, entregue como está, e formato binário, de que se extrai o conteúdo e
+ * se descarta o resto — estilo, tema, propriedade do documento e desenho. Extensão fora dos dois
+ * grupos é aceita para registro, e o documento fica catalogado sem ser lido.
  */
 object SupportedDocumentFormats {
 
     private val TEXT_EXTENSIONS = setOf("md", "markdown", "txt", "json", "yaml", "yml", "adoc", "csv")
-    private val CATALOG_ONLY_EXTENSIONS = setOf("pdf")
+    private val EXTRACTABLE_EXTENSIONS = setOf("pdf", "docx", "xlsx", "pptx")
 
-    fun isSupported(path: Path): Boolean = extensionOf(path) in TEXT_EXTENSIONS + CATALOG_ONLY_EXTENSIONS
+    fun isSupported(path: Path): Boolean = extensionOf(path) in TEXT_EXTENSIONS + EXTRACTABLE_EXTENSIONS
 
-    fun isReadableAsText(path: Path): Boolean = extensionOf(path) in TEXT_EXTENSIONS
+    fun isReadableAsText(path: Path): Boolean = isSupported(path)
+
+    /** Formato binário de que o conteúdo é extraído, em vez de lido como está. */
+    fun isExtractable(path: Path): Boolean = extensionOf(path) in EXTRACTABLE_EXTENSIONS
 
     private fun extensionOf(path: Path): String =
         path.fileName?.toString()?.substringAfterLast('.', "")?.lowercase(Locale.ROOT).orEmpty()

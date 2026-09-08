@@ -415,6 +415,35 @@ class ToolDescriptionTest {
         )
     }
 
+    /**
+     * A leitura de documentação passou a extrair formato binário. Três coisas precisam estar ditas,
+     * porque decidem o que a IA faz com a resposta: que o texto é verbatim, que a coordenada — e não
+     * a linha — é o endereço da fonte, e que PDF sem camada de texto é recusado.
+     */
+    @Test
+    fun `a leitura de documentacao declara o que extrai e o que a coordenada endereca`() {
+        val leitura = tools.single { it.name == READ_DOCUMENTATION }
+
+        listOf("verbatim", "never a model", "coordinates", "scanned PDF").forEach { termo ->
+            assertTrue(leitura.description.contains(termo), "a descrição não cita '$termo'")
+        }
+        listOf("PDF", "DOCX", "XLSX", "PPTX").forEach { formato ->
+            assertTrue(leitura.description.contains(formato), "a descrição não cita '$formato'")
+        }
+
+        val fonte = java.nio.file.Files.readString(
+            java.nio.file.Path.of("src/main/kotlin/io/prumo/mcp/documentation/DocumentationReader.kt"),
+        )
+        assertTrue(
+            fonte.contains("SupportedDocumentFormats.isExtractable(target)"),
+            "a leitura promete extrair e não pergunta se o formato é extraível",
+        )
+        assertTrue(
+            fonte.contains("coordinates = rangesOf(window)"),
+            "a leitura promete coordenada e não a devolve",
+        )
+    }
+
     @Test
     fun `toda tool tem descricao`() {
         val vazias = tools.filter { it.description.isBlank() }
@@ -448,6 +477,8 @@ class ToolDescriptionTest {
         const val KNOWLEDGE_RECALL = "prumo_knowledge_recall"
 
         const val KNOWLEDGE_READ = "prumo_knowledge_read"
+
+        const val READ_DOCUMENTATION = "prumo_workspace_read_documentation"
 
         /** A tool nativa da IDE que analisa um arquivo, e que o catálogo não substitui. */
         const val ANALISE_NATIVA = "get_file_problems"

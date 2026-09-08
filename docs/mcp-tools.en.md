@@ -47,14 +47,29 @@ configuration.
 Never a local path, never a raw remote URL — a URL can carry an embedded token.
 
 ### `prumo_workspace_get_documentation_sources`
-The attached documentation with authority level and whether Prumo can read it as text. PDF is
-reported as catalogued and not extractable.
+The attached documentation with authority level and whether Prumo can read it. A format it does not
+extract content from is reported as catalogued and not extractable.
 
 ### `prumo_workspace_read_documentation`
 Reads the content of a documentation source, addressed by its `documentationId`. When the source is a
 folder, it also takes the path of a file inside it. Pages by line. Absolute paths, parent traversal
-and any path that leaves the registered root are refused; a catalogue-only format such as PDF is
+and any path that leaves the registered root are refused; a format Prumo extracts no content from is
 refused with an explanation.
+
+**Binary formats are read by extraction.** `pdf`, `docx`, `xlsx` and `pptx` come through the same
+line window as text files, and what comes back is content: style, theme, document properties,
+relationships and drawings stay in the file. Extraction is format parsing, never a model — the text
+is verbatim, and Prumo does not summarise, rewrite or interpret it.
+
+In those formats **the line addresses nothing** in the original: it is a line of the extracted text.
+So the answer carries `coordinates`, ranges saying where each part came from — the page of a PDF, the
+sheet and row of a spreadsheet, the paragraph of a document, the slide of a deck. That is what you
+cite, not the line. Neighbouring lines from the same origin are grouped into one range, so the
+coordinate does not cost more tokens than the text it addresses.
+
+A **scanned** PDF — pages that are images, with no text layer — is refused rather than returned
+empty: an empty answer would suggest the document says nothing. What Prumo extracts once is kept
+while the IDE is open, and re-extracted on its own when the file changes.
 
 ### `prumo_workspace_prepare`
 Validates the workspace and returns `READY`, `WARNING` or `ERROR` with one check per repository and

@@ -93,6 +93,21 @@ data class DocumentContentResponse(
     val lastLine: Int,
     val totalLines: Int,
     val truncated: Boolean,
+    /**
+     * Onde, no documento de origem, cada pedaço do texto devolvido começa e termina.
+     *
+     * Só aparece em formato de que o Prumo extrai conteúdo: num PDF a linha do texto extraído não
+     * endereça nada, e é a página que a IA precisa citar.
+     */
+    val coordinates: List<CoordinateResponse> = emptyList(),
+)
+
+/** Uma faixa de linhas do trecho devolvido e a coordenada de onde ela veio. */
+@Serializable
+data class CoordinateResponse(
+    val coordinate: String,
+    val firstLine: Int,
+    val lastLine: Int,
 )
 
 @Serializable

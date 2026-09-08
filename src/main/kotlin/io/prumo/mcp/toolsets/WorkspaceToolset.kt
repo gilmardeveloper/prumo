@@ -76,8 +76,14 @@ class WorkspaceToolset : McpToolset {
             "it over inferring a rule from the code: a specification or manual listed here carries " +
             "more authority than an implementation. Address the source by the documentationId from " +
             "prumo_workspace_get_documentation_sources; when the source is a folder, pass the path " +
-            "of a file inside it. Formats Prumo only catalogues, such as PDF, are refused with an " +
-            "explanation.",
+            "of a file inside it. Binary formats — PDF, DOCX, XLSX and PPTX — are read by extracting " +
+            "their content: you get the text and nothing else, because style, theme, document " +
+            "properties and drawings are dropped before the answer is built. Extraction is plain " +
+            "parsing, never a model: what comes back is verbatim from the file. In those formats the " +
+            "line numbers belong to the extracted text and address nothing in the original, so the " +
+            "answer carries 'coordinates' instead — the page of a PDF, the sheet and row of a " +
+            "spreadsheet, the paragraph or the slide. Cite those, not the line. A scanned PDF, whose " +
+            "pages are images and carry no text layer, is refused rather than returned empty.",
     )
     suspend fun readDocumentation(
         @McpDescription("Documentation id from prumo_workspace_get_documentation_sources.")
@@ -107,6 +113,9 @@ class WorkspaceToolset : McpToolset {
                 authority = source.authority.name,
                 path = slice.path,
                 text = slice.text,
+                coordinates = slice.coordinates.map {
+                    CoordinateResponse(it.coordinate, it.firstLine, it.lastLine)
+                },
                 firstLine = slice.firstLine,
                 lastLine = slice.lastLine,
                 totalLines = slice.totalLines,
