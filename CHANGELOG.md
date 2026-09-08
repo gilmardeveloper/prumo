@@ -782,9 +782,9 @@ full cycle with a real AI client — are still open.
   AI client and enforce nothing, which access modes and policies do.
 
 [Unreleased]: https://github.com/gilmardeveloper/prumo/compare/v0.6.2...HEAD
-[0.6.2]: https://github.com/gilmardeveloper/prumo/compare/v0.6.1...v0.6.2
-[0.6.1]: https://github.com/gilmardeveloper/prumo/compare/v0.6.0...v0.6.1
-[0.6.0]: https://github.com/gilmardeveloper/prumo/compare/68c27ae791b39a4b120b590b029ffd626b7116ea...v0.6.0
+[0.6.2]: https://github.com/gilmardeveloper/prumo/compare/717f4374c7ead2329efc531d0e8dbc73e4a93211...v0.6.2
+[0.6.1]: https://github.com/gilmardeveloper/prumo/compare/f4ba8907b60731281af201f65526f623c40e9668...717f4374c7ead2329efc531d0e8dbc73e4a93211
+[0.6.0]: https://github.com/gilmardeveloper/prumo/compare/68c27ae791b39a4b120b590b029ffd626b7116ea...f4ba8907b60731281af201f65526f623c40e9668
 [0.5.1]: https://github.com/gilmardeveloper/prumo/compare/v0.5.0...68c27ae791b39a4b120b590b029ffd626b7116ea
 [0.5.0]: https://github.com/gilmardeveloper/prumo/compare/663efff2f71f939ed7c3e9ecfb4dbce0760ec60b...v0.5.0
 [0.4.0]: https://github.com/gilmardeveloper/prumo/compare/18a34f975ce80d0a607dfe9101d42d75382f9f70...663efff2f71f939ed7c3e9ecfb4dbce0760ec60b
