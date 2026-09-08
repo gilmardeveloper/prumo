@@ -6,6 +6,29 @@ All notable changes to this project are documented here. The format follows
 
 ## [Unreleased]
 
+## [0.7.0] - 2026-09-08
+
+### Changed
+
+- **`prumo_knowledge_recall` finds by subject, not by an exact word of the title.** A text query
+  used to keep the records whose title contained that literal substring, so knowledge stored as
+  "pagamentos" was invisible to whoever asked for "pagamento", and a term that appeared only in the
+  distilled text was unreachable. The query now runs over title, tags and body through the search
+  engine the IDE already ships, with stemming and BM25 ranking in Portuguese and English, and the
+  results come ordered by how well they answer. This stays deterministic and explainable: word
+  matching with stemming, never an embedding and never a model deciding what is similar. Tag,
+  source and freshness remain exact filters, and they narrow the records before anything is ranked,
+  so the score always describes the slice that was asked for. Nothing is added to the plugin's
+  size, and no index is written to disk: it is derived from the records on each call.
+
+### Added
+
+- **Each result carries the score that put it there.** Comparable only against the others in the
+  same answer, and ties are broken by record id, so the same query always returns the same order.
+- **An empty answer says what was actually searched for.** `searchedTerms` distinguishes a query
+  that was reduced to nothing — all of it common words — from terms that were searched and exist in
+  no record.
+
 ## [0.6.2] - 2026-09-07
 
 ### Fixed
@@ -781,7 +804,8 @@ full cycle with a real AI client — are still open.
 - Repository role and workspace type explain themselves in the dialog: both describe the work to the
   AI client and enforce nothing, which access modes and policies do.
 
-[Unreleased]: https://github.com/gilmardeveloper/prumo/compare/v0.6.2...HEAD
+[Unreleased]: https://github.com/gilmardeveloper/prumo/compare/v0.7.0...HEAD
+[0.7.0]: https://github.com/gilmardeveloper/prumo/compare/v0.6.2...v0.7.0
 [0.6.2]: https://github.com/gilmardeveloper/prumo/compare/717f4374c7ead2329efc531d0e8dbc73e4a93211...v0.6.2
 [0.6.1]: https://github.com/gilmardeveloper/prumo/compare/f4ba8907b60731281af201f65526f623c40e9668...717f4374c7ead2329efc531d0e8dbc73e4a93211
 [0.6.0]: https://github.com/gilmardeveloper/prumo/compare/68c27ae791b39a4b120b590b029ffd626b7116ea...f4ba8907b60731281af201f65526f623c40e9668
