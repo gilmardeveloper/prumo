@@ -18,6 +18,7 @@ import io.prumo.mcp.knowledge.SourceStamp
 import io.prumo.mcp.knowledge.freshnessOf
 import io.prumo.mcp.knowledge.recallRecords
 import io.prumo.mcp.policy.PolicyAction
+import io.prumo.mcp.repository.PathExcludedException
 import io.prumo.mcp.workspace.application.WorkspaceContext
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
@@ -92,7 +93,7 @@ class KnowledgeToolset : McpToolset {
                 StampResult.PathNotFound -> throw McpExpectedError(
                     "Source '$sourceId' exists, but path '${path.orEmpty()}' does not exist in it.",
                 )
-                StampResult.PathExcluded -> throw McpExpectedError(
+                StampResult.PathExcluded -> throw PathExcludedException(
                     "Path '${path.orEmpty()}' is excluded from '$sourceId' in this workspace, so " +
                         "Prumo does not read it and cannot derive knowledge from it.",
                 )
@@ -143,7 +144,10 @@ class KnowledgeToolset : McpToolset {
             "and no record has them. Each result carries the score that put it there, " +
             "comparable only against the others in the same answer, and ties are broken by id so " +
             "the same query always returns the same order. The text itself is not returned here; " +
-            "read it with prumo_knowledge_read.",
+            "read it with prumo_knowledge_read. Records whose source the developer has since put out of " +
+            "reach are not searched and not listed: outOfReachCount says how many of them the " +
+            "workspace holds, counted over the whole base and never over your query, so it tells " +
+            "you nothing about what is inside them.",
     )
     suspend fun recall(
         @McpDescription(
@@ -166,7 +170,9 @@ class KnowledgeToolset : McpToolset {
             val workspaceId = call.context.workspace.id
             val stored = withContext(Dispatchers.IO) { service.knowledge.list(workspaceId) }
             val found = withContext(Dispatchers.IO) {
-                recallRecords(stored, tag, sourceId, query, service.knowledgeSearch)
+                recallRecords(stored, tag, sourceId, query, service.knowledgeSearch) { record ->
+                    SourceStampReader.outOfReach(call.context, record.provenance)
+                }
             }
             val matches = found.records
                 .map { (record, score) ->
@@ -177,7 +183,14 @@ class KnowledgeToolset : McpToolset {
                     )
                 }
                 .filter { match -> freshness.isNullOrBlank() || match.freshness.name.equals(freshness, true) }
-            KnowledgeReports.search(workspaceId, stored.size, matches, maxResults, found.terms)
+            KnowledgeReports.search(
+                workspaceId,
+                stored.size,
+                matches,
+                maxResults,
+                found.terms,
+                found.outOfReachCount,
+            )
         }
 
     @McpTool(name = READ_TOOL)
@@ -185,7 +198,10 @@ class KnowledgeToolset : McpToolset {
         "Use this tool to read a stored record in full, by its id. The answer carries the text " +
             "together with its provenance and its freshness — a STALE record is still returned, " +
             "because what it says may still be useful, but the source is the truth and you should " +
-            "go back to it before relying on the record.",
+            "go back to it before relying on the record. What is NOT returned is a record whose " +
+            "source has since been put out of reach, because the developer excluded that path from " +
+            "the workspace: it is refused, text and coordinates alike. The exclusion decides what " +
+            "Prumo reads, and what was distilled from an excluded path is no exception to it.",
     )
     suspend fun read(
         @McpDescription("Id of the record, from prumo_knowledge_recall.")
@@ -196,6 +212,14 @@ class KnowledgeToolset : McpToolset {
             val record = withContext(Dispatchers.IO) { store.get(call.context.workspace.id, knowledgeId) }
                 ?: throw McpExpectedError("No knowledge record with id '$knowledgeId' in this workspace.")
             call.auditDetails["knowledgeId"] = knowledgeId
+            if (withContext(Dispatchers.IO) { SourceStampReader.outOfReach(call.context, record.provenance) }) {
+                // O caminho excluído não entra na recusa: dizê-lo devolveria, pela mensagem de erro,
+                // exatamente a coordenada que a exclusão retira do alcance.
+                throw PathExcludedException(
+                    "Knowledge record '$knowledgeId' was distilled from a path that is excluded from " +
+                        "this workspace, so Prumo does not return it.",
+                )
+            }
             KnowledgeReports.detail(record, freshnessOf(record.provenance.stamp, stampOf(call.context, record)))
         }
 

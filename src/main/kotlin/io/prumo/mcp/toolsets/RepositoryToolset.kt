@@ -6,6 +6,7 @@ import com.intellij.mcpserver.annotations.McpTool
 import io.prumo.mcp.ide.GitCommandExecutor
 import io.prumo.mcp.policy.PolicyAction
 import io.prumo.mcp.repository.GitStateParser
+import io.prumo.mcp.repository.PathExcludedException
 import io.prumo.mcp.repository.RepositoryReadException
 import io.prumo.mcp.repository.RepositoryReader
 import io.prumo.mcp.workspace.domain.RepositoryBinding
@@ -80,7 +81,7 @@ class RepositoryToolset : McpToolset {
             val root = rootOf(call.repository)
             val executor = GitCommandExecutor(call.project)
             if (path != null && RepositoryReader.isExcludedPath(path, call.repository.excludedPaths)) {
-                throw RepositoryReadException(
+                throw PathExcludedException(
                     "Path '$path' is excluded from this repository in the Prumo workspace, " +
                         "so Prumo does not show its changes.",
                 )

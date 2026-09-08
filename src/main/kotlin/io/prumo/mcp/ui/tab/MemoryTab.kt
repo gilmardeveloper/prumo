@@ -77,25 +77,29 @@ class MemoryTab(project: Project) : WorkspaceBackedTab(project) {
             selected: Boolean,
             hasFocus: Boolean,
         ) {
-            icon = iconFor(value.freshness)
+            icon = iconFor(value.state)
             append(value.title)
             append("  ${value.sourceId}", SimpleTextAttributes.GRAYED_ATTRIBUTES)
             append("  ${value.author}", SimpleTextAttributes.GRAYED_SMALL_ATTRIBUTES)
             append("  ${value.updatedAt}", SimpleTextAttributes.GRAYED_SMALL_ATTRIBUTES)
-            if (value.freshness != FRESH) {
-                append("  ${value.freshness}", SimpleTextAttributes.ERROR_ATTRIBUTES)
+            if (value.state != FRESH) {
+                append("  ${labelFor(value.state)}", SimpleTextAttributes.ERROR_ATTRIBUTES)
             }
         }
     }
 
-    private fun iconFor(freshness: String): Icon = when (freshness) {
+    private fun labelFor(state: String): String =
+        if (state == OUT_OF_REACH) PrumoBundle.message("toolwindow.memory.outOfReach") else state
+
+    private fun iconFor(state: String): Icon = when (state) {
         FRESH -> AllIcons.General.InspectionsOK
-        ORPHAN -> AllIcons.General.Error
+        ORPHAN, OUT_OF_REACH -> AllIcons.General.Error
         else -> AllIcons.General.Warning
     }
 
     private companion object {
         const val FRESH = "FRESH"
         const val ORPHAN = "ORPHAN"
+        const val OUT_OF_REACH = WorkspaceViewModel.MemoryRow.OUT_OF_REACH
     }
 }

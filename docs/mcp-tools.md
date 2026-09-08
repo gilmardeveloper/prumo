@@ -253,9 +253,21 @@ devolve sempre a mesma ordem. Busca sem texto não traz `score`: não há o que 
 O índice nasce e morre dentro da chamada. Não há segunda cópia do dado para divergir do que está
 guardado.
 
+**Registro cuja fonte saiu do alcance não é procurado nem listado.** Se o desenvolvedor excluiu,
+depois da destilação, o caminho de onde o registro veio, ele deixa de existir para a busca: não é
+pontuado, não aparece na lista e não devolve a coordenada de onde saiu. O que a resposta traz é
+`outOfReachCount`, o número desses registros na base — contado sobre a **base inteira**, como
+`storedCount`, e nunca sobre a consulta. Uma contagem que variasse com o texto procurado seria um
+oráculo: bastaria trocar a palavra e observar o número para descobrir o que está escrito dentro do
+que foi excluído.
+
 ### `prumo_knowledge_read`
 O texto completo de um registro, com a procedência e o frescor ao lado. Um registro `STALE` continua
 sendo devolvido — o que ele diz pode continuar útil —, mas a fonte é a verdade.
+
+**Registro destilado de caminho que hoje está excluído é recusado**, texto e coordenada. A recusa
+nomeia o registro, não o caminho: dizer o caminho devolveria, pela mensagem de erro, exatamente o que
+a exclusão retira do alcance. A recusa entra na trilha como `DENIED`.
 
 ### `prumo_knowledge_forget`
 Remove um registro. Imediato, sem perguntar ao desenvolvedor. A fonte não é tocada: sai apenas o que

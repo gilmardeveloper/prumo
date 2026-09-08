@@ -67,6 +67,36 @@ class WorkspaceViewModelTest {
         assertEquals("eventos-esocial", model.memory.single().sourceId)
     }
 
+    /**
+     * Registro fora de alcance carimba `ORPHAN`, que diz "a fonte sumiu". Quem excluiu o caminho foi
+     * o próprio desenvolvedor, e é isso que a linha precisa dizer a ele.
+     */
+    @Test
+    fun `a linha diz fora de alcance antes de dizer orfao`() {
+        val fora = linha(freshness = "ORPHAN", outOfReach = true)
+        val orfa = linha(freshness = "ORPHAN", outOfReach = false)
+        val velha = linha(freshness = "STALE", outOfReach = false)
+
+        assertEquals("OUT_OF_REACH", fora.state)
+        assertEquals("ORPHAN", orfa.state)
+        assertEquals("STALE", velha.state)
+    }
+
+    @Test
+    fun `linha ao alcance e o padrao`() {
+        assertEquals("FRESH", linha(freshness = "FRESH").state)
+    }
+
+    private fun linha(freshness: String, outOfReach: Boolean = false) = WorkspaceViewModel.MemoryRow(
+        knowledgeId = "s-1210-prazo",
+        title = "Prazo do S-1210",
+        sourceId = "eventos-esocial",
+        freshness = freshness,
+        author = "claude-code/2.1",
+        updatedAt = "2026-09-07T12:00:00Z",
+        outOfReach = outOfReach,
+    )
+
     @Test
     fun `workspace sem memoria nao inventa linha`() {
         val model = WorkspaceViewModel.from(

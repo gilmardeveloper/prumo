@@ -66,6 +66,7 @@ object WorkspaceLoader {
                         ).name,
                         author = record.author,
                         updatedAt = record.updatedAt,
+                        outOfReach = context?.let { SourceStampReader.outOfReach(it, record.provenance) } == true,
                     )
                 }
             }.orEmpty(),

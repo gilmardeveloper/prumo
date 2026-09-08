@@ -68,6 +68,11 @@ statement type, row count, outcome and duration. It never records file content, 
 text or parameter values: an audit that copies the data becomes a second copy of what it was meant
 to protect.
 
+The outcome tells a refusal from a failure. An excluded path, a policy that does not allow the
+action, an unresolved workspace and a refused write query all land as `DENIED`: the product worked,
+and it said no. `ERROR` is left for what broke. Whoever reads the trail later has to tell the two
+apart, and an exclusion recorded as an error made the defence look like a defect.
+
 **The AI writes to the memory, and to nothing else.** Since 0.5.0 there is a knowledge store per
 workspace where AI clients record what they distilled — without per-item consent, unlike packs. What
 holds this up is not trust in the content: it is **provenance**. Only a record pointing at a source

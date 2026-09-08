@@ -26,7 +26,7 @@ class KnowledgeReportsTest {
             match("fraco", Freshness.FRESH, 0.4f),
         )
 
-        val response = KnowledgeReports.search("w", stored = 2, matches = matches, maxResults = 10)
+        val response = KnowledgeReports.search("w", stored = 2, matches = matches, maxResults = 10, outOfReachCount = 0)
 
         assertEquals(listOf(2.5f, 0.4f), response.results.map { it.score })
         assertEquals(listOf("forte", "fraco"), response.results.map { it.knowledgeId })
@@ -39,6 +39,7 @@ class KnowledgeReportsTest {
             stored = 1,
             matches = listOf(match("unico", Freshness.FRESH, score = null)),
             maxResults = 10,
+            outOfReachCount = 0,
         )
 
         assertNull(response.results.single().score)
@@ -48,7 +49,7 @@ class KnowledgeReportsTest {
     fun `as contagens cobrem o recorte inteiro, e nao a janela`() {
         val matches = (1..5).map { match("r$it", if (it % 2 == 0) Freshness.STALE else Freshness.FRESH, 1f) }
 
-        val response = KnowledgeReports.search("w", stored = 9, matches = matches, maxResults = 2)
+        val response = KnowledgeReports.search("w", stored = 9, matches = matches, maxResults = 2, outOfReachCount = 0)
 
         assertEquals(2, response.results.size)
         assertEquals(5, response.matchCount)
@@ -64,6 +65,7 @@ class KnowledgeReportsTest {
             stored = 1,
             matches = listOf(match("unico", Freshness.ORPHAN, 1f)),
             maxResults = 50,
+            outOfReachCount = 0,
         )
 
         assertFalse(response.truncated)
@@ -77,6 +79,7 @@ class KnowledgeReportsTest {
             stored = 1,
             matches = listOf(match("unico", Freshness.FRESH, 1f)),
             maxResults = 10,
+            outOfReachCount = 0,
         )
 
         assertNull(response.results.single().body, "o corpo se lê por identificador, não na busca")
@@ -89,6 +92,7 @@ class KnowledgeReportsTest {
             stored = 3,
             matches = emptyList(),
             maxResults = 10,
+            outOfReachCount = 0,
             searchedTerms = listOf("aeronav"),
         )
 
@@ -98,8 +102,8 @@ class KnowledgeReportsTest {
 
     @Test
     fun `consulta que virou nada se distingue de consulta que procurou e nao achou`() {
-        val virouNada = KnowledgeReports.search("w", 3, emptyList(), 10, searchedTerms = emptyList())
-        val procurou = KnowledgeReports.search("w", 3, emptyList(), 10, searchedTerms = listOf("aeronav"))
+        val virouNada = KnowledgeReports.search("w", 3, emptyList(), 10, searchedTerms = emptyList(), outOfReachCount = 0)
+        val procurou = KnowledgeReports.search("w", 3, emptyList(), 10, searchedTerms = listOf("aeronav"), outOfReachCount = 0)
 
         assertEquals(emptyList<String>(), virouNada.searchedTerms)
         assertEquals(listOf("aeronav"), procurou.searchedTerms)
@@ -112,6 +116,7 @@ class KnowledgeReportsTest {
             stored = 1,
             matches = listOf(match("unico", Freshness.FRESH, 1f)),
             maxResults = 10,
+            outOfReachCount = 0,
             searchedTerms = listOf("folh"),
         )
 
@@ -120,7 +125,7 @@ class KnowledgeReportsTest {
 
     @Test
     fun `busca sem texto nunca traz termos`() {
-        val response = KnowledgeReports.search("w", stored = 3, matches = emptyList(), maxResults = 10)
+        val response = KnowledgeReports.search("w", stored = 3, matches = emptyList(), maxResults = 10, outOfReachCount = 0)
 
         assertNull(response.searchedTerms)
     }
