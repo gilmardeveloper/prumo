@@ -68,7 +68,7 @@ object DocumentationReader {
         val limit = maxLines.coerceAtMost(MAX_LINES_CEILING)
 
         if (SupportedDocumentFormats.isExtractable(target)) {
-            val window = cache.getOrExtract(target, ::extract).window(firstLine, limit)
+            val window = extractFile(target).window(firstLine, limit)
             return DocumentSlice(
                 documentationId = source.id,
                 path = relativePath ?: target.name,
@@ -105,6 +105,14 @@ object DocumentationReader {
             truncated = from + slice.size < lines.size,
         )
     }
+
+    /**
+     * O documento extraído de um arquivo, passando pelo mesmo cache da leitura.
+     *
+     * Existe para a indexação, que percorre a fonte inteira: sem compartilhar o cache, indexar e
+     * ler o mesmo PDF custaria a extração duas vezes.
+     */
+    fun extractFile(file: Path): ExtractedDocument = cache.getOrExtract(file, ::extract)
 
     private fun extract(file: Path): ExtractedDocument = when {
         PdfExtractor.handles(file) -> PdfExtractor.extract(file)

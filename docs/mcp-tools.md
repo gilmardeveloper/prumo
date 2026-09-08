@@ -54,6 +54,19 @@ Nunca um caminho local, nunca a URL crua do remote — uma URL pode carregar tok
 A documentação anexada, com nível de autoridade e se o Prumo consegue lê-la. Formato de que ele não
 extrai conteúdo é reportado como catalogado e não extraível.
 
+### `prumo_workspace_search_documentation`
+Acha a passagem que responde à pergunta dentro da documentação anexada, em vez de carregar o
+documento inteiro. É a via para especificação grande: o MOS do eSocial, com 413 páginas, vale cerca
+de 246 mil tokens extraídos — e o que se procura nele costuma caber em três parágrafos.
+
+O que volta é **texto verbatim** do documento, com a coordenada para citar e a linha por onde pedir a
+vizinhança no `prumo_workspace_read_documentation`. O Prumo não resume, não reescreve e não
+interpreta o trecho.
+
+O casamento é por palavra, com radical em português e inglês; havendo modelo local instalado, é
+também por sentido. `semanticAvailable` diz qual dos dois respondeu, e isso muda o que o vazio
+significa: sem o modelo, não achar é não ter a palavra, não é não ter o assunto.
+
 ### `prumo_workspace_read_documentation`
 Lê o conteúdo de uma fonte de documentação, endereçada pelo `documentationId`. Quando a fonte é uma
 pasta, recebe também o caminho de um arquivo dentro dela. Pagina por linha. Caminho absoluto,

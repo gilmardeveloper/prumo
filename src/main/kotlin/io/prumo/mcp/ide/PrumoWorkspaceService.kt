@@ -7,6 +7,10 @@ import io.prumo.mcp.audit.AuditLog
 import io.prumo.mcp.knowledge.KnowledgeSearch
 import io.prumo.mcp.knowledge.KnowledgeStore
 import io.prumo.mcp.credential.CredentialProvider
+import io.prumo.mcp.documentation.DocumentIndex
+import io.prumo.mcp.documentation.DocumentationReader
+import io.prumo.mcp.documentation.DocumentationSource
+import io.prumo.mcp.documentation.chunksOfSource
 import io.prumo.mcp.credential.PasswordSafeCredentialProvider
 import io.prumo.mcp.repository.GitRepositoryProbe
 import io.prumo.mcp.storage.FileSystemStorageProvider
@@ -34,6 +38,30 @@ class PrumoWorkspaceService {
 
     /** A recuperação por relevância sobre essa base. Não guarda estado entre chamadas. */
     val knowledgeSearch: KnowledgeSearch = LuceneKnowledgeSearch()
+
+    /**
+     * O índice dos trechos de documentação, um por instalação.
+     *
+     * Diferente do índice da memória, este guarda estado entre chamadas: montá-lo custa extrair
+     * documento grande, e refazê-lo a cada busca devolveria o custo que o cache existe para evitar.
+     */
+    val documentIndex: DocumentIndex = LuceneDocumentIndex()
+
+    private val indexedSources = java.util.concurrent.ConcurrentHashMap.newKeySet<String>()
+
+    /**
+     * Garante que a fonte está indexada, e indexa uma vez só por sessão.
+     *
+     * O que muda dentro do arquivo é pego pelo cache de extração, que erra a chave quando o carimbo
+     * muda; o que este controle evita é reindexar a mesma fonte inalterada a cada busca.
+     */
+    fun ensureIndexed(workspaceId: String, source: DocumentationSource) {
+        if (!indexedSources.add("$workspaceId|${source.id}")) {
+            return
+        }
+        val chunks = chunksOfSource(source, DocumentationReader::extractFile)
+        documentIndex.replaceSource(source.id, chunks)
+    }
 
     val credentials: CredentialProvider = PasswordSafeCredentialProvider()
     private val contextService = CurrentWorkspaceContextService(store)

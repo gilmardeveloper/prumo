@@ -50,6 +50,20 @@ Never a local path, never a raw remote URL — a URL can carry an embedded token
 The attached documentation with authority level and whether Prumo can read it. A format it does not
 extract content from is reported as catalogued and not extractable.
 
+### `prumo_workspace_search_documentation`
+Finds the passage that answers the question inside the attached documentation, instead of loading a
+whole document. It is the way into a large specification: the eSocial MOS, at 413 pages, is worth
+some 246,000 tokens once extracted — and what you are looking for usually fits in three paragraphs.
+
+What comes back is **verbatim text** from the document, with the coordinate to cite and the line to
+read around it with `prumo_workspace_read_documentation`. Prumo does not summarise, rewrite or
+interpret the passage.
+
+Matching is by word, with stemming in Portuguese and English; when a local model is installed, it is
+also by meaning. `semanticAvailable` says which of the two answered, and that changes what an empty
+answer means: without the model, finding nothing means the words are not there, not that the subject
+is not there.
+
 ### `prumo_workspace_read_documentation`
 Reads the content of a documentation source, addressed by its `documentationId`. When the source is a
 folder, it also takes the path of a file inside it. Pages by line. Absolute paths, parent traversal

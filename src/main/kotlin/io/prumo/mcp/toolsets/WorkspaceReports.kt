@@ -110,6 +110,39 @@ data class CoordinateResponse(
     val lastLine: Int,
 )
 
+/** Um trecho que atendeu à busca, com o endereço para citar e a chamada para ler em volta. */
+@Serializable
+data class DocumentationMatchResponse(
+    val documentationId: String,
+    val path: String,
+    /** Onde citar: a página, a linha da planilha, o parágrafo ou o slide. */
+    val coordinate: String,
+    /** O texto como está no documento. O Prumo não resume, não reescreve e não interpreta. */
+    val text: String,
+    /** Linha do texto extraído por onde pedir a vizinhança em prumo_workspace_read_documentation. */
+    val firstLine: Int,
+    val lastLine: Int,
+    val score: Float,
+    /** Verdadeiro quando o trecho veio por proximidade de sentido, e não por conter a palavra. */
+    val semantic: Boolean,
+)
+
+@Serializable
+data class DocumentationSearchResponse(
+    val workspaceId: String,
+    val matchCount: Int,
+    val results: List<DocumentationMatchResponse>,
+    /**
+     * Falso quando não há modelo local instalado: a busca respondeu só por palavra.
+     *
+     * Dito na resposta porque muda o que o silêncio significa — sem o modelo, não achar é não ter a
+     * palavra, e não é não ter o assunto.
+     */
+    val semanticAvailable: Boolean,
+    /** Quantas fontes de documentação foram consideradas. */
+    val searchedSources: Int,
+)
+
 @Serializable
 data class DocumentationSourcesResponse(
     val workspaceId: String,

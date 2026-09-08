@@ -444,6 +444,32 @@ class ToolDescriptionTest {
         )
     }
 
+    /**
+     * A busca de documentação existe para trocar documento por passagem. Três promessas decidem o
+     * que a IA faz com a resposta: o texto é verbatim, a coordenada é o endereço, e a ausência do
+     * modelo muda o que "não achei" significa.
+     */
+    @Test
+    fun `a busca de documentacao promete passagem verbatim, com coordenada e com o limite do que responde`() {
+        val busca = tools.single { it.name == SEARCH_DOCUMENTATION }
+
+        listOf("verbatim", "never summarises", "coordinate", "semanticAvailable").forEach { termo ->
+            assertTrue(busca.description.contains(termo), "a descrição não cita '$termo'")
+        }
+        assertTrue(
+            busca.description.contains("prumo_workspace_read_documentation"),
+            "a busca não diz como ler em volta do trecho",
+        )
+
+        val fonte = java.nio.file.Files.readString(
+            java.nio.file.Path.of("src/main/kotlin/io/prumo/mcp/ide/LuceneDocumentIndex.kt"),
+        )
+        assertTrue(
+            fonte.contains("add(StoredField(TEXT, entry.chunk.text))"),
+            "o índice guarda outra coisa no lugar do texto do documento",
+        )
+    }
+
     @Test
     fun `toda tool tem descricao`() {
         val vazias = tools.filter { it.description.isBlank() }
@@ -479,6 +505,8 @@ class ToolDescriptionTest {
         const val KNOWLEDGE_READ = "prumo_knowledge_read"
 
         const val READ_DOCUMENTATION = "prumo_workspace_read_documentation"
+
+        const val SEARCH_DOCUMENTATION = "prumo_workspace_search_documentation"
 
         /** A tool nativa da IDE que analisa um arquivo, e que o catálogo não substitui. */
         const val ANALISE_NATIVA = "get_file_problems"
