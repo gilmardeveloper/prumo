@@ -15,6 +15,7 @@ import io.prumo.mcp.policy.PolicyEngine
 import io.prumo.mcp.policy.PolicyRequest
 import io.prumo.mcp.policy.PolicyViolationException
 import io.prumo.mcp.repository.PathAccessDeniedException
+import io.prumo.mcp.repository.PathExcludedException
 import io.prumo.mcp.repository.RepositoryReadException
 import io.prumo.mcp.workspace.application.WorkspaceContext
 import io.prumo.mcp.workspace.application.WorkspaceResolutionException
@@ -88,6 +89,9 @@ internal suspend fun <T> prumoToolCall(
         service.record(context, call, tool, operation, AuditResult.DENIED, startedAt, client)
         throw McpExpectedError(failure.decision.reason)
     } catch (failure: PathAccessDeniedException) {
+        service.record(context, call, tool, operation, AuditResult.DENIED, startedAt, client)
+        throw McpExpectedError(failure.message ?: PATH_REFUSED)
+    } catch (failure: PathExcludedException) {
         service.record(context, call, tool, operation, AuditResult.DENIED, startedAt, client)
         throw McpExpectedError(failure.message ?: PATH_REFUSED)
     } catch (failure: WorkspaceResolutionException) {

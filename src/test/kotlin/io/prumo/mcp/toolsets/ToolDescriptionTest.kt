@@ -353,6 +353,38 @@ class ToolDescriptionTest {
         }
     }
 
+    /**
+     * Descrição é contrato: quem promete recusar o registro fora de alcance precisa consultar o
+     * alcance antes de montar a resposta, e a recusa não pode devolver a coordenada que a exclusão
+     * retira do cliente.
+     */
+    @Test
+    fun `quem promete recusar o fora de alcance consulta o alcance antes de responder`() {
+        val read = tools.single { it.name == KNOWLEDGE_READ }
+
+        listOf("out of reach", "excluded", "refused").forEach { termo ->
+            assertTrue(read.description.contains(termo, ignoreCase = true), "a descrição não cita '$termo'")
+        }
+
+        val leitura = java.nio.file.Files.readString(
+            java.nio.file.Path.of("src/main/kotlin/io/prumo/mcp/toolsets/KnowledgeToolset.kt"),
+        ).substringAfter("\"knowledge.read\"").substringBefore("@McpTool(name = FORGET_TOOL)")
+
+        assertTrue(
+            leitura.contains("SourceStampReader.outOfReach"),
+            "a leitura devolve o corpo sem perguntar se a fonte ainda está ao alcance",
+        )
+        assertTrue(
+            leitura.contains("PathExcludedException"),
+            "a recusa não é a que a trilha grava como recusa",
+        )
+        val recusa = leitura.substringAfter("PathExcludedException(").substringBefore("KnowledgeReports.detail")
+        assertFalse(
+            recusa.contains("provenance"),
+            "a mensagem de recusa interpola a procedência, e devolve o caminho que a exclusão retira",
+        )
+    }
+
     @Test
     fun `toda tool tem descricao`() {
         val vazias = tools.filter { it.description.isBlank() }
@@ -384,6 +416,8 @@ class ToolDescriptionTest {
         const val KNOWLEDGE_REMEMBER = "prumo_knowledge_remember"
 
         const val KNOWLEDGE_RECALL = "prumo_knowledge_recall"
+
+        const val KNOWLEDGE_READ = "prumo_knowledge_read"
 
         /** A tool nativa da IDE que analisa um arquivo, e que o catálogo não substitui. */
         const val ANALISE_NATIVA = "get_file_problems"

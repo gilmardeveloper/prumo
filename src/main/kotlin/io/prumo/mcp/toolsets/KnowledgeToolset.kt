@@ -18,6 +18,7 @@ import io.prumo.mcp.knowledge.SourceStamp
 import io.prumo.mcp.knowledge.freshnessOf
 import io.prumo.mcp.knowledge.recallRecords
 import io.prumo.mcp.policy.PolicyAction
+import io.prumo.mcp.repository.PathExcludedException
 import io.prumo.mcp.workspace.application.WorkspaceContext
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
@@ -185,7 +186,10 @@ class KnowledgeToolset : McpToolset {
         "Use this tool to read a stored record in full, by its id. The answer carries the text " +
             "together with its provenance and its freshness — a STALE record is still returned, " +
             "because what it says may still be useful, but the source is the truth and you should " +
-            "go back to it before relying on the record.",
+            "go back to it before relying on the record. What is NOT returned is a record whose " +
+            "source has since been put out of reach, because the developer excluded that path from " +
+            "the workspace: it is refused, text and coordinates alike. The exclusion decides what " +
+            "Prumo reads, and what was distilled from an excluded path is no exception to it.",
     )
     suspend fun read(
         @McpDescription("Id of the record, from prumo_knowledge_recall.")
@@ -196,6 +200,14 @@ class KnowledgeToolset : McpToolset {
             val record = withContext(Dispatchers.IO) { store.get(call.context.workspace.id, knowledgeId) }
                 ?: throw McpExpectedError("No knowledge record with id '$knowledgeId' in this workspace.")
             call.auditDetails["knowledgeId"] = knowledgeId
+            if (withContext(Dispatchers.IO) { SourceStampReader.outOfReach(call.context, record.provenance) }) {
+                // O caminho excluído não entra na recusa: dizê-lo devolveria, pela mensagem de erro,
+                // exatamente a coordenada que a exclusão retira do alcance.
+                throw PathExcludedException(
+                    "Knowledge record '$knowledgeId' was distilled from a path that is excluded from " +
+                        "this workspace, so Prumo does not return it.",
+                )
+            }
             KnowledgeReports.detail(record, freshnessOf(record.provenance.stamp, stampOf(call.context, record)))
         }
 

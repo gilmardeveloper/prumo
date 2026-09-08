@@ -23,6 +23,15 @@ class PathAccessDeniedException(
 )
 
 /**
+ * Lançada quando o caminho pedido está entre os que o desenvolvedor excluiu do workspace.
+ *
+ * Separada de [PathAccessDeniedException] porque o motivo é outro — não é caminho malformado, é
+ * alcance — e separada da falha de leitura porque recusa deliberada não é erro: é este tipo que faz
+ * a trilha gravar `DENIED` em vez de `ERROR`.
+ */
+class PathExcludedException(message: String) : SecurityException(message)
+
+/**
  * Resolve um caminho relativo contra a raiz de um repositório.
  *
  * Verifica duas vezes: sobre o caminho normalizado e, quando o alvo existe, sobre o caminho real do
