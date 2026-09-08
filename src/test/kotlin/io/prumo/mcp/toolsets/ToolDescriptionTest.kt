@@ -295,8 +295,39 @@ class ToolDescriptionTest {
             assertTrue(recall.description.contains(veredicto), "não explica $veredicto")
         }
         assertTrue(
-            recall.description.contains("no embedding"),
+            recall.description.contains("embedding"),
+            "não declara que a recuperação não usa embedding",
+        )
+        assertTrue(
+            recall.description.contains("deterministic"),
             "não declara que a recuperação é determinística",
+        )
+    }
+
+    /**
+     * A busca passou a ordenar por relevância sobre título, etiquetas e corpo. Quem lê a descrição
+     * precisa saber três coisas para usar o resultado: que o casamento não é literal, que ele não é
+     * feito por modelo, e que etiqueta, fonte e frescor continuam recortes exatos — misturar os dois
+     * regimes faria o cliente desconfiar de um filtro que não errou.
+     */
+    @Test
+    fun `a tool de busca declara o que passou a casar por relevancia e o que segue exato`() {
+        val recall = tools.single { it.name == KNOWLEDGE_RECALL }
+
+        listOf("title, tags and body", "stemming", "BM25").forEach { termo ->
+            assertTrue(recall.description.contains(termo), "a descrição não cita '$termo'")
+        }
+        assertTrue(
+            recall.description.contains("exact filters"),
+            "a descrição não separa o que continua sendo filtro exato",
+        )
+
+        val toolset = java.nio.file.Files.readString(
+            java.nio.file.Path.of("src/main/kotlin/io/prumo/mcp/toolsets/KnowledgeToolset.kt"),
+        )
+        assertFalse(
+            toolset.contains("record.title.contains("),
+            "a busca ainda casa substring de título, contra o que a descrição promete",
         )
     }
 
