@@ -66,11 +66,49 @@ class DocumentationReaderTest {
     }
 
     @Test
-    fun `formato apenas catalogado e recusado com explicacao`(@TempDir root: Path) {
+    fun `arquivo que so parece PDF e recusado como PDF quebrado`(@TempDir root: Path) {
         val pdf = file(root, "leiaute.pdf", "%PDF-1.4")
 
         val recusa = assertThrows(DocumentationReadException::class.java) {
             DocumentationReader.read(source("leiaute", pdf, DocumentationKind.FILE))
+        }
+
+        assertTrue(recusa.message.orEmpty().contains("could not open"), recusa.message.orEmpty())
+    }
+
+    /**
+     * Ponta a ponta sobre formato binário: o que sai é conteúdo, e a coordenada diz de onde, porque
+     * a linha do texto extraído não endereça nada dentro do arquivo original.
+     */
+    @Test
+    fun `formato binario e lido pela mesma janela, com a coordenada ao lado`(@TempDir root: Path) {
+        val docx = root.resolve("regras.docx")
+        java.util.zip.ZipOutputStream(java.nio.file.Files.newOutputStream(docx)).use { saida ->
+            saida.putNextEntry(java.util.zip.ZipEntry("word/document.xml"))
+            saida.write(
+                ("""<w:document xmlns:w="urn:w"><w:body>""" +
+                    """<w:p><w:r><w:t>Primeira regra</w:t></w:r></w:p>""" +
+                    """<w:p><w:r><w:t>Segunda regra</w:t></w:r></w:p>""" +
+                    """</w:body></w:document>""").toByteArray()
+            )
+            saida.closeEntry()
+        }
+
+        val slice = DocumentationReader.read(source("regras", docx, DocumentationKind.FILE), maxLines = 1)
+
+        assertEquals("Primeira regra", slice.text)
+        assertEquals(2, slice.totalLines)
+        assertTrue(slice.truncated)
+        assertEquals(listOf(CoordinateRange("paragraph 1", 1, 1)), slice.coordinates)
+    }
+
+    /** Formato fora dos dois grupos continua catalogado e sem leitura. */
+    @Test
+    fun `formato que o Prumo nao le e recusado com explicacao`(@TempDir root: Path) {
+        val antigo = file(root, "planilha.ods", "conteudo qualquer")
+
+        val recusa = assertThrows(DocumentationReadException::class.java) {
+            DocumentationReader.read(source("planilha", antigo, DocumentationKind.FILE))
         }
 
         assertTrue(recusa.message.orEmpty().contains("does not extract text"), recusa.message.orEmpty())

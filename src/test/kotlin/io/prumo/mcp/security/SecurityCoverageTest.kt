@@ -19,7 +19,13 @@ class SecurityCoverageTest {
     private val requirements = listOf(
         Requirement(
             "isolamento entre workspaces",
-            listOf("nao aparece no outro", "nao alcanca pack de outro workspace", "conteudo de um workspace nao aparece em outro"),
+            listOf(
+                "nao aparece no outro",
+                "nao alcanca pack de outro workspace",
+                "conteudo de um workspace nao aparece em outro",
+                "o trecho de um workspace nao aparece no outro",
+                "o vetor tambem respeita a fronteira do workspace",
+            ),
         ),
         Requirement(
             "READ_ONLY de repositorio e de datasource",

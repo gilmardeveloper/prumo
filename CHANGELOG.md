@@ -6,6 +6,46 @@ All notable changes to this project are documented here. The format follows
 
 ## [Unreleased]
 
+## [0.9.0] - 2026-09-08
+
+### Added
+
+- **Prumo reads PDF, Word, Excel and PowerPoint.** `pdf`, `docx`, `xlsx` and `pptx` come through the
+  same line window as text files, and what comes back is content: style, theme, document properties,
+  relationships and drawings are dropped before the answer is built. On a real spreadsheet the
+  package expands to 8.5 times the text that matters — that is what is no longer sent. Extraction is
+  format parsing, never a model: the text is verbatim. Office formats need no library at all, since
+  they are zip and XML and the JDK already reads both; PDF uses Apache PDFBox, because a PDF stores
+  text as glyph indexes of embedded subset fonts and only each font's `ToUnicode` map turns them
+  back into characters.
+- **Every extracted passage carries where it came from.** In a binary format the line number
+  addresses nothing in the original, so the answer carries `coordinates`: the page of a PDF, the
+  sheet and row of a spreadsheet, the paragraph, the slide. Neighbouring lines from the same origin
+  are grouped into one range, so the coordinate never costs more tokens than the text it addresses.
+- **`prumo_workspace_search_documentation`, to get the passage instead of the document.** A
+  413-page specification is worth some 246,000 tokens once extracted, and what answers a question
+  usually fits in three paragraphs. The tool returns those paragraphs verbatim, each with the
+  coordinate to cite and the line to read around it. Matching is by word, with stemming in
+  Portuguese and English, over the same Lucene the IDE already ships. `semanticAvailable` says
+  whether meaning-based matching answered as well — today it is always false, and it matters:
+  without it, finding nothing means the words are not there, not that the subject is not there.
+- **The window shows what an AI client can search**, per documentation source: whether Prumo reads
+  that format and how many passages are indexed.
+
+### Changed
+
+- **A scanned PDF is refused, not returned empty.** Pages that are images carry no text layer, and
+  an empty answer would suggest the document says nothing. A password protected PDF is refused too:
+  Prumo does not ask for the password.
+- **What was extracted once is not extracted twice.** The extracted text is kept in memory while the
+  IDE is open, keyed by the source stamp — size, date and digest — so an edited file is re-extracted
+  on its own. It is never written to Prumo's storage: a second copy of the user's content is exactly
+  what path exclusion exists to prevent.
+- **The security documents no longer say that nothing inside a PDF is analysed.** They now state
+  what is extracted, what is dropped, and that the file is treated as hostile input: the XML reader
+  is born with DTD and external entities off, a package entry pointing outside refuses the whole
+  document, and there is a ceiling on uncompressed bytes.
+
 ## [0.8.1] - 2026-09-08
 
 ### Fixed
@@ -850,7 +890,8 @@ full cycle with a real AI client — are still open.
 - Repository role and workspace type explain themselves in the dialog: both describe the work to the
   AI client and enforce nothing, which access modes and policies do.
 
-[Unreleased]: https://github.com/gilmardeveloper/prumo/compare/v0.8.1...HEAD
+[Unreleased]: https://github.com/gilmardeveloper/prumo/compare/v0.9.0...HEAD
+[0.9.0]: https://github.com/gilmardeveloper/prumo/compare/v0.8.1...v0.9.0
 [0.8.1]: https://github.com/gilmardeveloper/prumo/compare/v0.8.0...v0.8.1
 [0.8.0]: https://github.com/gilmardeveloper/prumo/compare/141ca9dbe62d55f9b1402bb38d3c55776b589e30...v0.8.0
 [0.7.0]: https://github.com/gilmardeveloper/prumo/compare/v0.6.2...141ca9dbe62d55f9b1402bb38d3c55776b589e30

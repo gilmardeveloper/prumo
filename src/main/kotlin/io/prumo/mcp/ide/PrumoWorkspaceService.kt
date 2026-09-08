@@ -7,6 +7,11 @@ import io.prumo.mcp.audit.AuditLog
 import io.prumo.mcp.knowledge.KnowledgeSearch
 import io.prumo.mcp.knowledge.KnowledgeStore
 import io.prumo.mcp.credential.CredentialProvider
+import io.prumo.mcp.documentation.DocumentIndex
+import io.prumo.mcp.documentation.DocumentationReader
+import io.prumo.mcp.documentation.DocumentationSource
+import io.prumo.mcp.documentation.chunksOfSource
+import io.prumo.mcp.documentation.signatureOfSource
 import io.prumo.mcp.credential.PasswordSafeCredentialProvider
 import io.prumo.mcp.repository.GitRepositoryProbe
 import io.prumo.mcp.storage.FileSystemStorageProvider
@@ -34,6 +39,34 @@ class PrumoWorkspaceService {
 
     /** A recuperação por relevância sobre essa base. Não guarda estado entre chamadas. */
     val knowledgeSearch: KnowledgeSearch = LuceneKnowledgeSearch()
+
+    /**
+     * O índice dos trechos de documentação, um por instalação.
+     *
+     * Diferente do índice da memória, este guarda estado entre chamadas: montá-lo custa extrair
+     * documento grande, e refazê-lo a cada busca devolveria o custo que o cache existe para evitar.
+     */
+    val documentIndex: DocumentIndex = LuceneDocumentIndex()
+
+    private val indexedSources = java.util.concurrent.ConcurrentHashMap<String, String>()
+
+    /**
+     * Garante que a fonte está indexada, e reindexa quando ela muda.
+     *
+     * A marca guardada é a assinatura da fonte — tamanho e data de cada arquivo legível dentro dela.
+     * Sem isso, documento corrigido continuaria respondendo pelo texto antigo até a IDE reiniciar, e
+     * fonte que ainda não existia nunca seria tentada de novo.
+     */
+    fun ensureIndexed(workspaceId: String, source: DocumentationSource) {
+        val chave = "$workspaceId|${source.id}"
+        val assinatura = signatureOfSource(source)
+        if (indexedSources[chave] == assinatura) {
+            return
+        }
+        val chunks = chunksOfSource(source, DocumentationReader::extractFile)
+        documentIndex.replaceSource(workspaceId, source.id, chunks)
+        indexedSources[chave] = assinatura
+    }
 
     val credentials: CredentialProvider = PasswordSafeCredentialProvider()
     private val contextService = CurrentWorkspaceContextService(store)

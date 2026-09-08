@@ -37,7 +37,22 @@ sealed interface WorkspaceViewModel {
         val activity: List<ActivityRow> = emptyList(),
         /** O que os clientes de IA destilaram e guardaram neste workspace. */
         val memory: List<MemoryRow> = emptyList(),
+        /** A documentação anexada, com o que o Prumo consegue ler dela. */
+        val documentation: List<DocumentationRow> = emptyList(),
     ) : WorkspaceViewModel
+
+    /**
+     * Uma fonte de documentação, como a tela a mostra.
+     *
+     * O desenvolvedor precisa ver duas coisas que decidem o que a IA alcança: se o Prumo lê aquele
+     * formato, e quantas passagens já estão indexadas para busca.
+     */
+    data class DocumentationRow(
+        val documentationId: String,
+        val name: String,
+        val readable: Boolean,
+        val indexedPassages: Int,
+    )
 
     /**
      * Um registro da base de conhecimento, como a tela o mostra.
@@ -124,6 +139,7 @@ sealed interface WorkspaceViewModel {
             installedPacks: List<PackRow> = emptyList(),
             activity: List<ActivityRow> = emptyList(),
             memory: List<MemoryRow> = emptyList(),
+            documentation: List<DocumentationRow> = emptyList(),
         ): WorkspaceViewModel = when (resolution) {
             is WorkspaceResolution.NotConfigured -> NotConfigured(resolution.projectName)
 
@@ -149,6 +165,7 @@ sealed interface WorkspaceViewModel {
                     },
                     pendingPacks = pendingPacks,
                     installedPacks = installedPacks,
+                    documentation = documentation,
                     activity = activity,
                     memory = memory,
                     dataSources = context.workspace.datasources.map {
