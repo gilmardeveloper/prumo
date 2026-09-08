@@ -57,16 +57,21 @@ class PrumoWorkspaceService {
      * Sem isso, documento corrigido continuaria respondendo pelo texto antigo até a IDE reiniciar, e
      * fonte que ainda não existia nunca seria tentada de novo.
      */
-    fun ensureIndexed(workspaceId: String, source: DocumentationSource) {
+    fun ensureIndexed(workspaceId: String, source: DocumentationSource): Boolean {
         val chave = "$workspaceId|${source.id}"
         val assinatura = signatureOfSource(source)
         if (indexedSources[chave] == assinatura) {
-            return
+            return false
         }
         val chunks = chunksOfSource(source, DocumentationReader::extractFile)
         documentIndex.replaceSource(workspaceId, source.id, chunks)
         indexedSources[chave] = assinatura
+        return true
     }
+
+    /** Se a fonte já está indexada e atualizada, sem indexar nada. */
+    fun isIndexed(workspaceId: String, source: DocumentationSource): Boolean =
+        indexedSources["$workspaceId|${source.id}"] == signatureOfSource(source)
 
     val credentials: CredentialProvider = PasswordSafeCredentialProvider()
     private val contextService = CurrentWorkspaceContextService(store)
