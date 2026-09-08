@@ -51,6 +51,15 @@ dependencies {
     // copia geraria classes duplicadas no classloader do plugin.
     compileOnly("org.jetbrains.kotlinx:kotlinx-serialization-json:1.9.0")
 
+    // Extracao de texto de PDF. A IDE nao traz biblioteca de PDF na Community, e o PDFBox que existe
+    // na Ultimate e privado do plugin Jupyter: depender dele deixaria o Prumo instalavel so na
+    // Ultimate. Escrever o proprio leitor esta fora de questao — o texto vem em indice de glifo, e
+    // so o mapa ToUnicode de cada fonte embutida o traduz de volta.
+    implementation("org.apache.pdfbox:pdfbox:3.0.8") {
+        // O Prumo le texto: nada de assinatura digital, criptografia de documento nem imagem.
+        exclude(group = "org.bouncycastle")
+    }
+
     // Classificacao de statement SQL (camada 3 da secao 9). Parser proprio e vetado pelo escopo:
     // reconhecer SQL por expressao regular e como a maioria dos bypass de seguranca acontece.
     implementation("com.github.jsqlparser:jsqlparser:5.3") {
