@@ -52,7 +52,21 @@ sealed interface WorkspaceViewModel {
         val freshness: String,
         val author: String,
         val updatedAt: String,
-    )
+        /** A fonte está entre os caminhos que o desenvolvedor excluiu deste workspace. */
+        val outOfReach: Boolean = false,
+    ) {
+        /**
+         * O que a linha diz sobre a fonte.
+         *
+         * O alcance vem antes do frescor: registro fora de alcance carimba `ORPHAN`, que diria ao
+         * desenvolvedor que a fonte sumiu quando foi ele quem a pôs fora de alcance.
+         */
+        val state: String get() = if (outOfReach) OUT_OF_REACH else freshness
+
+        companion object {
+            const val OUT_OF_REACH = "OUT_OF_REACH"
+        }
+    }
 
     /**
      * Uma chamada registrada na trilha de auditoria.
