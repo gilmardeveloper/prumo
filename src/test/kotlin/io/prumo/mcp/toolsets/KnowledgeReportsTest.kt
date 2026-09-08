@@ -82,6 +82,49 @@ class KnowledgeReportsTest {
         assertNull(response.results.single().body, "o corpo se lê por identificador, não na busca")
     }
 
+    @Test
+    fun `consulta sem resultado diz o que foi procurado`() {
+        val response = KnowledgeReports.search(
+            "w",
+            stored = 3,
+            matches = emptyList(),
+            maxResults = 10,
+            searchedTerms = listOf("aeronav"),
+        )
+
+        assertEquals(listOf("aeronav"), response.searchedTerms)
+        assertEquals(0, response.matchCount)
+    }
+
+    @Test
+    fun `consulta que virou nada se distingue de consulta que procurou e nao achou`() {
+        val virouNada = KnowledgeReports.search("w", 3, emptyList(), 10, searchedTerms = emptyList())
+        val procurou = KnowledgeReports.search("w", 3, emptyList(), 10, searchedTerms = listOf("aeronav"))
+
+        assertEquals(emptyList<String>(), virouNada.searchedTerms)
+        assertEquals(listOf("aeronav"), procurou.searchedTerms)
+    }
+
+    @Test
+    fun `consulta que achou nao explica termo nenhum`() {
+        val response = KnowledgeReports.search(
+            "w",
+            stored = 1,
+            matches = listOf(match("unico", Freshness.FRESH, 1f)),
+            maxResults = 10,
+            searchedTerms = listOf("folh"),
+        )
+
+        assertNull(response.searchedTerms, "explicação só cabe quando não houve resultado")
+    }
+
+    @Test
+    fun `busca sem texto nunca traz termos`() {
+        val response = KnowledgeReports.search("w", stored = 3, matches = emptyList(), maxResults = 10)
+
+        assertNull(response.searchedTerms)
+    }
+
     private fun match(id: String, freshness: Freshness, score: Float?) = KnowledgeMatch(
         record = KnowledgeRecord(
             schemaVersion = KnowledgeRecord.CURRENT_SCHEMA_VERSION,

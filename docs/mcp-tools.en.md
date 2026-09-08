@@ -238,6 +238,11 @@ vector and never a model deciding what is similar. The weight of each field — 
 above body — tilts the result without deciding it: a rare term in the body can outrank a common one
 in the title. Tag, source and freshness remain exact filters.
 
+A text query that matches nothing comes back with `searchedTerms`, which separates two situations
+that used to look alike: an **empty** list means the whole query was common words and nothing was
+left to look for; a **filled** one means those stems were searched and no record has them. The first
+calls for rewriting the query; the second means the memory does not know about it.
+
 Every result carries the `score` that put it there, comparable only against the others in the same
 answer — it is relative position, not a grade. Ties are broken by id, so the same query always
 returns the same order. A search with no text carries no `score`: there is nothing to rank.

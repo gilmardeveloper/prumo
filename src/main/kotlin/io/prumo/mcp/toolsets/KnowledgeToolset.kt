@@ -137,7 +137,10 @@ class KnowledgeToolset : McpToolset {
             "source has not changed since the record was written, STALE means it has and the " +
             "record may be wrong, ORPHAN means the source is gone. FRESH is about the bytes of " +
             "the source, not about the record: it means nobody edited that file, never that Prumo " +
-            "checked the text against it. Each result carries the score that put it there, " +
+            "checked the text against it. When a text query matches nothing, searchedTerms says " +
+            "what was actually searched for: an empty list means the whole query was common words " +
+            "and nothing was left to look for, and a filled one means those terms were searched " +
+            "and no record has them. Each result carries the score that put it there, " +
             "comparable only against the others in the same answer, and ties are broken by id so " +
             "the same query always returns the same order. The text itself is not returned here; " +
             "read it with prumo_knowledge_read.",
@@ -162,23 +165,24 @@ class KnowledgeToolset : McpToolset {
             val service = PrumoWorkspaceService.getInstance()
             val workspaceId = call.context.workspace.id
             val stored = withContext(Dispatchers.IO) { service.knowledge.list(workspaceId) }
-            val matches = withContext(Dispatchers.IO) {
+            val found = withContext(Dispatchers.IO) {
                 // Os recortes exatos vêm antes da relevância: buscar só no que o cliente já
                 // delimitou é mais barato e mantém o significado de cada filtro.
                 val filtered = stored
                     .filter { record -> tag.isNullOrBlank() || record.tags.any { it.equals(tag, ignoreCase = true) } }
                     .filter { record -> sourceId.isNullOrBlank() || record.provenance.sourceId == sourceId }
                 byRelevance(service.knowledgeSearch, filtered, query)
-                    .map { (record, score) ->
-                        KnowledgeMatch(
-                            record = record,
-                            freshness = freshnessOf(record.provenance.stamp, stampOf(call.context, record)),
-                            score = score,
-                        )
-                    }
-                    .filter { match -> freshness.isNullOrBlank() || match.freshness.name.equals(freshness, true) }
             }
-            KnowledgeReports.search(workspaceId, stored.size, matches, maxResults)
+            val matches = found.records
+                .map { (record, score) ->
+                    KnowledgeMatch(
+                        record = record,
+                        freshness = freshnessOf(record.provenance.stamp, stampOf(call.context, record)),
+                        score = score,
+                    )
+                }
+                .filter { match -> freshness.isNullOrBlank() || match.freshness.name.equals(freshness, true) }
+            KnowledgeReports.search(workspaceId, stored.size, matches, maxResults, found.terms)
         }
 
     @McpTool(name = READ_TOOL)
@@ -243,6 +247,16 @@ class KnowledgeToolset : McpToolset {
     )
 
     /**
+     * O resultado da busca por texto: os registros com o score de cada um, e os termos procurados.
+     *
+     * @property terms nulo quando não houve consulta de texto — não há termo a mostrar.
+     */
+    private data class Found(
+        val records: List<Pair<KnowledgeRecord, Float?>>,
+        val terms: List<String>?,
+    )
+
+    /**
      * Os registros que respondem à consulta, do mais relevante para o menos, com o score de cada um.
      *
      * Consulta ausente devolve tudo na ordem em que veio — a de identificador — e sem score, porque
@@ -252,12 +266,16 @@ class KnowledgeToolset : McpToolset {
         search: KnowledgeSearch,
         records: List<KnowledgeRecord>,
         query: String?,
-    ): List<Pair<KnowledgeRecord, Float?>> {
+    ): Found {
         if (query.isNullOrBlank()) {
-            return records.map { it to null }
+            return Found(records.map { it to null }, terms = null)
         }
         val byId = records.associateBy { it.id }
-        return search.search(records, query).hits.mapNotNull { hit -> byId[hit.id]?.let { it to hit.score } }
+        val result = search.search(records, query)
+        return Found(
+            records = result.hits.mapNotNull { hit -> byId[hit.id]?.let { it to hit.score } },
+            terms = result.terms,
+        )
     }
 
     private companion object {

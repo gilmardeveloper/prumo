@@ -45,6 +45,14 @@ data class KnowledgeRecallResponse(
     val byFreshness: Map<String, Int>,
     val results: List<KnowledgeRecordResponse>,
     val truncated: Boolean,
+    /**
+     * Os termos em que a consulta de texto foi reduzida, presentes só quando ela não casou nada.
+     *
+     * Lista vazia diz que a consulta inteira era palavra comum e não sobrou nada para procurar;
+     * lista preenchida diz que se procurou por aqueles termos e nenhum registro os tem. As duas
+     * situações pedem correções diferentes, e sem elas o cliente só vê resultado vazio.
+     */
+    val searchedTerms: List<String>? = null,
 )
 
 @Serializable
@@ -90,6 +98,7 @@ object KnowledgeReports {
         stored: Int,
         matches: List<KnowledgeMatch>,
         maxResults: Int,
+        searchedTerms: List<String>? = null,
     ): KnowledgeRecallResponse {
         val window = matches.take(maxResults.coerceIn(1, MAX_RESULTS))
         return KnowledgeRecallResponse(
@@ -99,6 +108,7 @@ object KnowledgeReports {
             byFreshness = matches.groupingBy { it.freshness.name }.eachCount().toSortedMap(),
             results = window.map { summary(it.record, it.freshness).copy(score = it.score) },
             truncated = window.size < matches.size,
+            searchedTerms = searchedTerms?.takeIf { matches.isEmpty() },
         )
     }
 
