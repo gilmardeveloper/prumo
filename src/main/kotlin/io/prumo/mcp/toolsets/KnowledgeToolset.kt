@@ -12,11 +12,11 @@ import io.prumo.mcp.knowledge.AdmissionContext
 import io.prumo.mcp.knowledge.Freshness
 import io.prumo.mcp.knowledge.KnowledgeAdmission
 import io.prumo.mcp.knowledge.KnowledgeRecord
-import io.prumo.mcp.knowledge.KnowledgeSearch
 import io.prumo.mcp.knowledge.Provenance
 import io.prumo.mcp.knowledge.SourceKind
 import io.prumo.mcp.knowledge.SourceStamp
 import io.prumo.mcp.knowledge.freshnessOf
+import io.prumo.mcp.knowledge.recallRecords
 import io.prumo.mcp.policy.PolicyAction
 import io.prumo.mcp.workspace.application.WorkspaceContext
 import kotlinx.coroutines.Dispatchers
@@ -166,12 +166,7 @@ class KnowledgeToolset : McpToolset {
             val workspaceId = call.context.workspace.id
             val stored = withContext(Dispatchers.IO) { service.knowledge.list(workspaceId) }
             val found = withContext(Dispatchers.IO) {
-                // Os recortes exatos vêm antes da relevância: buscar só no que o cliente já
-                // delimitou é mais barato e mantém o significado de cada filtro.
-                val filtered = stored
-                    .filter { record -> tag.isNullOrBlank() || record.tags.any { it.equals(tag, ignoreCase = true) } }
-                    .filter { record -> sourceId.isNullOrBlank() || record.provenance.sourceId == sourceId }
-                byRelevance(service.knowledgeSearch, filtered, query)
+                recallRecords(stored, tag, sourceId, query, service.knowledgeSearch)
             }
             val matches = found.records
                 .map { (record, score) ->
@@ -245,38 +240,6 @@ class KnowledgeToolset : McpToolset {
         // Substituir um registro que já existe não faz a base crescer.
         existingRecords = store.list(context.workspace.id).size - if (existing != null) 1 else 0,
     )
-
-    /**
-     * O resultado da busca por texto: os registros com o score de cada um, e os termos procurados.
-     *
-     * @property terms nulo quando não houve consulta de texto — não há termo a mostrar.
-     */
-    private data class Found(
-        val records: List<Pair<KnowledgeRecord, Float?>>,
-        val terms: List<String>?,
-    )
-
-    /**
-     * Os registros que respondem à consulta, do mais relevante para o menos, com o score de cada um.
-     *
-     * Consulta ausente devolve tudo na ordem em que veio — a de identificador — e sem score, porque
-     * não há o que pontuar.
-     */
-    private fun byRelevance(
-        search: KnowledgeSearch,
-        records: List<KnowledgeRecord>,
-        query: String?,
-    ): Found {
-        if (query.isNullOrBlank()) {
-            return Found(records.map { it to null }, terms = null)
-        }
-        val byId = records.associateBy { it.id }
-        val result = search.search(records, query)
-        return Found(
-            records = result.hits.mapNotNull { hit -> byId[hit.id]?.let { it to hit.score } },
-            terms = result.terms,
-        )
-    }
 
     private companion object {
         const val REMEMBER_TOOL = "prumo_knowledge_remember"
