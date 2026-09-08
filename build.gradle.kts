@@ -40,6 +40,11 @@ dependencies {
         // traz transacao MVCC: nada e empacotado, e a escrita concorrente deixa de depender
         // de um lock que o produto nao tem.
         bundledModule("intellij.libraries.mvstore")
+
+        // Recuperacao por relevancia sobre a memoria da IA. O Lucene vem com a IDE, com stemming
+        // de portugues e ingles e ranqueamento BM25: nada e empacotado, e a busca deixa de ser
+        // casamento literal de substring.
+        bundledModule("intellij.libraries.lucene.common")
     }
 
     // A plataforma IntelliJ ja fornece kotlinx-serialization em runtime. Empacotar uma segunda
