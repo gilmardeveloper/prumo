@@ -16,6 +16,7 @@ import io.prumo.mcp.knowledge.Provenance
 import io.prumo.mcp.knowledge.SourceKind
 import io.prumo.mcp.knowledge.SourceStamp
 import io.prumo.mcp.knowledge.freshnessOf
+import io.prumo.mcp.knowledge.recallRecords
 import io.prumo.mcp.policy.PolicyAction
 import io.prumo.mcp.workspace.application.WorkspaceContext
 import kotlinx.coroutines.Dispatchers
@@ -124,17 +125,32 @@ class KnowledgeToolset : McpToolset {
 
     @McpTool(name = RECALL_TOOL)
     @McpDescription(
-        "Use this tool to find what was already distilled in this workspace, by tag, by source or " +
-            "by text in the title. Call it BEFORE reading a large document again: what you need may " +
-            "already be here. Every result carries its freshness — FRESH means the source has not " +
-            "changed since the record was written, STALE means it has and the record may be wrong, " +
-            "ORPHAN means the source is gone. FRESH is about the bytes of the source, not about " +
-            "the record: it means nobody edited that file, never that Prumo checked the text " +
-            "against it. Matching is literal and deterministic: no embedding and no model " +
-            "ranking. The text itself is not returned here; read it with prumo_knowledge_read.",
+        "Use this tool to find what was already distilled in this workspace, by text, by tag or by " +
+            "source. Call it BEFORE reading a large document again: what you need may already be " +
+            "here. A text query is matched by relevance over title, tags and body, so a different " +
+            "inflection of the same word finds the record: \"pagamentos\" finds \"pagamento\", " +
+            "and \"payments\" finds \"payment\". Portuguese and English are both covered, and " +
+            "results come ordered by how well they answer, strongest first. This is still " +
+            "deterministic and explainable: it is word matching with stemming and BM25 ranking, " +
+            "never an embedding and never a model deciding what is similar. Tag, source and " +
+            "freshness stay exact filters. Every result carries its freshness — FRESH means the " +
+            "source has not changed since the record was written, STALE means it has and the " +
+            "record may be wrong, ORPHAN means the source is gone. FRESH is about the bytes of " +
+            "the source, not about the record: it means nobody edited that file, never that Prumo " +
+            "checked the text against it. When a text query matches nothing, searchedTerms says " +
+            "what was actually searched for: an empty list means the whole query was common words " +
+            "and nothing was left to look for, and a filled one means those terms were searched " +
+            "and no record has them. Each result carries the score that put it there, " +
+            "comparable only against the others in the same answer, and ties are broken by id so " +
+            "the same query always returns the same order. The text itself is not returned here; " +
+            "read it with prumo_knowledge_read.",
     )
     suspend fun recall(
-        @McpDescription("Text to look for in the title. Case-insensitive, matched as a substring.")
+        @McpDescription(
+            "Text to look for in title, tags and body. Matched by relevance, not literally: the " +
+                "query is reduced to word stems before the search, so inflections of the same word " +
+                "match each other and very common words are dropped.",
+        )
         query: String? = null,
         @McpDescription("Keep only records carrying this tag.")
         tag: String? = null,
@@ -146,18 +162,22 @@ class KnowledgeToolset : McpToolset {
         maxResults: Int = 20,
     ): KnowledgeRecallResponse =
         prumoToolCall(RECALL_TOOL, "knowledge.recall", PolicyAction.READ_KNOWLEDGE) { call ->
-            val store = PrumoWorkspaceService.getInstance().knowledge
+            val service = PrumoWorkspaceService.getInstance()
             val workspaceId = call.context.workspace.id
-            val stored = withContext(Dispatchers.IO) { store.list(workspaceId) }
-            val matches = withContext(Dispatchers.IO) {
-                stored
-                    .filter { record -> query.isNullOrBlank() || record.title.contains(query, ignoreCase = true) }
-                    .filter { record -> tag.isNullOrBlank() || record.tags.any { it.equals(tag, ignoreCase = true) } }
-                    .filter { record -> sourceId.isNullOrBlank() || record.provenance.sourceId == sourceId }
-                    .map { record -> record to freshnessOf(record.provenance.stamp, stampOf(call.context, record)) }
-                    .filter { (_, verdict) -> freshness.isNullOrBlank() || verdict.name.equals(freshness, true) }
+            val stored = withContext(Dispatchers.IO) { service.knowledge.list(workspaceId) }
+            val found = withContext(Dispatchers.IO) {
+                recallRecords(stored, tag, sourceId, query, service.knowledgeSearch)
             }
-            KnowledgeReports.search(workspaceId, stored.size, matches, maxResults)
+            val matches = found.records
+                .map { (record, score) ->
+                    KnowledgeMatch(
+                        record = record,
+                        freshness = freshnessOf(record.provenance.stamp, stampOf(call.context, record)),
+                        score = score,
+                    )
+                }
+                .filter { match -> freshness.isNullOrBlank() || match.freshness.name.equals(freshness, true) }
+            KnowledgeReports.search(workspaceId, stored.size, matches, maxResults, found.terms)
         }
 
     @McpTool(name = READ_TOOL)

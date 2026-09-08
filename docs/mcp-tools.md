@@ -226,9 +226,32 @@ recusas chegam distintas. O Prumo carimba de onde o texto veio; ele **não** con
 decorre dali, e esse juízo continua sendo de quem escreve.
 
 ### `prumo_knowledge_recall`
-Procura o que já foi destilado, por etiqueta, por fonte, por texto no título ou por frescor. Literal
-e determinística — sem embedding e sem ordenação por modelo. Não devolve o texto: devolve a lista com
-procedência e veredicto.
+Procura o que já foi destilado, por texto, por etiqueta, por fonte ou por frescor. Não devolve o
+texto: devolve a lista com procedência e veredicto.
+
+A procura por texto é **por relevância**, sobre título, etiquetas e corpo. A consulta é reduzida a
+radicais antes da busca, então flexão diferente da escrita encontra o registro: quem procura
+"pagamentos" acha "pagamento", e quem procura "payments" acha "payment". Português e inglês são
+cobertos ao mesmo tempo, porque nada no registro declara em que língua ele foi escrito — cada
+registro é indexado nas duas. Palavra muito comum é descartada nos dois idiomas: procurar "de" ou
+"the" não devolve nada.
+
+**Continua determinística e explicável**: é casamento de palavra com stemming e ranqueamento BM25,
+nunca um vetor e nunca um modelo decidindo o que é parecido. O peso de cada campo — título acima de
+etiqueta, etiqueta acima de corpo — inclina o resultado, mas não o decide: um termo raro no corpo
+pode superar um comum no título. Etiqueta, fonte e frescor seguem sendo recortes exatos.
+
+Consulta de texto que não casa nada volta com `searchedTerms`, e ele separa duas situações que
+pareciam a mesma: lista **vazia** diz que a consulta inteira era palavra comum e não sobrou nada para
+procurar; lista **preenchida** diz que se procurou por aqueles radicais e nenhum registro os tem. No
+primeiro caso o remédio é reescrever a consulta; no segundo, aceitar que a memória não sabe daquilo.
+
+Cada resultado vem com o `score` que o colocou ali, comparável apenas com os outros da mesma
+resposta — é posição relativa, não nota. Empate é desfeito pelo identificador, então a mesma consulta
+devolve sempre a mesma ordem. Busca sem texto não traz `score`: não há o que pontuar.
+
+O índice nasce e morre dentro da chamada. Não há segunda cópia do dado para divergir do que está
+guardado.
 
 ### `prumo_knowledge_read`
 O texto completo de um registro, com a procedência e o frescor ao lado. Um registro `STALE` continua

@@ -4,6 +4,7 @@ import com.intellij.openapi.components.Service
 import com.intellij.openapi.components.service
 import com.intellij.openapi.project.Project
 import io.prumo.mcp.audit.AuditLog
+import io.prumo.mcp.knowledge.KnowledgeSearch
 import io.prumo.mcp.knowledge.KnowledgeStore
 import io.prumo.mcp.credential.CredentialProvider
 import io.prumo.mcp.credential.PasswordSafeCredentialProvider
@@ -30,6 +31,10 @@ class PrumoWorkspaceService {
 
     /** A base de conhecimento destilado, uma por workspace, aberta sob demanda. */
     val knowledge: KnowledgeStore = MvStoreKnowledgeStore(storage)
+
+    /** A recuperação por relevância sobre essa base. Não guarda estado entre chamadas. */
+    val knowledgeSearch: KnowledgeSearch = LuceneKnowledgeSearch()
+
     val credentials: CredentialProvider = PasswordSafeCredentialProvider()
     private val contextService = CurrentWorkspaceContextService(store)
 
