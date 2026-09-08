@@ -66,6 +66,28 @@ object SourceStampReader {
         return stampOf(target)
     }
 
+    /**
+     * Se a fonte de um registro está fora do alcance que o desenvolvedor deu a este workspace.
+     *
+     * Decidido só pelo caminho: não abre o arquivo, não mede tamanho e não calcula resumo. Existe
+     * porque a leitura precisa da resposta para cada registro da base, e pagar um carimbo por
+     * registro para descobrir isso seria caro sem necessidade.
+     *
+     * Fonte de documentação nunca está fora de alcance: a exclusão é atributo do vínculo de
+     * repositório. Fonte que o workspace não conhece também não está — é outro caso, e quem o
+     * distingue é [stamp].
+     */
+    fun outOfReach(context: WorkspaceContext, provenance: Provenance): Boolean {
+        if (provenance.sourceKind != SourceKind.REPOSITORY) {
+            return false
+        }
+        val binding = context.workspace.repositories.firstOrNull { it.id == provenance.sourceId } ?: return false
+        val root = pathOrNull(binding.localPath) ?: return false
+        val relative = provenance.path ?: return false
+        val target = runCatching { PathSecurityValidator.resolve(root, relative) }.getOrNull() ?: return false
+        return excludedByAnyBinding(context, target)
+    }
+
     private fun stampRepository(context: WorkspaceContext, provenance: Provenance): StampResult {
         val binding = context.workspace.repositories.firstOrNull { it.id == provenance.sourceId }
             ?: return StampResult.UnknownSource
@@ -73,7 +95,7 @@ object SourceStampReader {
         val relative = provenance.path ?: return StampResult.PathMissing
         val target = runCatching { PathSecurityValidator.resolve(root, relative) }.getOrNull()
             ?: return StampResult.PathNotFound
-        if (excludedByAnyBinding(context, target)) {
+        if (outOfReach(context, provenance)) {
             return StampResult.PathExcluded
         }
         return stampOf(target)
