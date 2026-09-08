@@ -67,6 +67,11 @@ O casamento é por palavra, com radical em português e inglês; havendo modelo 
 também por sentido. `semanticAvailable` diz qual dos dois respondeu, e isso muda o que o vazio
 significa: sem o modelo, não achar é não ter a palavra, não é não ter o assunto.
 
+Indexar documento grande custa segundos, e a primeira chamada não segura a resposta até o acervo
+inteiro ficar pronto: ela gasta um teto de tempo, responde com o que conseguiu e devolve
+`pendingSources`, quantas fontes ficaram para a chamada seguinte. Enquanto esse número for maior que
+zero, resultado vazio ainda não é resposta — é acervo pela metade.
+
 ### `prumo_workspace_read_documentation`
 Lê o conteúdo de uma fonte de documentação, endereçada pelo `documentationId`. Quando a fonte é uma
 pasta, recebe também o caminho de um arquivo dentro dela. Pagina por linha. Caminho absoluto,

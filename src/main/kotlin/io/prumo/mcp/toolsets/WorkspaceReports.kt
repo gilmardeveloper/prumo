@@ -141,6 +141,14 @@ data class DocumentationSearchResponse(
     val semanticAvailable: Boolean,
     /** Quantas fontes de documentação foram consideradas. */
     val searchedSources: Int,
+    /**
+     * Fontes que ainda não estavam indexadas quando esta resposta foi montada.
+     *
+     * Indexar um documento grande custa segundos, e a primeira busca não segura a resposta até tudo
+     * ficar pronto. Enquanto este número for maior que zero, a resposta cobre parte do acervo — e
+     * chamar de novo continua de onde parou.
+     */
+    val pendingSources: Int = 0,
 )
 
 @Serializable

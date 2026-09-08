@@ -453,9 +453,25 @@ class ToolDescriptionTest {
     fun `a busca de documentacao promete passagem verbatim, com coordenada e com o limite do que responde`() {
         val busca = tools.single { it.name == SEARCH_DOCUMENTATION }
 
-        listOf("verbatim", "never summarises", "coordinate", "semanticAvailable").forEach { termo ->
+        listOf("verbatim", "never summarises", "coordinate", "semanticAvailable", "pendingSources").forEach { termo ->
             assertTrue(busca.description.contains(termo), "a descrição não cita '$termo'")
         }
+        assertTrue(
+            busca.description.contains("not an answer yet"),
+            "a descrição não diz que resultado vazio com fonte pendente ainda não é resposta",
+        )
+
+        val fonteDaBusca = java.nio.file.Files.readString(
+            java.nio.file.Path.of("src/main/kotlin/io/prumo/mcp/toolsets/WorkspaceToolset.kt"),
+        ).substringAfter("\"workspace.search_documentation\"").substringBefore("@McpTool(name = READ_DOCUMENTATION_TOOL)")
+        assertTrue(
+            fonteDaBusca.contains("indexWithinBudget("),
+            "a descrição promete não segurar a resposta, e o código indexa tudo antes de responder",
+        )
+        assertTrue(
+            fonteDaBusca.contains("pendingSources = pendentes"),
+            "a descrição promete dizer o que ficou pendente, e o código não devolve o número",
+        )
         assertTrue(
             busca.description.contains("prumo_workspace_read_documentation"),
             "a busca não diz como ler em volta do trecho",

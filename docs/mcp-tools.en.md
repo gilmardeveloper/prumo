@@ -64,6 +64,11 @@ also by meaning. `semanticAvailable` says which of the two answered, and that ch
 answer means: without the model, finding nothing means the words are not there, not that the subject
 is not there.
 
+Indexing a large document costs seconds, and the first call does not hold the answer until the whole
+shelf is ready: it spends a time budget, answers with what it managed, and returns `pendingSources`,
+how many sources were left for the next call. While that number is above zero, an empty result is
+not an answer yet — it is a half-built shelf.
+
 ### `prumo_workspace_read_documentation`
 Reads the content of a documentation source, addressed by its `documentationId`. When the source is a
 folder, it also takes the path of a file inside it. Pages by line. Absolute paths, parent traversal

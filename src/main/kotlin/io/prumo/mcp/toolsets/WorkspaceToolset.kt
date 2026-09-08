@@ -6,6 +6,7 @@ import com.intellij.mcpserver.annotations.McpDescription
 import com.intellij.mcpserver.annotations.McpTool
 import io.prumo.mcp.documentation.DocumentationReadException
 import io.prumo.mcp.documentation.DocumentationReader
+import io.prumo.mcp.documentation.indexWithinBudget
 import io.prumo.mcp.ide.PrumoWorkspaceService
 import io.prumo.mcp.policy.PolicyAction
 import kotlinx.coroutines.Dispatchers
@@ -86,7 +87,11 @@ class WorkspaceToolset : McpToolset {
             "Portuguese and English; when a local model is installed it is also by meaning, and " +
             "semanticAvailable tells you which of the two answered. That matters for what an empty " +
             "answer means: without the model, finding nothing means the words are not there, not " +
-            "that the subject is not there.",
+            "that the subject is not there. Indexing a large document costs seconds, so the first " +
+            "call does not hold the answer until the whole shelf is ready: pendingSources says how " +
+            "many sources were still unindexed when this answer was built, and calling again picks " +
+            "up where it stopped. While that number is above zero, an empty result is not an answer " +
+            "yet.",
     )
     suspend fun searchDocumentation(
         @McpDescription("What you are looking for, in your own words.")
@@ -104,8 +109,18 @@ class WorkspaceToolset : McpToolset {
             }
             val service = PrumoWorkspaceService.getInstance()
             val sources = call.context.workspace.documentation
-            withContext(Dispatchers.IO) {
-                sources.forEach { service.ensureIndexed(call.context.workspace.id, it) }
+            // Indexar o acervo inteiro pode custar dezenas de segundos em documento grande, e o
+            // cliente desiste antes. A primeira chamada trabalha dentro de um teto e responde com o
+            // que conseguiu, dizendo quanto ficou para a próxima.
+            val pendentes = withContext(Dispatchers.IO) {
+                val comecou = System.nanoTime()
+                indexWithinBudget(
+                    sources = sources,
+                    indexed = { service.isIndexed(call.context.workspace.id, it) },
+                    index = { service.ensureIndexed(call.context.workspace.id, it) },
+                    elapsedNanos = { System.nanoTime() - comecou },
+                    budgetNanos = INDEXING_BUDGET_NANOS,
+                )
             }
             val hits = withContext(Dispatchers.IO) {
                 service.documentIndex.search(
@@ -132,6 +147,7 @@ class WorkspaceToolset : McpToolset {
                 },
                 semanticAvailable = false,
                 searchedSources = sources.size,
+                pendingSources = pendentes,
             )
         }
 
@@ -214,6 +230,9 @@ class WorkspaceToolset : McpToolset {
 
         /** Teto de trechos por chamada: passar disso devolve documento, não passagem. */
         const val MAX_SEARCH_RESULTS = 20
+
+        /** Quanto tempo uma chamada gasta indexando antes de responder com o que já tem. */
+        val INDEXING_BUDGET_NANOS = java.util.concurrent.TimeUnit.SECONDS.toNanos(10)
         const val READ_DOCUMENTATION_TOOL = "prumo_workspace_read_documentation"
 
         const val SEARCH_DOCUMENTATION_TOOL = "prumo_workspace_search_documentation"
