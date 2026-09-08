@@ -49,20 +49,25 @@ class LuceneDocumentIndex : DocumentIndex, AutoCloseable {
     )
 
     @Synchronized
-    override fun replaceSource(documentationId: String, chunks: List<IndexedChunk>) {
+    override fun replaceSource(workspaceId: String, documentationId: String, chunks: List<IndexedChunk>) {
         write { writer ->
-            writer.deleteDocuments(Term(SOURCE, documentationId))
-            chunks.forEach { writer.addDocument(documentOf(it)) }
+            writer.deleteDocuments(sourceQuery(workspaceId, documentationId))
+            chunks.forEach { writer.addDocument(documentOf(workspaceId, it)) }
         }
     }
 
     @Synchronized
-    override fun removeSource(documentationId: String) {
-        write { writer -> writer.deleteDocuments(Term(SOURCE, documentationId)) }
+    override fun removeSource(workspaceId: String, documentationId: String) {
+        write { writer -> writer.deleteDocuments(sourceQuery(workspaceId, documentationId)) }
     }
 
     @Synchronized
-    override fun search(query: String, vector: FloatArray?, maxResults: Int): List<DocumentHit> {
+    override fun search(
+        workspaceId: String,
+        query: String,
+        vector: FloatArray?,
+        maxResults: Int,
+    ): List<DocumentHit> {
         require(query.isNotBlank()) { "The search query must not be blank." }
         require(maxResults >= 1) { "maxResults must be 1 or greater." }
         if (size() == 0) {
@@ -71,10 +76,13 @@ class LuceneDocumentIndex : DocumentIndex, AutoCloseable {
 
         return DirectoryReader.open(directory).use { reader ->
             val searcher = IndexSearcher(reader).apply { similarity = BM25Similarity() }
-            val porPalavra = searcher.search(textQuery(query), maxResults).scoreDocs
+            val doWorkspace = TermQuery(Term(WORKSPACE, workspaceId))
+            val porPalavra = searcher.search(within(doWorkspace, textQuery(query)), maxResults).scoreDocs
                 .map { hitOf(searcher, it.doc, it.score, semantic = false) }
             val porVetor = vector
-                ?.let { searcher.search(KnnFloatVectorQuery(VECTOR, it, maxResults), maxResults).scoreDocs }
+                ?.let {
+                    searcher.search(KnnFloatVectorQuery(VECTOR, it, maxResults, doWorkspace), maxResults).scoreDocs
+                }
                 ?.map { hitOf(searcher, it.doc, it.score, semantic = true) }
                 .orEmpty()
             merge(porPalavra, porVetor, maxResults)
@@ -86,10 +94,10 @@ class LuceneDocumentIndex : DocumentIndex, AutoCloseable {
         runCatching { DirectoryReader.open(directory).use { it.numDocs() } }.getOrDefault(0)
 
     @Synchronized
-    override fun countOf(documentationId: String): Int =
+    override fun countOf(workspaceId: String, documentationId: String): Int =
         runCatching {
             DirectoryReader.open(directory).use { reader ->
-                IndexSearcher(reader).count(TermQuery(Term(SOURCE, documentationId)))
+                IndexSearcher(reader).count(sourceQuery(workspaceId, documentationId))
             }
         }.getOrDefault(0)
 
@@ -118,7 +126,21 @@ class LuceneDocumentIndex : DocumentIndex, AutoCloseable {
 
     private fun chaveDe(hit: DocumentHit) = "${hit.documentationId}|${hit.path}|${hit.firstLine}"
 
-    private fun documentOf(entry: IndexedChunk): Document = Document().apply {
+    /** O trecho só existe dentro do workspace que o indexou. */
+    private fun sourceQuery(workspaceId: String, documentationId: String): BooleanQuery =
+        BooleanQuery.Builder()
+            .add(TermQuery(Term(WORKSPACE, workspaceId)), BooleanClause.Occur.FILTER)
+            .add(TermQuery(Term(SOURCE, documentationId)), BooleanClause.Occur.FILTER)
+            .build()
+
+    private fun within(workspace: TermQuery, query: BooleanQuery): BooleanQuery =
+        BooleanQuery.Builder()
+            .add(workspace, BooleanClause.Occur.FILTER)
+            .add(query, BooleanClause.Occur.MUST)
+            .build()
+
+    private fun documentOf(workspaceId: String, entry: IndexedChunk): Document = Document().apply {
+        add(StringField(WORKSPACE, workspaceId, Field.Store.NO))
         add(StringField(SOURCE, entry.documentationId, Field.Store.YES))
         add(StoredField(PATH, entry.path))
         add(StoredField(COORDINATE, entry.chunk.coordinate.label))
@@ -178,6 +200,7 @@ class LuceneDocumentIndex : DocumentIndex, AutoCloseable {
     }
 
     private companion object {
+        const val WORKSPACE = "workspace"
         const val SOURCE = "source"
         const val PATH = "path"
         const val COORDINATE = "coordinate"

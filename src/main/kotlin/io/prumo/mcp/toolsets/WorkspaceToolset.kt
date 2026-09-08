@@ -108,7 +108,12 @@ class WorkspaceToolset : McpToolset {
                 sources.forEach { service.ensureIndexed(call.context.workspace.id, it) }
             }
             val hits = withContext(Dispatchers.IO) {
-                service.documentIndex.search(query, vector = null, maxResults = maxResults.coerceIn(1, MAX_SEARCH_RESULTS))
+                service.documentIndex.search(
+                    workspaceId = call.context.workspace.id,
+                    query = query,
+                    vector = null,
+                    maxResults = maxResults.coerceIn(1, MAX_SEARCH_RESULTS),
+                )
             }
             DocumentationSearchResponse(
                 workspaceId = call.context.workspace.id,

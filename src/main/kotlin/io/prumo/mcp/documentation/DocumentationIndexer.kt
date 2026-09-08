@@ -39,3 +39,19 @@ private fun filesOf(root: Path): List<Path> = when {
     }
     else -> emptyList()
 }
+
+/**
+ * A assinatura de uma fonte: o que muda quando algum arquivo dela muda.
+ *
+ * Junta caminho, tamanho e data de cada arquivo legível. Não abre arquivo nenhum, porque isso roda a
+ * cada busca; o resumo do conteúdo fica para o cache de extração, que é quem decide se o texto
+ * guardado ainda vale.
+ */
+fun signatureOfSource(source: DocumentationSource): String {
+    val root = runCatching { Path.of(source.location) }.getOrNull() ?: return "ausente"
+    return filesOf(root).joinToString("|") { file ->
+        val tamanho = runCatching { Files.size(file) }.getOrDefault(-1)
+        val data = runCatching { Files.getLastModifiedTime(file).toMillis() }.getOrDefault(-1)
+        "$file:$tamanho:$data"
+    }
+}

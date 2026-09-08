@@ -11,6 +11,7 @@ import io.prumo.mcp.documentation.DocumentIndex
 import io.prumo.mcp.documentation.DocumentationReader
 import io.prumo.mcp.documentation.DocumentationSource
 import io.prumo.mcp.documentation.chunksOfSource
+import io.prumo.mcp.documentation.signatureOfSource
 import io.prumo.mcp.credential.PasswordSafeCredentialProvider
 import io.prumo.mcp.repository.GitRepositoryProbe
 import io.prumo.mcp.storage.FileSystemStorageProvider
@@ -47,20 +48,24 @@ class PrumoWorkspaceService {
      */
     val documentIndex: DocumentIndex = LuceneDocumentIndex()
 
-    private val indexedSources = java.util.concurrent.ConcurrentHashMap.newKeySet<String>()
+    private val indexedSources = java.util.concurrent.ConcurrentHashMap<String, String>()
 
     /**
-     * Garante que a fonte está indexada, e indexa uma vez só por sessão.
+     * Garante que a fonte está indexada, e reindexa quando ela muda.
      *
-     * O que muda dentro do arquivo é pego pelo cache de extração, que erra a chave quando o carimbo
-     * muda; o que este controle evita é reindexar a mesma fonte inalterada a cada busca.
+     * A marca guardada é a assinatura da fonte — tamanho e data de cada arquivo legível dentro dela.
+     * Sem isso, documento corrigido continuaria respondendo pelo texto antigo até a IDE reiniciar, e
+     * fonte que ainda não existia nunca seria tentada de novo.
      */
     fun ensureIndexed(workspaceId: String, source: DocumentationSource) {
-        if (!indexedSources.add("$workspaceId|${source.id}")) {
+        val chave = "$workspaceId|${source.id}"
+        val assinatura = signatureOfSource(source)
+        if (indexedSources[chave] == assinatura) {
             return
         }
         val chunks = chunksOfSource(source, DocumentationReader::extractFile)
-        documentIndex.replaceSource(source.id, chunks)
+        documentIndex.replaceSource(workspaceId, source.id, chunks)
+        indexedSources[chave] = assinatura
     }
 
     val credentials: CredentialProvider = PasswordSafeCredentialProvider()

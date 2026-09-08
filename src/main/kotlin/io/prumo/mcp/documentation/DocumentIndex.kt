@@ -59,25 +59,31 @@ data class DocumentHit(
  */
 interface DocumentIndex {
 
-    /** Substitui no índice tudo o que veio de [documentationId], deixando as outras fontes intactas. */
-    fun replaceSource(documentationId: String, chunks: List<IndexedChunk>)
+    /**
+     * Substitui tudo o que veio daquela fonte **daquele workspace**, deixando o resto intacto.
+     *
+     * O workspace é dimensão do índice, e não recorte aplicado depois: o índice é um só para a
+     * instalação, e dois projetos abertos na mesma IDE não podem se enxergar.
+     */
+    fun replaceSource(workspaceId: String, documentationId: String, chunks: List<IndexedChunk>)
 
-    /** Remove do índice tudo o que veio daquela fonte. */
-    fun removeSource(documentationId: String)
+    /** Remove do índice tudo o que veio daquela fonte daquele workspace. */
+    fun removeSource(workspaceId: String, documentationId: String)
 
     /**
      * Os trechos que respondem à consulta, do mais forte para o menos.
      *
+     * @param workspaceId o workspace que perguntou. Trecho de outro workspace nunca é devolvido.
      * @param query o texto procurado, como o cliente o escreveu.
      * @param vector a consulta em forma vetorial, ou nulo quando não há modelo — a busca continua
      *   funcionando por palavra.
      * @param maxResults quantos trechos devolver no máximo.
      */
-    fun search(query: String, vector: FloatArray?, maxResults: Int): List<DocumentHit>
+    fun search(workspaceId: String, query: String, vector: FloatArray?, maxResults: Int): List<DocumentHit>
 
-    /** Quantos pedaços estão indexados agora. */
+    /** Quantos pedaços estão indexados agora, somando todos os workspaces. */
     fun size(): Int
 
-    /** Quantos pedaços vieram daquela fonte. */
-    fun countOf(documentationId: String): Int
+    /** Quantos pedaços vieram daquela fonte daquele workspace. */
+    fun countOf(workspaceId: String, documentationId: String): Int
 }

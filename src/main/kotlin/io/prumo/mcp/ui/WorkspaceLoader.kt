@@ -62,7 +62,7 @@ object WorkspaceLoader {
                         name = source.name,
                         readable = local != null &&
                             (java.nio.file.Files.isDirectory(local) || SupportedDocumentFormats.isSupported(local)),
-                        indexedPassages = service.documentIndex.countOf(source.id),
+                        indexedPassages = workspaceId?.let { service.documentIndex.countOf(it, source.id) } ?: 0,
                     )
                 }
                 .orEmpty(),
