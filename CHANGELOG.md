@@ -6,6 +6,18 @@ All notable changes to this project are documented here. The format follows
 
 ## [Unreleased]
 
+## [0.10.0] - 2026-09-08
+
+### Changed
+
+- **The first documentation search no longer holds the answer until the whole shelf is indexed.**
+  Extracting a large document costs seconds — a 413-page specification takes about eight — and
+  indexing every attached source before answering was enough for a client to give up and conclude
+  the tool does not work. The call now spends a time budget, answers with what it managed, and
+  returns `pendingSources`: how many sources were still unindexed when the answer was built. Calling
+  again picks up where it stopped. While that number is above zero, an empty result is not an answer
+  yet, and the tool description says so.
+
 ## [0.9.0] - 2026-09-08
 
 ### Added
@@ -890,7 +902,8 @@ full cycle with a real AI client — are still open.
 - Repository role and workspace type explain themselves in the dialog: both describe the work to the
   AI client and enforce nothing, which access modes and policies do.
 
-[Unreleased]: https://github.com/gilmardeveloper/prumo/compare/v0.9.0...HEAD
+[Unreleased]: https://github.com/gilmardeveloper/prumo/compare/v0.10.0...HEAD
+[0.10.0]: https://github.com/gilmardeveloper/prumo/compare/v0.9.0...v0.10.0
 [0.9.0]: https://github.com/gilmardeveloper/prumo/compare/v0.8.1...v0.9.0
 [0.8.1]: https://github.com/gilmardeveloper/prumo/compare/v0.8.0...v0.8.1
 [0.8.0]: https://github.com/gilmardeveloper/prumo/compare/141ca9dbe62d55f9b1402bb38d3c55776b589e30...v0.8.0
