@@ -19,6 +19,20 @@ import org.junit.jupiter.api.Test
  */
 class KnowledgeReportsTest {
 
+    /**
+     * Medido em campo na 0.8.0: o campo sumia da resposta quando era zero, porque a serialização
+     * omite o que é igual ao padrão. A descrição promete o número ao cliente, e ausência obriga a
+     * IA a adivinhar se é zero ou se é uma versão sem o campo.
+     */
+    @Test
+    fun `a contagem de fora de alcance viaja mesmo quando e zero`() {
+        val resposta = KnowledgeReports.search("w", stored = 1, matches = emptyList(), maxResults = 10, outOfReachCount = 0)
+
+        val serializado = kotlinx.serialization.json.Json.encodeToString(resposta)
+
+        assertTrue(serializado.contains("\"outOfReachCount\":0"), serializado)
+    }
+
     @Test
     fun `o score de cada resultado chega ao cliente`() {
         val matches = listOf(
