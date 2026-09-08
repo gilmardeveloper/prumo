@@ -78,7 +78,7 @@ class ExcludedPathNormalizationTest {
         Files.writeString(root.resolve("leiame.txt"), "conteudo livre")
         val excluded = listOfNotNull(RepositoryBinding.normalizeExcludedPath("/FONTES/curl"))
 
-        val recusa = assertThrows(io.prumo.mcp.repository.RepositoryReadException::class.java) {
+        val recusa = assertThrows(io.prumo.mcp.repository.PathExcludedException::class.java) {
             RepositoryReader.readFile(root, "FONTES/curl/chamada.sh", excluded = excluded)
         }
 

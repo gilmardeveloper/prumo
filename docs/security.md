@@ -74,6 +74,11 @@ statement, contagem de linhas, desfecho e duração. Nunca registra conteúdo de
 consulta, texto SQL ou valor de parâmetro: auditoria que copia o dado vira uma segunda cópia daquilo
 que ela deveria proteger.
 
+O desfecho separa recusa de falha. Caminho excluído, política que não permite a ação, workspace não
+resolvido e consulta de escrita recusada entram como `DENIED`: o produto funcionou, e disse não.
+`ERROR` fica para o que quebrou. Quem lê a trilha depois precisa distinguir as duas coisas, e
+exclusão gravada como erro fazia a defesa parecer defeito.
+
 **A IA escreve na memória, e só nela.** Desde a 0.5.0 existe uma base de conhecimento por
 workspace em que os clientes de IA gravam o que destilaram — sem consentimento por item, ao contrário
 dos pacotes. O que sustenta isso não é confiança no conteúdo: é a **procedência**. Só é aceito o

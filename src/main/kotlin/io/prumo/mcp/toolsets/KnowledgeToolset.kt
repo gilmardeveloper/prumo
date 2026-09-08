@@ -93,7 +93,7 @@ class KnowledgeToolset : McpToolset {
                 StampResult.PathNotFound -> throw McpExpectedError(
                     "Source '$sourceId' exists, but path '${path.orEmpty()}' does not exist in it.",
                 )
-                StampResult.PathExcluded -> throw McpExpectedError(
+                StampResult.PathExcluded -> throw PathExcludedException(
                     "Path '${path.orEmpty()}' is excluded from '$sourceId' in this workspace, so " +
                         "Prumo does not read it and cannot derive knowledge from it.",
                 )

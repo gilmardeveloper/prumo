@@ -70,7 +70,7 @@ object RepositoryReader {
 
         val file = PathSecurityValidator.resolve(root, relativePath)
         if (isExcluded(root, file, excluded)) {
-            throw RepositoryReadException(
+            throw PathExcludedException(
                 "Path '$relativePath' is excluded from this repository in the Prumo workspace, " +
                     "so Prumo does not read it.",
             )
@@ -212,7 +212,7 @@ object RepositoryReader {
         if (relativePath.isNullOrBlank() || !isExcluded(root, start, excluded)) {
             return
         }
-        throw RepositoryReadException(
+        throw PathExcludedException(
             "Path '$relativePath' is excluded from this repository in the Prumo workspace, " +
                 "so Prumo does not read it.",
         )
