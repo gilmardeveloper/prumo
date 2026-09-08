@@ -354,6 +354,36 @@ class ToolDescriptionTest {
     }
 
     /**
+     * A contagem do que está fora de alcance é dita à IA, e por isso precisa ser dita inteira: que
+     * ela cobre a base e não a consulta é o que a impede de virar oráculo sobre o texto excluído.
+     */
+    @Test
+    fun `a busca declara que nao alcanca o excluido, e o tira antes de pontuar`() {
+        val recall = tools.single { it.name == KNOWLEDGE_RECALL }
+
+        listOf("outOfReachCount", "never over your query").forEach { termo ->
+            assertTrue(recall.description.contains(termo), "a descrição não cita '$termo'")
+        }
+
+        val busca = java.nio.file.Files.readString(
+            java.nio.file.Path.of("src/main/kotlin/io/prumo/mcp/toolsets/KnowledgeToolset.kt"),
+        ).substringAfter("\"knowledge.recall\"").substringBefore("@McpTool(name = READ_TOOL)")
+
+        assertTrue(
+            busca.contains("SourceStampReader.outOfReach"),
+            "a busca pontua e lista sem perguntar o que está fora de alcance",
+        )
+
+        val composicao = java.nio.file.Files.readString(
+            java.nio.file.Path.of("src/main/kotlin/io/prumo/mcp/knowledge/KnowledgeRecall.kt"),
+        )
+        assertTrue(
+            composicao.indexOf("filterNot(outOfReach)") < composicao.indexOf("search.search("),
+            "o alcance deixou de ser a primeira etapa da composição",
+        )
+    }
+
+    /**
      * Descrição é contrato: quem promete recusar o registro fora de alcance precisa consultar o
      * alcance antes de montar a resposta, e a recusa não pode devolver a coordenada que a exclusão
      * retira do cliente.

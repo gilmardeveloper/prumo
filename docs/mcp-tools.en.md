@@ -250,9 +250,20 @@ returns the same order. A search with no text carries no `score`: there is nothi
 The index is built and discarded inside the call. There is no second copy of the data to drift from
 what is stored.
 
+**A record whose source went out of reach is neither searched nor listed.** If the developer
+excluded, after the distillation, the path the record came from, it stops existing for the search: it
+is not ranked, it does not appear in the list, and it gives back no coordinate. What the answer
+carries is `outOfReachCount`, how many such records the base holds — counted over the **whole base**,
+like `storedCount`, and never over the query. A count that varied with the text searched would be an
+oracle: swap the word, watch the number, and learn what is written inside what was excluded.
+
 ### `prumo_knowledge_read`
 The full text of a record, with its provenance and freshness beside it. A `STALE` record is still
 returned — what it says may still be useful — but the source is the truth.
+
+**A record distilled from a path that is now excluded is refused**, text and coordinates alike. The
+refusal names the record, not the path: naming the path would hand back, through the error message,
+exactly what the exclusion takes out of reach. The refusal is recorded in the trail as `DENIED`.
 
 ### `prumo_knowledge_forget`
 Removes a record. Immediate, without asking the developer. The source is untouched: only what was

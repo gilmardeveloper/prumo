@@ -144,7 +144,10 @@ class KnowledgeToolset : McpToolset {
             "and no record has them. Each result carries the score that put it there, " +
             "comparable only against the others in the same answer, and ties are broken by id so " +
             "the same query always returns the same order. The text itself is not returned here; " +
-            "read it with prumo_knowledge_read.",
+            "read it with prumo_knowledge_read. Records whose source the developer has since put out of " +
+            "reach are not searched and not listed: outOfReachCount says how many of them the " +
+            "workspace holds, counted over the whole base and never over your query, so it tells " +
+            "you nothing about what is inside them.",
     )
     suspend fun recall(
         @McpDescription(
@@ -167,7 +170,9 @@ class KnowledgeToolset : McpToolset {
             val workspaceId = call.context.workspace.id
             val stored = withContext(Dispatchers.IO) { service.knowledge.list(workspaceId) }
             val found = withContext(Dispatchers.IO) {
-                recallRecords(stored, tag, sourceId, query, service.knowledgeSearch)
+                recallRecords(stored, tag, sourceId, query, service.knowledgeSearch) { record ->
+                    SourceStampReader.outOfReach(call.context, record.provenance)
+                }
             }
             val matches = found.records
                 .map { (record, score) ->
@@ -178,7 +183,14 @@ class KnowledgeToolset : McpToolset {
                     )
                 }
                 .filter { match -> freshness.isNullOrBlank() || match.freshness.name.equals(freshness, true) }
-            KnowledgeReports.search(workspaceId, stored.size, matches, maxResults, found.terms)
+            KnowledgeReports.search(
+                workspaceId,
+                stored.size,
+                matches,
+                maxResults,
+                found.terms,
+                found.outOfReachCount,
+            )
         }
 
     @McpTool(name = READ_TOOL)
