@@ -72,6 +72,23 @@ Check it with:
 claude mcp list
 ```
 
+Claude Code is the same product in the terminal and in the **Code** tab of the desktop app, and both
+read the same configuration — which is **not** Claude Desktop's. To have the server in one project
+only, the file is `.mcp.json` at its root:
+
+```json
+{
+  "mcpServers": {
+    "prumo": {
+      "type": "sse",
+      "url": "http://127.0.0.1:64342/sse"
+    }
+  }
+}
+```
+
+No bridge is involved here: Claude Code speaks SSE and HTTP Stream to the IDE directly.
+
 ### Codex
 
 Codex keeps its servers in `~/.codex/config.toml`:
