@@ -939,12 +939,12 @@ full cycle with a real AI client — are still open.
 - Repository role and workspace type explain themselves in the dialog: both describe the work to the
   AI client and enforce nothing, which access modes and policies do.
 
-[Unreleased]: https://github.com/gilmardeveloper/prumo/compare/v0.11.0...HEAD
-[0.11.0]: https://github.com/gilmardeveloper/prumo/compare/v0.10.0...v0.11.0
-[0.10.0]: https://github.com/gilmardeveloper/prumo/compare/v0.9.0...v0.10.0
-[0.9.0]: https://github.com/gilmardeveloper/prumo/compare/v0.8.1...v0.9.0
-[0.8.1]: https://github.com/gilmardeveloper/prumo/compare/v0.8.0...v0.8.1
-[0.8.0]: https://github.com/gilmardeveloper/prumo/compare/141ca9dbe62d55f9b1402bb38d3c55776b589e30...v0.8.0
+[Unreleased]: https://github.com/gilmardeveloper/prumo/compare/be8bc65baeb5f0da9ddef08d567197619ada0b6c...HEAD
+[0.11.0]: https://github.com/gilmardeveloper/prumo/compare/7bcb8899af0702b205b8d3beea1d532b0e757aa7...be8bc65baeb5f0da9ddef08d567197619ada0b6c
+[0.10.0]: https://github.com/gilmardeveloper/prumo/compare/89bc9990733c6091fe053590791392508a3cf2b7...7bcb8899af0702b205b8d3beea1d532b0e757aa7
+[0.9.0]: https://github.com/gilmardeveloper/prumo/compare/43b535a863e0b66817bd07d4387461b2bc15baca...89bc9990733c6091fe053590791392508a3cf2b7
+[0.8.1]: https://github.com/gilmardeveloper/prumo/compare/dffa50fcd5877e9225589c5bcc8e7d0cf97261ad...43b535a863e0b66817bd07d4387461b2bc15baca
+[0.8.0]: https://github.com/gilmardeveloper/prumo/compare/141ca9dbe62d55f9b1402bb38d3c55776b589e30...dffa50fcd5877e9225589c5bcc8e7d0cf97261ad
 [0.7.0]: https://github.com/gilmardeveloper/prumo/compare/v0.6.2...141ca9dbe62d55f9b1402bb38d3c55776b589e30
 [0.6.2]: https://github.com/gilmardeveloper/prumo/compare/717f4374c7ead2329efc531d0e8dbc73e4a93211...v0.6.2
 [0.6.1]: https://github.com/gilmardeveloper/prumo/compare/f4ba8907b60731281af201f65526f623c40e9668...717f4374c7ead2329efc531d0e8dbc73e4a93211
