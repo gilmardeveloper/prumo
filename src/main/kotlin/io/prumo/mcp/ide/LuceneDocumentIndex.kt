@@ -3,6 +3,7 @@ package io.prumo.mcp.ide
 import io.prumo.mcp.documentation.DocumentHit
 import io.prumo.mcp.documentation.DocumentIndex
 import io.prumo.mcp.documentation.IndexedChunk
+import io.prumo.mcp.documentation.fuseByRank
 import org.apache.lucene.analysis.Analyzer
 import org.apache.lucene.analysis.en.EnglishAnalyzer
 import org.apache.lucene.analysis.miscellaneous.PerFieldAnalyzerWrapper
@@ -107,22 +108,15 @@ class LuceneDocumentIndex : DocumentIndex, AutoCloseable {
     }
 
     /**
-     * Junta as duas listas mantendo o melhor de cada trecho.
+     * Junta as duas listas por posição, mantendo o melhor de cada trecho.
      *
      * Os scores das duas buscas não são comparáveis entre si — um é BM25, o outro é distância de
-     * vetor —, então a ordem final é a intercalação das duas, e um trecho que aparece nas duas conta
-     * uma vez só, marcado como semântico. Empate desfeito pela fonte e pela linha, para a mesma
-     * consulta devolver sempre a mesma ordem.
+     * vetor —, então quem decide é a colocação em cada lista, e não a nota. Trecho que aparece nas
+     * duas conta uma vez só e soma as duas contribuições, que é o caso em que as duas buscas
+     * concordam.
      */
-    private fun merge(byWord: List<DocumentHit>, byVector: List<DocumentHit>, maxResults: Int): List<DocumentHit> {
-        val juntos = LinkedHashMap<String, DocumentHit>()
-        val maiorLista = maxOf(byWord.size, byVector.size)
-        for (posicao in 0 until maiorLista) {
-            byVector.getOrNull(posicao)?.let { juntos.putIfAbsent(chaveDe(it), it) }
-            byWord.getOrNull(posicao)?.let { juntos.putIfAbsent(chaveDe(it), it) }
-        }
-        return juntos.values.take(maxResults)
-    }
+    private fun merge(byWord: List<DocumentHit>, byVector: List<DocumentHit>, maxResults: Int): List<DocumentHit> =
+        fuseByRank(byVector, byWord, ::chaveDe).take(maxResults)
 
     private fun chaveDe(hit: DocumentHit) = "${hit.documentationId}|${hit.path}|${hit.firstLine}"
 
