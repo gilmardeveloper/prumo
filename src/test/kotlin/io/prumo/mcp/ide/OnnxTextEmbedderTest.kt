@@ -138,7 +138,11 @@ class OnnxTextEmbedderTest {
      * ser apagada à mão.
      */
     @Test
-    fun `pasta de binarios pela metade e apagada antes de a biblioteca olhar`(@TempDir cache: Path) {
+    fun `pasta de binarios pela metade e apagada antes de a biblioteca olhar`() {
+        // Não é @TempDir: no Windows a DLL carregada fica travada, e o JUnit falharia ao apagar a
+        // pasta no fim do teste — o que já aconteceu aqui.
+        val cache = pasta.resolve("djl-cache-teste")
+        cache.resolve("tokenizers").toFile().deleteRecursively()
         val versao = cache.resolve("tokenizers").resolve("0.0.0-cpu-win-x86_64").resolve("86")
         Files.createDirectories(versao)
         Files.writeString(versao.resolve("tokenizers.dll"), "binario no lugar errado")
@@ -148,11 +152,37 @@ class OnnxTextEmbedderTest {
         assumeTrue(Files.exists(modelo) && Files.exists(tokenizador), "modelo local ausente nesta máquina")
         assumeTrue(EmbeddingRuntime.available, EmbeddingRuntime.unavailableReason.orEmpty())
 
-        OnnxTextEmbedder(modelo, tokenizador, cache).use {
+        OnnxTextEmbedder(modelo, tokenizador, cache).use { embutidor ->
             assertTrue(
                 !Files.exists(cache.resolve("tokenizers").resolve("0.0.0-cpu-win-x86_64").resolve("86")),
                 "a pasta pela metade sobreviveu, e a biblioteca vai tropeçar nela para sempre",
             )
+            assertEquals(
+                384,
+                embutidor.embed(listOf("rubrica")).single().size,
+                "o cache foi limpo mas o tokenizador não voltou a funcionar",
+            )
+        }
+    }
+
+    /**
+     * A primeira tentativa de redirecionar o cache usou uma chave que a biblioteca não lê, e o
+     * sintoma foi silencioso: tudo compilava, e os binários continuavam saindo em `~/.djl.ai`. Aqui
+     * quem responde é a própria biblioteca.
+     */
+    @Test
+    fun `a chave do cache e a que a biblioteca de fato le`(@TempDir cache: Path) {
+        val anterior = System.getProperty(OnnxTextEmbedder.DJL_CACHE_PROPERTY)
+        try {
+            System.setProperty(OnnxTextEmbedder.DJL_CACHE_PROPERTY, cache.toString())
+
+            assertEquals(cache, ai.djl.util.Utils.getCacheDir())
+        } finally {
+            if (anterior == null) {
+                System.clearProperty(OnnxTextEmbedder.DJL_CACHE_PROPERTY)
+            } else {
+                System.setProperty(OnnxTextEmbedder.DJL_CACHE_PROPERTY, anterior)
+            }
         }
     }
 

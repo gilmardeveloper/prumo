@@ -89,11 +89,12 @@ class OnnxTextEmbedder(
     /**
      * Deixa o cache nativo do tokenizador dentro do diretório do Prumo, e íntegro.
      *
-     * A biblioteca extrai binários para um diretório temporário e o renomeia ao terminar. Extração
-     * interrompida deixa a pasta da versão existindo com os binários um nível abaixo, e a partir daí
-     * a biblioteca a considera pronta e falha para sempre — medido nesta máquina, dentro da IDE, com
-     * "Can't load library: …\libwinpthread-1.dll". Aqui a pasta incompleta é apagada antes de a
-     * biblioteca olhar para ela.
+     * A biblioteca extrai os binários para um subdiretório temporário e carrega dali na mesma
+     * execução, mas não o promove: a sessão seguinte encontra a pasta da versão existindo, procura os
+     * binários na raiz dela e falha com "Can't load library: …\libwinpthread-1.dll" — medido dentro
+     * da IDE, três vezes. Por isso a pasta sem binário na raiz é apagada antes de a biblioteca olhar
+     * para ela, o que na prática significa reextrair a cada sessão. Não é desperdício a ser
+     * otimizado: é o que faz a busca por sentido voltar a funcionar depois do primeiro reinício.
      */
     private fun prepareNativeCache(root: Path) {
         System.setProperty(DJL_CACHE_PROPERTY, root.toString())
@@ -135,12 +136,12 @@ class OnnxTextEmbedder(
     private fun tensor(valores: LongArray, forma: LongArray): OnnxTensor =
         OnnxTensor.createTensor(environment, LongBuffer.wrap(valores), forma)
 
-    private companion object {
+    internal companion object {
         /** Sequência máxima que se manda ao modelo. Trecho maior é cortado, não recusado. */
         const val DEFAULT_MAX_TOKENS = 512
 
         /** Onde a biblioteca do tokenizador guarda o que extrai. */
-        const val DJL_CACHE_PROPERTY = "ai.djl.cache_dir"
+        const val DJL_CACHE_PROPERTY = "DJL_CACHE_DIR"
 
         /** Como se chama o binário que prova que a extração terminou. */
         const val NATIVE_PREFIX = "tokenizers."
