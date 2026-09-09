@@ -69,6 +69,13 @@ shelf is ready: it spends a time budget, answers with what it managed, and retur
 how many sources were left for the next call. While that number is above zero, an empty result is
 not an answer yet — it is a half-built shelf.
 
+**Meaning-based matching depends on a model the developer installs from the Prumo window**, which
+the product downloads once, checks against its digest and keeps on the machine. With it, "colaborador"
+finds the passage that says "servidor"; without it, `semanticAvailable` comes back false and matching
+is by word only. The model **ranks, it never writes**: it decides which passage shows up, and the
+passage is still the verbatim text of the document. Inference is local — after the download there is
+no network, and none of the content leaves the machine.
+
 ### `prumo_workspace_read_documentation`
 Reads the content of a documentation source, addressed by its `documentationId`. When the source is a
 folder, it also takes the path of a file inside it. Pages by line. Absolute paths, parent traversal

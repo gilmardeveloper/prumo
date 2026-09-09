@@ -193,6 +193,13 @@ test.
   mistake; they do not turn a superuser connection into a safe one.
 - **The AI client can still be socially engineered** by content it reads. Prumo limits *what* it can
   reach, not what it concludes.
+- **The local model ranks, it never writes.** Meaning-based search uses an embedding model that runs
+  on this machine, and what it produces is a vector — never text. The passage returned is always the
+  verbatim text of the document; the model only decides which one shows up. It does not ship inside
+  the plugin: the developer asks for it from the window, Prumo checks the SHA-256 digest of what it
+  downloaded and keeps it in the product's own directory. After that there is no network, and none of
+  the user's content leaves the machine. Without the model, or with it removed, search falls back to
+  words and the answer says so.
 - **Binary formats are extracted, not interpreted.** From `pdf`, `docx`, `xlsx` and `pptx` Prumo
   takes the text and drops the rest, by parsing the format — never by a model. What comes out is
   verbatim, carrying the page, spreadsheet row, paragraph or slide it came from. The file is treated

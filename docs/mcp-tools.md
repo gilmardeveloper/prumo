@@ -72,6 +72,13 @@ inteiro ficar pronto: ela gasta um teto de tempo, responde com o que conseguiu e
 `pendingSources`, quantas fontes ficaram para a chamada seguinte. Enquanto esse número for maior que
 zero, resultado vazio ainda não é resposta — é acervo pela metade.
 
+**A busca por sentido depende de um modelo que o desenvolvedor instala pela janela do Prumo**, e que
+o produto baixa uma vez, confere pelo resumo e guarda na máquina. Com ele, "colaborador" acha o
+trecho que fala de "servidor"; sem ele, `semanticAvailable` volta falso e a busca é só por palavra.
+O modelo **ordena, nunca redige**: ele decide qual trecho aparece, e o trecho continua sendo o texto
+verbatim do documento. A inferência é local — depois do download não há rede, e nada do conteúdo sai
+da máquina.
+
 ### `prumo_workspace_read_documentation`
 Lê o conteúdo de uma fonte de documentação, endereçada pelo `documentationId`. Quando a fonte é uma
 pasta, recebe também o caminho de um arquivo dentro dela. Pagina por linha. Caminho absoluto,
