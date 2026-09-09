@@ -150,6 +150,20 @@ No cliente que aceita JSON em vez de campos, o mesmo fica assim:
 }
 ```
 
+### Claude Desktop
+
+O Claude Desktop tem uma tela de **conector personalizado**, e ela **não serve para o Prumo**: esse
+campo é para servidor remoto, exige endereço `https` e recusa `http` mesmo quando o host é
+`127.0.0.1`. O caminho aqui é o arquivo de configuração, com a mesma ponte da seção anterior.
+
+1. **Settings → Developer → Edit Config**, que abre o `claude_desktop_config.json`;
+2. escreva o bloco `mcpServers` do exemplo em JSON acima;
+3. feche e abra o Claude Desktop.
+
+**Observe:** o arquivo aceita servidor por comando, não por URL. Uma entrada com `url` é descartada
+em silêncio, e o resultado é o cliente subindo sem nenhuma ferramenta do Prumo, sem mensagem de erro
+que explique por quê.
+
 ### Outro cliente
 
 Qualquer cliente que fale MCP serve. O que ele precisa saber é o transporte e o endereço — os dois
