@@ -4,6 +4,7 @@ import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertTrue
 import org.junit.jupiter.api.Assumptions.assumeTrue
 import org.junit.jupiter.api.Test
+import org.junit.jupiter.api.io.TempDir
 import java.nio.file.Files
 import java.nio.file.Path
 
@@ -131,13 +132,37 @@ class OnnxTextEmbedderTest {
         )
     }
 
+    /**
+     * A extração interrompida deixa a pasta da versão existindo com os binários um nível abaixo, e a
+     * biblioteca passa a considerá-la pronta. Medido dentro da IDE: falha para sempre, até a pasta
+     * ser apagada à mão.
+     */
+    @Test
+    fun `pasta de binarios pela metade e apagada antes de a biblioteca olhar`(@TempDir cache: Path) {
+        val versao = cache.resolve("tokenizers").resolve("0.0.0-cpu-win-x86_64").resolve("86")
+        Files.createDirectories(versao)
+        Files.writeString(versao.resolve("tokenizers.dll"), "binario no lugar errado")
+
+        val modelo = pasta.resolve("model_quantized.onnx")
+        val tokenizador = pasta.resolve("tokenizer.json")
+        assumeTrue(Files.exists(modelo) && Files.exists(tokenizador), "modelo local ausente nesta máquina")
+        assumeTrue(EmbeddingRuntime.available, EmbeddingRuntime.unavailableReason.orEmpty())
+
+        OnnxTextEmbedder(modelo, tokenizador, cache).use {
+            assertTrue(
+                !Files.exists(cache.resolve("tokenizers").resolve("0.0.0-cpu-win-x86_64").resolve("86")),
+                "a pasta pela metade sobreviveu, e a biblioteca vai tropeçar nela para sempre",
+            )
+        }
+    }
+
     private fun embutidor(bloco: (OnnxTextEmbedder) -> Unit) {
         val modelo = pasta.resolve("model_quantized.onnx")
         val tokenizador = pasta.resolve("tokenizer.json")
         assumeTrue(Files.exists(modelo) && Files.exists(tokenizador), "modelo local ausente nesta máquina")
         assumeTrue(EmbeddingRuntime.available, EmbeddingRuntime.unavailableReason.orEmpty())
 
-        OnnxTextEmbedder(modelo, tokenizador).use(bloco)
+        OnnxTextEmbedder(modelo, tokenizador, pasta.resolve("djl")).use(bloco)
     }
 
     private fun cosseno(um: FloatArray, outro: FloatArray): Float =

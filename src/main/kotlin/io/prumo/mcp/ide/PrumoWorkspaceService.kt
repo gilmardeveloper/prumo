@@ -55,7 +55,9 @@ class PrumoWorkspaceService {
     val documentIndex: DocumentIndex = LuceneDocumentIndex()
 
     /** A guarda do modelo local, e o descritor que o produto sabe buscar. */
-    val embeddingModels: EmbeddingModelStore = EmbeddingModelStore(PrumoDirectories.resolve(SystemEnvironmentProbe))
+    private val directories = PrumoDirectories.resolve(SystemEnvironmentProbe)
+
+    val embeddingModels: EmbeddingModelStore = EmbeddingModelStore(directories)
 
     private val indexedSources = java.util.concurrent.ConcurrentHashMap<String, String>()
 
@@ -108,7 +110,7 @@ class PrumoWorkspaceService {
         }
         embedderState?.let { (caminho, embutidor) -> if (caminho == modelo) return embutidor }
         fecharEmbutidor()
-        return runCatching { OnnxTextEmbedder(modelo, tokenizador) }
+        return runCatching { OnnxTextEmbedder(modelo, tokenizador, directories.cache.resolve("djl")) }
             .onSuccess { embedderState = modelo to it }
             .onFailure { log.warn("O embutidor local nao pode ser aberto; a busca segue por palavra.", it) }
             .getOrNull()

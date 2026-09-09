@@ -7,6 +7,7 @@ import io.prumo.mcp.documentation.TextEmbedder
 import io.prumo.mcp.documentation.l2Normalize
 import io.prumo.mcp.documentation.meanPool
 import java.nio.LongBuffer
+import java.nio.file.Files
 import java.nio.file.Path
 
 /**
@@ -22,6 +23,7 @@ import java.nio.file.Path
 class OnnxTextEmbedder(
     modelFile: Path,
     tokenizerFile: Path,
+    nativeCache: Path,
     private val maxTokens: Int = DEFAULT_MAX_TOKENS,
 ) : TextEmbedder, AutoCloseable {
 
@@ -30,6 +32,7 @@ class OnnxTextEmbedder(
     }
 
     private val tokenizer: HuggingFaceTokenizer = withPluginClassLoader {
+        prepareNativeCache(nativeCache)
         HuggingFaceTokenizer.newInstance(tokenizerFile)
     }
 
@@ -84,6 +87,33 @@ class OnnxTextEmbedder(
     }
 
     /**
+     * Deixa o cache nativo do tokenizador dentro do diretório do Prumo, e íntegro.
+     *
+     * A biblioteca extrai binários para um diretório temporário e o renomeia ao terminar. Extração
+     * interrompida deixa a pasta da versão existindo com os binários um nível abaixo, e a partir daí
+     * a biblioteca a considera pronta e falha para sempre — medido nesta máquina, dentro da IDE, com
+     * "Can't load library: …\libwinpthread-1.dll". Aqui a pasta incompleta é apagada antes de a
+     * biblioteca olhar para ela.
+     */
+    private fun prepareNativeCache(root: Path) {
+        System.setProperty(DJL_CACHE_PROPERTY, root.toString())
+        val tokenizers = root.resolve("tokenizers")
+        if (!Files.isDirectory(tokenizers)) {
+            return
+        }
+        val incompleto = Files.list(tokenizers).use { versoes ->
+            versoes.filter { Files.isDirectory(it) }.anyMatch { versao ->
+                Files.list(versao).use { arquivos ->
+                    arquivos.noneMatch { it.fileName.toString().startsWith(NATIVE_PREFIX) }
+                }
+            }
+        }
+        if (incompleto) {
+            tokenizers.toFile().deleteRecursively()
+        }
+    }
+
+    /**
      * Roda o bloco com o classloader do plugin no lugar do classloader de contexto da thread.
      *
      * O tokenizador descobre qual biblioteca nativa carregar lendo um arquivo de propriedades pelo
@@ -108,6 +138,12 @@ class OnnxTextEmbedder(
     private companion object {
         /** Sequência máxima que se manda ao modelo. Trecho maior é cortado, não recusado. */
         const val DEFAULT_MAX_TOKENS = 512
+
+        /** Onde a biblioteca do tokenizador guarda o que extrai. */
+        const val DJL_CACHE_PROPERTY = "ai.djl.cache_dir"
+
+        /** Como se chama o binário que prova que a extração terminou. */
+        const val NATIVE_PREFIX = "tokenizers."
 
         /** Corte de caracteres antes de tokenizar, para não pagar tokenização do que seria descartado. */
         const val MAX_CHARS = 4_000
