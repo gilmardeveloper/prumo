@@ -61,6 +61,10 @@ data class PrumoDiagnostics(
      *
      * Falso não impede nada: a busca na documentação continua por palavra, e a resposta dela declara
      * que a parte semântica não está disponível.
+     *
+     * Sem valor padrão de propósito: a serialização omite o campo igual ao padrão, e um campo que
+     * some quando é falso fica indistinguível de uma versão do produto que ainda não o tinha —
+     * exatamente o que se quer descobrir ao perguntar.
      */
-    val embeddingRuntimeAvailable: Boolean = false,
+    val embeddingRuntimeAvailable: Boolean,
 )

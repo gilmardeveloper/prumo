@@ -22,6 +22,24 @@ class EmbeddingRuntimeTest {
         assertNull(EmbeddingRuntime.unavailableReason)
     }
 
+    /**
+     * O mesmo aprendizado da contagem de fora de alcance: campo booleano com padrão some da resposta
+     * quando é falso, e some justamente no caso que se quer diagnosticar.
+     */
+    @Test
+    fun `o diagnostico diz se o motor carregou mesmo quando ele nao carregou`() {
+        val resposta = io.prumo.mcp.toolsets.PrumoDiagnostics(
+            pluginVersion = "0.10.0",
+            projectName = "folha",
+            workspaceConfigured = true,
+            embeddingRuntimeAvailable = false,
+        )
+
+        val serializado = kotlinx.serialization.json.Json.encodeToString(resposta)
+
+        assertTrue(serializado.contains("\"embeddingRuntimeAvailable\":false"), serializado)
+    }
+
     @Test
     fun `consultar duas vezes nao carrega duas vezes`() {
         val primeiro = EmbeddingRuntime.environmentOrNull()
