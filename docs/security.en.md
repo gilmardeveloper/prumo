@@ -68,6 +68,11 @@ statement type, row count, outcome and duration. It never records file content, 
 text or parameter values: an audit that copies the data becomes a second copy of what it was meant
 to protect.
 
+The outcome tells a refusal from a failure. An excluded path, a policy that does not allow the
+action, an unresolved workspace and a refused write query all land as `DENIED`: the product worked,
+and it said no. `ERROR` is left for what broke. Whoever reads the trail later has to tell the two
+apart, and an exclusion recorded as an error made the defence look like a defect.
+
 **The AI writes to the memory, and to nothing else.** Since 0.5.0 there is a knowledge store per
 workspace where AI clients record what they distilled — without per-item consent, unlike packs. What
 holds this up is not trust in the content: it is **provenance**. Only a record pointing at a source
@@ -188,7 +193,20 @@ test.
   mistake; they do not turn a superuser connection into a safe one.
 - **The AI client can still be socially engineered** by content it reads. Prumo limits *what* it can
   reach, not what it concludes.
-- **PDF is catalogued, not parsed.** Nothing inside a PDF is analysed.
+- **The local model ranks, it never writes.** Meaning-based search uses an embedding model that runs
+  on this machine, and what it produces is a vector — never text. The passage returned is always the
+  verbatim text of the document; the model only decides which one shows up. It does not ship inside
+  the plugin: the developer asks for it from the window, Prumo checks the SHA-256 digest of what it
+  downloaded and keeps it in the product's own directory. After that there is no network, and none of
+  the user's content leaves the machine. Without the model, or with it removed, search falls back to
+  words and the answer says so.
+- **Binary formats are extracted, not interpreted.** From `pdf`, `docx`, `xlsx` and `pptx` Prumo
+  takes the text and drops the rest, by parsing the format — never by a model. What comes out is
+  verbatim, carrying the page, spreadsheet row, paragraph or slide it came from. The file is treated
+  as hostile input: the XML reader is born with DTD and external entities off, a package entry
+  pointing outside refuses the whole document, and there is a ceiling on uncompressed bytes. The
+  extracted text lives in memory while the IDE is open and is never written to Prumo's storage — a
+  second copy of the user's content is exactly what path exclusion exists to prevent.
 - **A call from a project bound to no workspace leaves no audit entry.** It is refused before any
   access, and the trail is written per workspace: with no workspace resolved there is no file to
   record into. The refusal stays in the IDE log, which no tool can query.

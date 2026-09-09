@@ -10,6 +10,14 @@ import kotlin.io.path.name
 /** Recusa da leitura de documentação, com a mensagem que vai para o cliente. */
 class DocumentationReadException(message: String) : RuntimeException(message)
 
+/**
+ * Onde, na fonte, começa e termina um pedaço do trecho devolvido.
+ *
+ * Existe para formato binário, em que a linha do texto extraído não é endereço nenhum: a IA cita a
+ * página do PDF ou a linha da planilha, não a linha em que a extração a colocou.
+ */
+data class CoordinateRange(val coordinate: String, val firstLine: Int, val lastLine: Int)
+
 /** Trecho de um documento, com a posição para pedir a continuação. */
 data class DocumentSlice(
     val documentationId: String,
@@ -19,6 +27,8 @@ data class DocumentSlice(
     val lastLine: Int,
     val totalLines: Int,
     val truncated: Boolean,
+    /** Vazia para arquivo de texto puro, em que a própria linha já é o endereço. */
+    val coordinates: List<CoordinateRange> = emptyList(),
 )
 
 /**
@@ -32,6 +42,8 @@ object DocumentationReader {
 
     const val DEFAULT_MAX_LINES = 400
     private const val MAX_LINES_CEILING = 2_000
+
+    private val cache = ExtractionCache()
 
     /**
      * @param source fonte cadastrada no workspace.
@@ -53,6 +65,22 @@ object DocumentationReader {
         val root = locationOf(source)
         val target = resolveTarget(source, root, relativePath)
 
+        val limit = maxLines.coerceAtMost(MAX_LINES_CEILING)
+
+        if (SupportedDocumentFormats.isExtractable(target)) {
+            val window = extractFile(target).window(firstLine, limit)
+            return DocumentSlice(
+                documentationId = source.id,
+                path = relativePath ?: target.name,
+                text = window.lines.joinToString("\n") { it.text },
+                firstLine = window.firstLine,
+                lastLine = window.lastLine,
+                totalLines = window.totalLines,
+                truncated = window.truncated,
+                coordinates = rangesOf(window),
+            )
+        }
+
         if (!SupportedDocumentFormats.isReadableAsText(target)) {
             throw DocumentationReadException(
                 "Documentation source '${source.id}' is catalogued but Prumo does not extract text from " +
@@ -64,7 +92,6 @@ object DocumentationReader {
         val lines = runCatching { Files.readAllLines(target) }.getOrElse {
             throw DocumentationReadException("Prumo could not read '${target.name}' as text.")
         }
-        val limit = maxLines.coerceAtMost(MAX_LINES_CEILING)
         val from = (firstLine - 1).coerceAtMost(lines.size)
         val slice = lines.drop(from).take(limit)
 
@@ -77,6 +104,40 @@ object DocumentationReader {
             totalLines = lines.size,
             truncated = from + slice.size < lines.size,
         )
+    }
+
+    /**
+     * O documento extraído de um arquivo, passando pelo mesmo cache da leitura.
+     *
+     * Existe para a indexação, que percorre a fonte inteira: sem compartilhar o cache, indexar e
+     * ler o mesmo PDF custaria a extração duas vezes.
+     */
+    fun extractFile(file: Path): ExtractedDocument = cache.getOrExtract(file, ::extract)
+
+    private fun extract(file: Path): ExtractedDocument = when {
+        PdfExtractor.handles(file) -> PdfExtractor.extract(file)
+        OfficeExtractor.handles(file) -> OfficeExtractor.extract(file)
+        else -> throw DocumentationReadException("Prumo does not extract text from '${file.name}'.")
+    }
+
+    /**
+     * Agrupa linhas vizinhas de mesma origem numa faixa só.
+     *
+     * Uma coordenada por linha repetiria "page 12" quarenta vezes e custaria mais tokens que o texto
+     * que ela endereça.
+     */
+    private fun rangesOf(window: ExtractedWindow): List<CoordinateRange> {
+        val ranges = mutableListOf<CoordinateRange>()
+        window.lines.forEachIndexed { indice, line ->
+            val numero = window.firstLine + indice
+            val ultima = ranges.lastOrNull()
+            if (ultima != null && ultima.coordinate == line.coordinate.label) {
+                ranges[ranges.lastIndex] = ultima.copy(lastLine = numero)
+            } else {
+                ranges.add(CoordinateRange(line.coordinate.label, numero, numero))
+            }
+        }
+        return ranges
     }
 
     /** Enumera os arquivos legíveis de uma fonte que é pasta. */

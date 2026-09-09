@@ -147,7 +147,7 @@ class RepositoryReaderTest {
         val git = Files.createDirectories(root.resolve(".git"))
         Files.writeString(git.resolve("config"), "[remote origin] url = https://user:token@host/org/app.git")
 
-        val falha = assertThrows<RepositoryReadException> {
+        val falha = assertThrows<PathExcludedException> {
             RepositoryReader.readFile(root, ".git/config")
         }
 
@@ -166,7 +166,7 @@ class RepositoryReaderTest {
         root.resolve("target").createDirectories()
         root.resolve("target/saida.txt").writeText("bytecode")
 
-        val falha = assertThrows<RepositoryReadException> {
+        val falha = assertThrows<PathExcludedException> {
             RepositoryReader.readFile(repo, "target/saida.txt", excluded = listOf("target"))
         }
 
@@ -192,7 +192,7 @@ class RepositoryReaderTest {
         val repo = repository(root)
         root.resolve("CLAUDE.md").writeText("instrucoes de IA")
 
-        assertThrows<RepositoryReadException> {
+        assertThrows<PathExcludedException> {
             RepositoryReader.readFile(repo, "CLAUDE.md", excluded = listOf("CLAUDE.md"))
         }
     }
@@ -221,13 +221,13 @@ class RepositoryReaderTest {
         root.resolve("docs/BUILD.md").writeText("como compilar")
 
         listOf("claude.md", "CLAUDE.MD", "Claude.Md").forEach { grafia ->
-            assertThrows<RepositoryReadException>(grafia) {
+            assertThrows<PathExcludedException>(grafia) {
                 RepositoryReader.readFile(repo, grafia, excluded = listOf("CLAUDE.md"))
             }
         }
 
         listOf("DOCS/BUILD.md", "Docs/build.md").forEach { grafia ->
-            assertThrows<RepositoryReadException>(grafia) {
+            assertThrows<PathExcludedException>(grafia) {
                 RepositoryReader.readFile(repo, grafia, excluded = listOf("docs"))
             }
         }
@@ -258,12 +258,12 @@ class RepositoryReaderTest {
         root.resolve("docs").createDirectories()
         root.resolve("docs/BUILD.md").writeText("como compilar")
 
-        val listagem = assertThrows<RepositoryReadException> {
+        val listagem = assertThrows<PathExcludedException> {
             RepositoryReader.listDirectory(repo, "docs", 2, 300, listOf("docs"))
         }
         assertTrue(listagem.message.orEmpty().contains("excluded"), listagem.message.orEmpty())
 
-        val busca = assertThrows<RepositoryReadException> {
+        val busca = assertThrows<PathExcludedException> {
             RepositoryReader.searchText(repo, "compilar", scope = "docs", excluded = listOf("docs"))
         }
         assertTrue(busca.message.orEmpty().contains("excluded"), busca.message.orEmpty())
@@ -317,10 +317,10 @@ class RepositoryReaderTest {
         val repo = repository(root)
         root.resolve("segredos").createDirectories()
 
-        val existente = assertThrows<RepositoryReadException> {
+        val existente = assertThrows<PathExcludedException> {
             RepositoryReader.searchText(repo, "x", scope = "segredos", excluded = listOf("segredos"))
         }
-        val inexistente = assertThrows<RepositoryReadException> {
+        val inexistente = assertThrows<PathExcludedException> {
             RepositoryReader.searchText(repo, "x", scope = "segredos/ausente", excluded = listOf("segredos"))
         }
 

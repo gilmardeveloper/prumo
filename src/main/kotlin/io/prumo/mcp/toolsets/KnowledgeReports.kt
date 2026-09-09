@@ -42,6 +42,18 @@ data class KnowledgeRecallResponse(
     val workspaceId: String,
     val storedCount: Int,
     val matchCount: Int,
+    /**
+     * Quantos registros da base têm a fonte fora de alcance, e por isso não são buscáveis nem
+     * legíveis.
+     *
+     * Conta a base inteira, como [storedCount], e não o recorte da consulta: um número que variasse
+     * com o texto procurado diria quais palavras existem dentro do que o desenvolvedor excluiu.
+     *
+     * Sem valor padrão de propósito: a serialização omite o campo igual ao padrão, e um número que
+     * some quando é zero obriga o cliente a adivinhar se ausência é zero ou se é uma versão do
+     * produto que ainda não tinha o campo.
+     */
+    val outOfReachCount: Int,
     val byFreshness: Map<String, Int>,
     val results: List<KnowledgeRecordResponse>,
     val truncated: Boolean,
@@ -99,12 +111,14 @@ object KnowledgeReports {
         matches: List<KnowledgeMatch>,
         maxResults: Int,
         searchedTerms: List<String>? = null,
+        outOfReachCount: Int,
     ): KnowledgeRecallResponse {
         val window = matches.take(maxResults.coerceIn(1, MAX_RESULTS))
         return KnowledgeRecallResponse(
             workspaceId = workspaceId,
             storedCount = stored,
             matchCount = matches.size,
+            outOfReachCount = outOfReachCount,
             byFreshness = matches.groupingBy { it.freshness.name }.eachCount().toSortedMap(),
             results = window.map { summary(it.record, it.freshness).copy(score = it.score) },
             truncated = window.size < matches.size,

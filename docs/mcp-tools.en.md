@@ -47,14 +47,55 @@ configuration.
 Never a local path, never a raw remote URL — a URL can carry an embedded token.
 
 ### `prumo_workspace_get_documentation_sources`
-The attached documentation with authority level and whether Prumo can read it as text. PDF is
-reported as catalogued and not extractable.
+The attached documentation with authority level and whether Prumo can read it. A format it does not
+extract content from is reported as catalogued and not extractable.
+
+### `prumo_workspace_search_documentation`
+Finds the passage that answers the question inside the attached documentation, instead of loading a
+whole document. It is the way into a large specification: the eSocial MOS, at 413 pages, is worth
+some 246,000 tokens once extracted — and what you are looking for usually fits in three paragraphs.
+
+What comes back is **verbatim text** from the document, with the coordinate to cite and the line to
+read around it with `prumo_workspace_read_documentation`. Prumo does not summarise, rewrite or
+interpret the passage.
+
+Matching is by word, with stemming in Portuguese and English; when a local model is installed, it is
+also by meaning. `semanticAvailable` says which of the two answered, and that changes what an empty
+answer means: without the model, finding nothing means the words are not there, not that the subject
+is not there.
+
+Indexing a large document costs seconds, and the first call does not hold the answer until the whole
+shelf is ready: it spends a time budget, answers with what it managed, and returns `pendingSources`,
+how many sources were left for the next call. While that number is above zero, an empty result is
+not an answer yet — it is a half-built shelf.
+
+**Meaning-based matching depends on a model the developer installs from the Prumo window**, which
+the product downloads once, checks against its digest and keeps on the machine. With it, "colaborador"
+finds the passage that says "servidor"; without it, `semanticAvailable` comes back false and matching
+is by word only. The model **ranks, it never writes**: it decides which passage shows up, and the
+passage is still the verbatim text of the document. Inference is local — after the download there is
+no network, and none of the content leaves the machine.
 
 ### `prumo_workspace_read_documentation`
 Reads the content of a documentation source, addressed by its `documentationId`. When the source is a
 folder, it also takes the path of a file inside it. Pages by line. Absolute paths, parent traversal
-and any path that leaves the registered root are refused; a catalogue-only format such as PDF is
+and any path that leaves the registered root are refused; a format Prumo extracts no content from is
 refused with an explanation.
+
+**Binary formats are read by extraction.** `pdf`, `docx`, `xlsx` and `pptx` come through the same
+line window as text files, and what comes back is content: style, theme, document properties,
+relationships and drawings stay in the file. Extraction is format parsing, never a model — the text
+is verbatim, and Prumo does not summarise, rewrite or interpret it.
+
+In those formats **the line addresses nothing** in the original: it is a line of the extracted text.
+So the answer carries `coordinates`, ranges saying where each part came from — the page of a PDF, the
+sheet and row of a spreadsheet, the paragraph of a document, the slide of a deck. That is what you
+cite, not the line. Neighbouring lines from the same origin are grouped into one range, so the
+coordinate does not cost more tokens than the text it addresses.
+
+A **scanned** PDF — pages that are images, with no text layer — is refused rather than returned
+empty: an empty answer would suggest the document says nothing. What Prumo extracts once is kept
+while the IDE is open, and re-extracted on its own when the file changes.
 
 ### `prumo_workspace_prepare`
 Validates the workspace and returns `READY`, `WARNING` or `ERROR` with one check per repository and
@@ -250,9 +291,20 @@ returns the same order. A search with no text carries no `score`: there is nothi
 The index is built and discarded inside the call. There is no second copy of the data to drift from
 what is stored.
 
+**A record whose source went out of reach is neither searched nor listed.** If the developer
+excluded, after the distillation, the path the record came from, it stops existing for the search: it
+is not ranked, it does not appear in the list, and it gives back no coordinate. What the answer
+carries is `outOfReachCount`, how many such records the base holds — counted over the **whole base**,
+like `storedCount`, and never over the query. A count that varied with the text searched would be an
+oracle: swap the word, watch the number, and learn what is written inside what was excluded.
+
 ### `prumo_knowledge_read`
 The full text of a record, with its provenance and freshness beside it. A `STALE` record is still
 returned — what it says may still be useful — but the source is the truth.
+
+**A record distilled from a path that is now excluded is refused**, text and coordinates alike. The
+refusal names the record, not the path: naming the path would hand back, through the error message,
+exactly what the exclusion takes out of reach. The refusal is recorded in the trail as `DENIED`.
 
 ### `prumo_knowledge_forget`
 Removes a record. Immediate, without asking the developer. The source is untouched: only what was

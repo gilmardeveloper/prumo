@@ -277,6 +277,7 @@ class ToolSurfaceTest {
                 "prumo_workspace_get_repositories",
                 "prumo_workspace_prepare",
                 "prumo_workspace_read_documentation",
+                "prumo_workspace_search_documentation",
             ),
             registered,
         )

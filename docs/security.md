@@ -74,6 +74,11 @@ statement, contagem de linhas, desfecho e duração. Nunca registra conteúdo de
 consulta, texto SQL ou valor de parâmetro: auditoria que copia o dado vira uma segunda cópia daquilo
 que ela deveria proteger.
 
+O desfecho separa recusa de falha. Caminho excluído, política que não permite a ação, workspace não
+resolvido e consulta de escrita recusada entram como `DENIED`: o produto funcionou, e disse não.
+`ERROR` fica para o que quebrou. Quem lê a trilha depois precisa distinguir as duas coisas, e
+exclusão gravada como erro fazia a defesa parecer defeito.
+
 **A IA escreve na memória, e só nela.** Desde a 0.5.0 existe uma base de conhecimento por
 workspace em que os clientes de IA gravam o que destilaram — sem consentimento por item, ao contrário
 dos pacotes. O que sustenta isso não é confiança no conteúdo: é a **procedência**. Só é aceito o
@@ -196,7 +201,19 @@ ignorou e listou tudo. Toda proteção descrita aqui vive em código e está cob
   estrago de um engano; não transformam uma conexão de superusuário numa conexão segura.
 - **O cliente de IA continua sujeito a engenharia social** pelo conteúdo que lê. O Prumo limita *o
   que* ele alcança, não o que ele conclui.
-- **PDF é catalogado, não interpretado.** Nada dentro de um PDF é analisado.
+- **O modelo local ordena, nunca redige.** A busca por sentido usa um modelo de embedding que roda
+  nesta máquina, e o que ele produz é um vetor — nunca texto. O trecho devolvido é sempre o texto
+  verbatim do documento; o modelo só decide qual deles aparece. Ele não vem dentro do plugin: o
+  desenvolvedor manda buscá-lo pela janela, o Prumo confere o resumo SHA-256 do que baixou e guarda
+  no diretório do produto. Depois disso não há rede, e nada do conteúdo do usuário sai da máquina.
+  Sem o modelo, ou com ele removido, a busca continua por palavra e a resposta declara isso.
+- **Formato binário é extraído, não interpretado.** De `pdf`, `docx`, `xlsx` e `pptx` o Prumo tira o
+  texto e descarta o resto, por análise do formato — nunca por modelo. O que sai é verbatim, com a
+  página, a linha da planilha, o parágrafo ou o slide de onde saiu. O arquivo é tratado como entrada
+  hostil: o leitor de XML nasce sem DTD e sem entidade externa, entrada de pacote que aponta para
+  fora recusa o documento inteiro, e há teto de bytes descomprimidos. O texto extraído fica em
+  memória enquanto a IDE está aberta e não é gravado no armazenamento do Prumo — segunda cópia do
+  conteúdo do usuário é exatamente o que a exclusão de caminho existe para impedir.
 - **Chamada vinda de projeto sem workspace vinculado não entra na trilha.** Ela é recusada antes de
   qualquer acesso, e a trilha é gravada por workspace: sem workspace resolvido não há arquivo onde
   registrar. A recusa fica no log da IDE, que não é consultável por tool.

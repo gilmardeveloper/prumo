@@ -11,10 +11,12 @@ import io.prumo.mcp.workspace.domain.RepositoryRole
 import io.prumo.mcp.workspace.domain.Workspace
 import io.prumo.mcp.workspace.domain.WorkspaceType
 import org.junit.jupiter.api.Assertions.assertEquals
+import org.junit.jupiter.api.Assertions.assertFalse
 import org.junit.jupiter.api.Assertions.assertNotEquals
 import org.junit.jupiter.api.Assertions.assertNull
 import org.junit.jupiter.api.Assertions.assertSame
 import org.junit.jupiter.api.Assertions.assertTrue
+import org.junit.jupiter.api.Assumptions.assumeTrue
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.io.TempDir
@@ -221,6 +223,124 @@ class SourceStampReaderTest {
 
         assertEquals(um.sizeBytes, outro.sizeBytes, "o teste perdeu o alvo: os tamanhos deviam coincidir")
         assertNotEquals(um.sha256, outro.sha256, "o resumo não distinguiu conteúdos de mesmo tamanho")
+    }
+
+    @Test
+    fun `caminho excluido esta fora de alcance`() {
+        root.resolve("repo/.git").createDirectories()
+        root.resolve("repo/.git/config").writeText("[core]")
+        root.resolve("repo/modulo/segredos").createDirectories()
+        root.resolve("repo/modulo/segredos/x.txt").writeText("nada")
+
+        listOf("segredos/chaves.txt", "SEGREDOS/chaves.txt", ".git/config", "modulo/segredos/x.txt").forEach {
+            assertTrue(SourceStampReader.outOfReach(context, provenance(path = it)), "'$it' devia estar fora de alcance")
+        }
+    }
+
+    @Test
+    fun `caminho que ninguem excluiu esta ao alcance`() {
+        root.resolve("repo/segredosdopassado.md").writeText("texto publico")
+
+        listOf("README.md", "segredosdopassado.md").forEach {
+            assertFalse(SourceStampReader.outOfReach(context, provenance(path = it)), "'$it' devia estar ao alcance")
+        }
+    }
+
+    @Test
+    fun `fonte de documentacao nunca esta fora de alcance`() {
+        val documento = provenance(kind = SourceKind.DOCUMENTATION, sourceId = "eventos", path = "S-1210.md")
+
+        assertFalse(SourceStampReader.outOfReach(context, documento))
+    }
+
+    /** Fonte que o workspace não conhece é outro caso, e quem o distingue é o carimbo. */
+    @Test
+    fun `fonte desconhecida e caminho ausente nao sao fora de alcance`() {
+        assertFalse(SourceStampReader.outOfReach(context, provenance(sourceId = "nao-existe", path = "x.md")))
+        assertFalse(SourceStampReader.outOfReach(context, provenance(path = null)))
+    }
+
+    /**
+     * A decisão de alcance tem um dono só: se o carimbo deixar de consultá-la, as duas respostas se
+     * separam e a exclusão volta a valer em um lugar e não no outro.
+     */
+    @Test
+    fun `o alcance e o carimbo concordam sempre`() {
+        root.resolve("repo/.git").createDirectories()
+        root.resolve("repo/.git/config").writeText("[core]")
+        root.resolve("repo/segredosdopassado.md").writeText("texto publico")
+
+        listOf(
+            "README.md",
+            "segredos/chaves.txt",
+            "SEGREDOS/chaves.txt",
+            ".git/config",
+            "segredosdopassado.md",
+            "nao/existe.md",
+        ).forEach { caminho ->
+            val fora = SourceStampReader.outOfReach(context, provenance(path = caminho))
+            val carimbo = SourceStampReader.stamp(context, provenance(path = caminho))
+
+            assertEquals(
+                fora,
+                carimbo === StampResult.PathExcluded,
+                "'$caminho': alcance disse $fora e o carimbo disse $carimbo",
+            )
+        }
+    }
+
+    /**
+     * A revisão pegou isto executando: a exclusão da memória decidia sobre o caminho escrito, e uma
+     * junção apontando para dentro da área excluída passava — enquanto a leitura de arquivo, que
+     * decide pela grafia real do disco, recusava o mesmo alvo. Proteção que decide por nome se
+     * contorna renomeando.
+     */
+    @Test
+    fun `juncao para dentro do excluido nao contorna o alcance`() {
+        val destino = root.resolve("repo/segredos")
+        val juncao = root.resolve("repo/atalho")
+        val criada = runCatching {
+            ProcessBuilder("cmd", "/c", "mklink", "/J", juncao.toString(), destino.toString())
+                .redirectErrorStream(true)
+                .start()
+                .waitFor() == 0
+        }.getOrDefault(false)
+        assumeTrue(criada && Files.exists(juncao.resolve("chaves.txt")), "sem junção não há o que provar")
+
+        assertTrue(
+            SourceStampReader.outOfReach(context, provenance(path = "atalho/chaves.txt")),
+            "a junção alcançou o que a exclusão retirou",
+        )
+        assertSame(
+            StampResult.PathExcluded,
+            SourceStampReader.stamp(context, provenance(path = "atalho/chaves.txt")),
+        )
+    }
+
+    /** O mesmo fail-closed entre vínculos aninhados, pela porta nova. */
+    @Test
+    fun `o alcance do vinculo mais abrangente respeita a exclusao do mais proximo`() {
+        val guardaChuva = RepositoryBinding(
+            id = "guarda-chuva",
+            name = "guarda-chuva",
+            localPath = root.toString(),
+            role = RepositoryRole.REFERENCE,
+            accessMode = AccessMode.READ_ONLY,
+        )
+        val aninhado = WorkspaceContext(
+            context.workspace.copy(repositories = context.workspace.repositories + guardaChuva),
+            guardaChuva,
+        )
+
+        assertTrue(
+            SourceStampReader.outOfReach(
+                aninhado,
+                provenance(sourceId = "guarda-chuva", path = "repo/segredos/chaves.txt"),
+            ),
+        )
+        assertFalse(
+            SourceStampReader.outOfReach(aninhado, provenance(sourceId = "guarda-chuva", path = "repo/README.md")),
+        )
     }
 
     private fun provenance(

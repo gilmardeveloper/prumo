@@ -51,14 +51,54 @@ configuração.
 Nunca um caminho local, nunca a URL crua do remote — uma URL pode carregar token embutido.
 
 ### `prumo_workspace_get_documentation_sources`
-A documentação anexada, com nível de autoridade e se o Prumo consegue lê-la como texto. PDF é
-reportado como catalogado e não extraível.
+A documentação anexada, com nível de autoridade e se o Prumo consegue lê-la. Formato de que ele não
+extrai conteúdo é reportado como catalogado e não extraível.
+
+### `prumo_workspace_search_documentation`
+Acha a passagem que responde à pergunta dentro da documentação anexada, em vez de carregar o
+documento inteiro. É a via para especificação grande: o MOS do eSocial, com 413 páginas, vale cerca
+de 246 mil tokens extraídos — e o que se procura nele costuma caber em três parágrafos.
+
+O que volta é **texto verbatim** do documento, com a coordenada para citar e a linha por onde pedir a
+vizinhança no `prumo_workspace_read_documentation`. O Prumo não resume, não reescreve e não
+interpreta o trecho.
+
+O casamento é por palavra, com radical em português e inglês; havendo modelo local instalado, é
+também por sentido. `semanticAvailable` diz qual dos dois respondeu, e isso muda o que o vazio
+significa: sem o modelo, não achar é não ter a palavra, não é não ter o assunto.
+
+Indexar documento grande custa segundos, e a primeira chamada não segura a resposta até o acervo
+inteiro ficar pronto: ela gasta um teto de tempo, responde com o que conseguiu e devolve
+`pendingSources`, quantas fontes ficaram para a chamada seguinte. Enquanto esse número for maior que
+zero, resultado vazio ainda não é resposta — é acervo pela metade.
+
+**A busca por sentido depende de um modelo que o desenvolvedor instala pela janela do Prumo**, e que
+o produto baixa uma vez, confere pelo resumo e guarda na máquina. Com ele, "colaborador" acha o
+trecho que fala de "servidor"; sem ele, `semanticAvailable` volta falso e a busca é só por palavra.
+O modelo **ordena, nunca redige**: ele decide qual trecho aparece, e o trecho continua sendo o texto
+verbatim do documento. A inferência é local — depois do download não há rede, e nada do conteúdo sai
+da máquina.
 
 ### `prumo_workspace_read_documentation`
 Lê o conteúdo de uma fonte de documentação, endereçada pelo `documentationId`. Quando a fonte é uma
 pasta, recebe também o caminho de um arquivo dentro dela. Pagina por linha. Caminho absoluto,
-travessia e qualquer caminho que escape da raiz cadastrada são recusados; formato apenas catalogado,
-como PDF, é recusado com a explicação.
+travessia e qualquer caminho que escape da raiz cadastrada são recusados; formato de que o Prumo não
+extrai conteúdo é recusado com a explicação.
+
+**Formato binário é lido por extração.** `pdf`, `docx`, `xlsx` e `pptx` entram pela mesma janela de
+linhas dos arquivos de texto, e o que volta é conteúdo: estilo, tema, propriedade do documento,
+relação e desenho ficam no arquivo. A extração é análise de formato, nunca modelo — o texto é
+verbatim, e o Prumo não resume, não reescreve e não interpreta.
+
+Nesses formatos **a linha não endereça nada** no arquivo original: ela é a linha do texto extraído.
+Por isso a resposta traz `coordinates`, faixas que dizem de onde cada pedaço veio — a página do PDF,
+a aba e a linha da planilha, o parágrafo do documento, o slide da apresentação. É a coordenada que se
+cita, não a linha. Linhas vizinhas de mesma origem vêm agrupadas numa faixa só, para a coordenada não
+custar mais tokens que o texto que ela endereça.
+
+PDF **digitalizado** — páginas que são imagem, sem camada de texto — é recusado, e não devolvido
+vazio: resposta vazia faria concluir que o documento não diz nada. O que o Prumo extrai de uma vez
+fica guardado enquanto a IDE está aberta, e é reextraído sozinho quando o arquivo muda.
 
 ### `prumo_workspace_prepare`
 Valida o workspace e devolve `READY`, `WARNING` ou `ERROR`, com uma verificação por repositório e por
@@ -253,9 +293,21 @@ devolve sempre a mesma ordem. Busca sem texto não traz `score`: não há o que 
 O índice nasce e morre dentro da chamada. Não há segunda cópia do dado para divergir do que está
 guardado.
 
+**Registro cuja fonte saiu do alcance não é procurado nem listado.** Se o desenvolvedor excluiu,
+depois da destilação, o caminho de onde o registro veio, ele deixa de existir para a busca: não é
+pontuado, não aparece na lista e não devolve a coordenada de onde saiu. O que a resposta traz é
+`outOfReachCount`, o número desses registros na base — contado sobre a **base inteira**, como
+`storedCount`, e nunca sobre a consulta. Uma contagem que variasse com o texto procurado seria um
+oráculo: bastaria trocar a palavra e observar o número para descobrir o que está escrito dentro do
+que foi excluído.
+
 ### `prumo_knowledge_read`
 O texto completo de um registro, com a procedência e o frescor ao lado. Um registro `STALE` continua
 sendo devolvido — o que ele diz pode continuar útil —, mas a fonte é a verdade.
+
+**Registro destilado de caminho que hoje está excluído é recusado**, texto e coordenada. A recusa
+nomeia o registro, não o caminho: dizer o caminho devolveria, pela mensagem de erro, exatamente o que
+a exclusão retira do alcance. A recusa entra na trilha como `DENIED`.
 
 ### `prumo_knowledge_forget`
 Remove um registro. Imediato, sem perguntar ao desenvolvedor. A fonte não é tocada: sai apenas o que

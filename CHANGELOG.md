@@ -6,6 +6,141 @@ All notable changes to this project are documented here. The format follows
 
 ## [Unreleased]
 
+## [0.11.0] - 2026-09-08
+
+### Added
+
+- **Documentation search now understands what is being asked.** Ask "how does the employee announce
+  they are leaving" and the answer comes back with the passage on termination pay, sharing not one
+  word with the question. The model runs on this machine: the developer downloads it once from the
+  Prumo window — about 130 MB — and can remove it from the same place. Nothing written leaves the
+  machine, and after the download there is no network. **The model ranks, it never writes**: what
+  comes back is still the verbatim text of the document, with the page to cite. Without the model,
+  search keeps working by word and the answer says so, which changes what finding nothing means.
+- **`prumo_diagnostics` says whether the local inference engine loaded**, so a client can tell a
+  product that has the feature from one that does not.
+
+### Changed
+
+- **Passages are cut at 800 characters instead of 1,200.** Measured over the eSocial MOS with twenty
+  natural-language questions: 400 characters scored 9 hits out of 20, 800 scored 13, 1,200 scored 11
+  and 2,000 scored 12. Doubling the model, by contrast, scored one hit worse — so the cut is the
+  lever, not the model.
+- **The two halves of the search are now fused by rank, not interleaved.** Their scores are not
+  comparable — one is BM25, the other vector distance — so what decides is how well each passage
+  places in each list, and a passage both halves point at outranks one that leads a single list.
+- **Text now reaches the model with its role declared**, `passage:` or `query:`, which is the usage
+  the model documents. Measured neutral on this corpus; using a model outside its documented form is
+  debt that only surfaces when the model changes.
+- **Indexing carries a recipe version.** Changing the cut, the prefix or the model invalidates the
+  index on its own — half the shelf on the old recipe and half on the new returns an order that means
+  nothing.
+
+### Fixed
+
+- **A documentation source detached from the workspace kept answering searches.** The index lives in
+  memory and holds what was indexed at some point; nothing consulted what the workspace declares
+  now. Search is now restricted to the sources currently attached, in both halves — by word and by
+  vector — and an empty list returns nothing rather than everything.
+
+## [0.10.0] - 2026-09-08
+
+### Changed
+
+- **The first documentation search no longer holds the answer until the whole shelf is indexed.**
+  Extracting a large document costs seconds — a 413-page specification takes about eight — and
+  indexing every attached source before answering was enough for a client to give up and conclude
+  the tool does not work. The call now spends a time budget, answers with what it managed, and
+  returns `pendingSources`: how many sources were still unindexed when the answer was built. Calling
+  again picks up where it stopped. While that number is above zero, an empty result is not an answer
+  yet, and the tool description says so.
+
+## [0.9.0] - 2026-09-08
+
+### Added
+
+- **Prumo reads PDF, Word, Excel and PowerPoint.** `pdf`, `docx`, `xlsx` and `pptx` come through the
+  same line window as text files, and what comes back is content: style, theme, document properties,
+  relationships and drawings are dropped before the answer is built. On a real spreadsheet the
+  package expands to 8.5 times the text that matters — that is what is no longer sent. Extraction is
+  format parsing, never a model: the text is verbatim. Office formats need no library at all, since
+  they are zip and XML and the JDK already reads both; PDF uses Apache PDFBox, because a PDF stores
+  text as glyph indexes of embedded subset fonts and only each font's `ToUnicode` map turns them
+  back into characters.
+- **Every extracted passage carries where it came from.** In a binary format the line number
+  addresses nothing in the original, so the answer carries `coordinates`: the page of a PDF, the
+  sheet and row of a spreadsheet, the paragraph, the slide. Neighbouring lines from the same origin
+  are grouped into one range, so the coordinate never costs more tokens than the text it addresses.
+- **`prumo_workspace_search_documentation`, to get the passage instead of the document.** A
+  413-page specification is worth some 246,000 tokens once extracted, and what answers a question
+  usually fits in three paragraphs. The tool returns those paragraphs verbatim, each with the
+  coordinate to cite and the line to read around it. Matching is by word, with stemming in
+  Portuguese and English, over the same Lucene the IDE already ships. `semanticAvailable` says
+  whether meaning-based matching answered as well — today it is always false, and it matters:
+  without it, finding nothing means the words are not there, not that the subject is not there.
+- **The window shows what an AI client can search**, per documentation source: whether Prumo reads
+  that format and how many passages are indexed.
+
+### Changed
+
+- **A scanned PDF is refused, not returned empty.** Pages that are images carry no text layer, and
+  an empty answer would suggest the document says nothing. A password protected PDF is refused too:
+  Prumo does not ask for the password.
+- **What was extracted once is not extracted twice.** The extracted text is kept in memory while the
+  IDE is open, keyed by the source stamp — size, date and digest — so an edited file is re-extracted
+  on its own. It is never written to Prumo's storage: a second copy of the user's content is exactly
+  what path exclusion exists to prevent.
+- **The security documents no longer say that nothing inside a PDF is analysed.** They now state
+  what is extracted, what is dropped, and that the file is treated as hostile input: the XML reader
+  is born with DTD and external entities off, a package entry pointing outside refuses the whole
+  document, and there is a ceiling on uncompressed bytes.
+
+## [0.8.1] - 2026-09-08
+
+### Fixed
+
+- **`outOfReachCount` disappeared from the answer when it was zero.** The field was declared with a
+  default, and the serialiser omits what equals the default — so the count the tool description
+  promises was there only when something was out of reach. A client had to guess whether an absent
+  field meant none or meant a version of Prumo without the field. It now always travels, like
+  `storedCount` and `matchCount`. Found by exercising the real MCP transport against a live IDE, not
+  by the suite.
+
+## [0.8.0] - 2026-09-08
+
+### Fixed
+
+- **Knowledge distilled from a path that is later excluded stayed reachable.** The exclusion was
+  checked when the record was written and never again: the record kept showing up in
+  `prumo_knowledge_recall`, `prumo_knowledge_read` returned its full text, and the only sign was a
+  freshness of `ORPHAN` — the very same sign a deleted source produces. Prumo had the answer all
+  along and threw it away: the stamp reader already refuses an excluded path on every call, and the
+  reading side collapsed that refusal into "no stamp". It no longer does. A record whose source is
+  out of reach is refused on read, and the refusal names the record rather than the path, because
+  naming the path would hand back through the error message exactly what the exclusion takes out of
+  view. Nothing is deleted: the record stays in the store and comes back whole if the exclusion is
+  undone.
+- **The exclusion could be walked around by another name for the same file.** The knowledge family
+  decided on the path as written, while file reading decided on the path as it exists on disk, so a
+  junction or symlink pointing into an excluded directory slipped through on one side and was
+  refused on the other — measured, not assumed. Both halves of the rule, the path and the match,
+  now have a single owner.
+
+### Changed
+
+- **`prumo_knowledge_recall` no longer searches or lists what is out of reach.** Those records are
+  removed before the exact filters and before ranking, so their text influences no answer. What the
+  response carries instead is `outOfReachCount`, counted over the whole base like `storedCount` and
+  never over the query: a number that moved with the text searched would be an oracle over what the
+  developer excluded.
+- **An exclusion is recorded in the audit trail as `DENIED`, not `ERROR`.** This covers the four
+  places that refuse an excluded path — file reading, search scope, diff and knowledge writing. A
+  refusal that works is not a failure, and whoever reads the trail later has to be able to tell them
+  apart.
+- **The AI Memory tab says "out of reach"** where it used to say `ORPHAN`, which reads as "the file
+  is gone" for something the developer deliberately put aside. The record can still be removed from
+  the window.
+
 ## [0.7.0] - 2026-09-08
 
 ### Changed
@@ -804,7 +939,12 @@ full cycle with a real AI client — are still open.
 - Repository role and workspace type explain themselves in the dialog: both describe the work to the
   AI client and enforce nothing, which access modes and policies do.
 
-[Unreleased]: https://github.com/gilmardeveloper/prumo/compare/141ca9dbe62d55f9b1402bb38d3c55776b589e30...HEAD
+[Unreleased]: https://github.com/gilmardeveloper/prumo/compare/v0.11.0...HEAD
+[0.11.0]: https://github.com/gilmardeveloper/prumo/compare/v0.10.0...v0.11.0
+[0.10.0]: https://github.com/gilmardeveloper/prumo/compare/v0.9.0...v0.10.0
+[0.9.0]: https://github.com/gilmardeveloper/prumo/compare/v0.8.1...v0.9.0
+[0.8.1]: https://github.com/gilmardeveloper/prumo/compare/v0.8.0...v0.8.1
+[0.8.0]: https://github.com/gilmardeveloper/prumo/compare/141ca9dbe62d55f9b1402bb38d3c55776b589e30...v0.8.0
 [0.7.0]: https://github.com/gilmardeveloper/prumo/compare/v0.6.2...141ca9dbe62d55f9b1402bb38d3c55776b589e30
 [0.6.2]: https://github.com/gilmardeveloper/prumo/compare/717f4374c7ead2329efc531d0e8dbc73e4a93211...v0.6.2
 [0.6.1]: https://github.com/gilmardeveloper/prumo/compare/f4ba8907b60731281af201f65526f623c40e9668...717f4374c7ead2329efc531d0e8dbc73e4a93211

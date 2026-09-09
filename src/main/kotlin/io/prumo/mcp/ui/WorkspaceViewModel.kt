@@ -37,7 +37,38 @@ sealed interface WorkspaceViewModel {
         val activity: List<ActivityRow> = emptyList(),
         /** O que os clientes de IA destilaram e guardaram neste workspace. */
         val memory: List<MemoryRow> = emptyList(),
+        /** A documentação anexada, com o que o Prumo consegue ler dela. */
+        val documentation: List<DocumentationRow> = emptyList(),
+        /** O estado da busca por sentido nesta instalação. */
+        val semanticSearch: SemanticSearchRow = SemanticSearchRow(),
     ) : WorkspaceViewModel
+
+    /**
+     * A busca por sentido, como a tela a mostra.
+     *
+     * O desenvolvedor decide se quer o modelo, e para decidir precisa saber o tamanho antes de
+     * baixar. Nada é buscado sem ele mandar.
+     */
+    data class SemanticSearchRow(
+        /** Se o motor de inferência carregou nesta instalação. Falso desliga a oferta. */
+        val runtimeAvailable: Boolean = false,
+        val installed: Boolean = false,
+        /** Quanto ocupa o que está instalado, ou quanto será baixado quando não houver nada. */
+        val bytes: Long = 0,
+    )
+
+    /**
+     * Uma fonte de documentação, como a tela a mostra.
+     *
+     * O desenvolvedor precisa ver duas coisas que decidem o que a IA alcança: se o Prumo lê aquele
+     * formato, e quantas passagens já estão indexadas para busca.
+     */
+    data class DocumentationRow(
+        val documentationId: String,
+        val name: String,
+        val readable: Boolean,
+        val indexedPassages: Int,
+    )
 
     /**
      * Um registro da base de conhecimento, como a tela o mostra.
@@ -52,7 +83,21 @@ sealed interface WorkspaceViewModel {
         val freshness: String,
         val author: String,
         val updatedAt: String,
-    )
+        /** A fonte está entre os caminhos que o desenvolvedor excluiu deste workspace. */
+        val outOfReach: Boolean = false,
+    ) {
+        /**
+         * O que a linha diz sobre a fonte.
+         *
+         * O alcance vem antes do frescor: registro fora de alcance carimba `ORPHAN`, que diria ao
+         * desenvolvedor que a fonte sumiu quando foi ele quem a pôs fora de alcance.
+         */
+        val state: String get() = if (outOfReach) OUT_OF_REACH else freshness
+
+        companion object {
+            const val OUT_OF_REACH = "OUT_OF_REACH"
+        }
+    }
 
     /**
      * Uma chamada registrada na trilha de auditoria.
@@ -110,6 +155,8 @@ sealed interface WorkspaceViewModel {
             installedPacks: List<PackRow> = emptyList(),
             activity: List<ActivityRow> = emptyList(),
             memory: List<MemoryRow> = emptyList(),
+            documentation: List<DocumentationRow> = emptyList(),
+            semanticSearch: SemanticSearchRow = SemanticSearchRow(),
         ): WorkspaceViewModel = when (resolution) {
             is WorkspaceResolution.NotConfigured -> NotConfigured(resolution.projectName)
 
@@ -135,6 +182,8 @@ sealed interface WorkspaceViewModel {
                     },
                     pendingPacks = pendingPacks,
                     installedPacks = installedPacks,
+                    documentation = documentation,
+                    semanticSearch = semanticSearch,
                     activity = activity,
                     memory = memory,
                     dataSources = context.workspace.datasources.map {

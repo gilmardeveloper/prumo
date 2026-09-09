@@ -5,6 +5,8 @@ import com.intellij.openapi.project.Project
 import io.prumo.mcp.ide.PrumoProjectContext
 import io.prumo.mcp.ide.PrumoWorkspaceService
 import io.prumo.mcp.ide.SourceStampReader
+import io.prumo.mcp.documentation.SupportedDocumentFormats
+import io.prumo.mcp.ide.EmbeddingRuntime
 import io.prumo.mcp.knowledge.freshnessOf
 import io.prumo.mcp.pack.application.PackStore
 import io.prumo.mcp.pack.authoring.SubmissionQueue
@@ -53,6 +55,26 @@ object WorkspaceLoader {
                     )
                 }
             }.orEmpty(),
+            documentation = (resolution as? WorkspaceResolution.Resolved)?.context?.workspace?.documentation
+                ?.map { source ->
+                    val local = runCatching { java.nio.file.Path.of(source.location) }.getOrNull()
+                    WorkspaceViewModel.DocumentationRow(
+                        documentationId = source.id,
+                        name = source.name,
+                        readable = local != null &&
+                            (java.nio.file.Files.isDirectory(local) || SupportedDocumentFormats.isSupported(local)),
+                        indexedPassages = workspaceId?.let { service.documentIndex.countOf(it, source.id) } ?: 0,
+                    )
+                }
+                .orEmpty(),
+            semanticSearch = WorkspaceViewModel.SemanticSearchRow(
+                runtimeAvailable = EmbeddingRuntime.available,
+                installed = service.embeddingModels.state(service.embeddingModelDescriptor).installed,
+                bytes = service.embeddingModels.state(service.embeddingModelDescriptor)
+                    .takeIf { it.installed }
+                    ?.sizeBytes
+                    ?: service.embeddingModelDescriptor.totalBytes,
+            ),
             memory = workspaceId?.let { id ->
                 val context = (resolution as? WorkspaceResolution.Resolved)?.context
                 service.knowledge.list(id).map { record ->
@@ -66,6 +88,7 @@ object WorkspaceLoader {
                         ).name,
                         author = record.author,
                         updatedAt = record.updatedAt,
+                        outOfReach = context?.let { SourceStampReader.outOfReach(it, record.provenance) } == true,
                     )
                 }
             }.orEmpty(),

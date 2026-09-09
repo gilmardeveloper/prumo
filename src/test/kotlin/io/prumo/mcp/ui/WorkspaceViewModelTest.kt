@@ -67,6 +67,93 @@ class WorkspaceViewModelTest {
         assertEquals("eventos-esocial", model.memory.single().sourceId)
     }
 
+    /**
+     * Registro fora de alcance carimba `ORPHAN`, que diz "a fonte sumiu". Quem excluiu o caminho foi
+     * o próprio desenvolvedor, e é isso que a linha precisa dizer a ele.
+     */
+    @Test
+    fun `a linha diz fora de alcance antes de dizer orfao`() {
+        val fora = linha(freshness = "ORPHAN", outOfReach = true)
+        val orfa = linha(freshness = "ORPHAN", outOfReach = false)
+        val velha = linha(freshness = "STALE", outOfReach = false)
+
+        assertEquals("OUT_OF_REACH", fora.state)
+        assertEquals("ORPHAN", orfa.state)
+        assertEquals("STALE", velha.state)
+    }
+
+    @Test
+    fun `linha ao alcance e o padrao`() {
+        assertEquals("FRESH", linha(freshness = "FRESH").state)
+    }
+
+    private fun linha(freshness: String, outOfReach: Boolean = false) = WorkspaceViewModel.MemoryRow(
+        knowledgeId = "s-1210-prazo",
+        title = "Prazo do S-1210",
+        sourceId = "eventos-esocial",
+        freshness = freshness,
+        author = "claude-code/2.1",
+        updatedAt = "2026-09-07T12:00:00Z",
+        outOfReach = outOfReach,
+    )
+
+    /**
+     * A documentação é o que a IA alcança sem ler código. O desenvolvedor precisa ver, sem sair da
+     * IDE, o que o Prumo consegue ler dela e o que já está indexado para busca.
+     */
+    @Test
+    fun `a documentacao chega a tela com o que da para ler e o que ja esta indexado`() {
+        val model = WorkspaceViewModel.from(
+            WorkspaceResolution.Resolved(WorkspaceContext(workspace, target)),
+            documentation = listOf(
+                WorkspaceViewModel.DocumentationRow("mos", "MOS S-1.3", readable = true, indexedPassages = 1240),
+                WorkspaceViewModel.DocumentationRow("planta", "Planta antiga", readable = false, indexedPassages = 0),
+            ),
+        ) as WorkspaceViewModel.Configured
+
+        assertEquals(2, model.documentation.size)
+        assertEquals(1240, model.documentation.first().indexedPassages)
+        assertEquals(false, model.documentation.last().readable)
+    }
+
+    /**
+     * O desenvolvedor decide se quer o modelo, e para decidir precisa do tamanho antes de baixar.
+     */
+    @Test
+    fun `a tela diz o tamanho antes de baixar e o tamanho depois de instalado`() {
+        val ausente = WorkspaceViewModel.from(
+            WorkspaceResolution.Resolved(WorkspaceContext(workspace, target)),
+            semanticSearch = WorkspaceViewModel.SemanticSearchRow(
+                runtimeAvailable = true,
+                installed = false,
+                bytes = 135_390_915,
+            ),
+        ) as WorkspaceViewModel.Configured
+
+        assertEquals(false, ausente.semanticSearch.installed)
+        assertEquals(135_390_915, ausente.semanticSearch.bytes)
+        assertTrue(ausente.semanticSearch.runtimeAvailable)
+    }
+
+    @Test
+    fun `sem motor de inferencia a busca por sentido nem e oferecida`() {
+        val model = WorkspaceViewModel.from(
+            WorkspaceResolution.Resolved(WorkspaceContext(workspace, target)),
+        ) as WorkspaceViewModel.Configured
+
+        assertEquals(false, model.semanticSearch.runtimeAvailable)
+        assertEquals(false, model.semanticSearch.installed)
+    }
+
+    @Test
+    fun `workspace sem documentacao nao inventa linha`() {
+        val model = WorkspaceViewModel.from(
+            WorkspaceResolution.Resolved(WorkspaceContext(workspace, target)),
+        ) as WorkspaceViewModel.Configured
+
+        assertTrue(model.documentation.isEmpty())
+    }
+
     @Test
     fun `workspace sem memoria nao inventa linha`() {
         val model = WorkspaceViewModel.from(

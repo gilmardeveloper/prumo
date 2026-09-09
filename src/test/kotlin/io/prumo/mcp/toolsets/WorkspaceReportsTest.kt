@@ -131,12 +131,15 @@ class WorkspaceReportsTest {
         manual.writeText("# manual")
         val contrato = root.resolve("docs/contrato.pdf")
         contrato.writeText("%PDF-1.4")
+        val antigo = root.resolve("docs/planilha.ods")
+        antigo.writeText("formato que o Prumo nao le")
 
         val response = WorkspaceReports.documentationSources(
             context(
                 documentation = listOf(
                     documentation("manual", manual),
                     documentation("contrato", contrato),
+                    documentation("antigo", antigo),
                     documentation("sumido", root.resolve("docs/ausente.md")),
                 ),
             ),
@@ -147,7 +150,8 @@ class WorkspaceReportsTest {
         assertTrue(bySource.getValue("manual").available)
         assertTrue(bySource.getValue("manual").textExtractionSupported)
         assertTrue(bySource.getValue("contrato").available)
-        assertFalse(bySource.getValue("contrato").textExtractionSupported, "PDF e catalogado, nao extraido")
+        assertTrue(bySource.getValue("contrato").textExtractionSupported, "PDF passou a ser extraido")
+        assertFalse(bySource.getValue("antigo").textExtractionSupported, "formato fora dos dois grupos segue catalogado")
         assertFalse(bySource.getValue("sumido").available)
         assertFalse(serialized.contains(root.toString()), "a resposta nao deve revelar onde o arquivo esta")
         assertNoLocalPath(serialized)
