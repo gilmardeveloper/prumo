@@ -25,6 +25,7 @@ class SecurityCoverageTest {
                 "conteudo de um workspace nao aparece em outro",
                 "o trecho de um workspace nao aparece no outro",
                 "o vetor tambem respeita a fronteira do workspace",
+                "fonte que saiu do workspace nao e devolvida",
             ),
         ),
         Requirement(

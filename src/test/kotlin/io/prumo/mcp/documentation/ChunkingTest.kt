@@ -104,6 +104,16 @@ class ChunkingTest {
         assertThrows<IllegalArgumentException> { chunksOf(documento, maxChars = 100, overlapChars = 100) }
     }
 
+    /**
+     * O número não é gosto: foi medido sobre o MOS do eSocial, e 800 ganhou de 400, de 1.200 e de
+     * 2.000. Mudar sem medir de novo é desfazer a única alavanca que a investigação encontrou.
+     */
+    @Test
+    fun `o tamanho do trecho e o que a medicao escolheu`() {
+        assertEquals(800, DEFAULT_MAX_CHARS)
+        assertTrue(DEFAULT_OVERLAP_CHARS < DEFAULT_MAX_CHARS)
+    }
+
     private fun pagina(numero: Int, linhas: Int) = ExtractedDocument(
         (1..linhas).map { ExtractedLine(SourceCoordinate.Page(numero), "linha $it com algum texto de enchimento") },
     )

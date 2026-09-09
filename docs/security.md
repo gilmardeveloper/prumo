@@ -201,6 +201,12 @@ ignorou e listou tudo. Toda proteção descrita aqui vive em código e está cob
   estrago de um engano; não transformam uma conexão de superusuário numa conexão segura.
 - **O cliente de IA continua sujeito a engenharia social** pelo conteúdo que lê. O Prumo limita *o
   que* ele alcança, não o que ele conclui.
+- **O modelo local ordena, nunca redige.** A busca por sentido usa um modelo de embedding que roda
+  nesta máquina, e o que ele produz é um vetor — nunca texto. O trecho devolvido é sempre o texto
+  verbatim do documento; o modelo só decide qual deles aparece. Ele não vem dentro do plugin: o
+  desenvolvedor manda buscá-lo pela janela, o Prumo confere o resumo SHA-256 do que baixou e guarda
+  no diretório do produto. Depois disso não há rede, e nada do conteúdo do usuário sai da máquina.
+  Sem o modelo, ou com ele removido, a busca continua por palavra e a resposta declara isso.
 - **Formato binário é extraído, não interpretado.** De `pdf`, `docx`, `xlsx` e `pptx` o Prumo tira o
   texto e descarta o resto, por análise do formato — nunca por modelo. O que sai é verbatim, com a
   página, a linha da planilha, o parágrafo ou o slide de onde saiu. O arquivo é tratado como entrada

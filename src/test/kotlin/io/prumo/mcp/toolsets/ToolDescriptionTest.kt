@@ -473,6 +473,18 @@ class ToolDescriptionTest {
             "a descrição promete dizer o que ficou pendente, e o código não devolve o número",
         )
         assertTrue(
+            fonteDaBusca.contains("semanticAvailable = vetor != null"),
+            "a descrição promete dizer qual das duas buscas respondeu, e o código responde fixo",
+        )
+        assertTrue(
+            fonteDaBusca.contains("service.embedQuery(query)"),
+            "a descrição promete busca por sentido, e a consulta nunca vira vetor",
+        )
+        assertTrue(
+            fonteDaBusca.contains("sources = sources.map { it.id }"),
+            "a busca não restringe às fontes que o workspace declara agora, e devolveria fonte desanexada",
+        )
+        assertTrue(
             busca.description.contains("prumo_workspace_read_documentation"),
             "a busca não diz como ler em volta do trecho",
         )

@@ -116,6 +116,35 @@ class WorkspaceViewModelTest {
         assertEquals(false, model.documentation.last().readable)
     }
 
+    /**
+     * O desenvolvedor decide se quer o modelo, e para decidir precisa do tamanho antes de baixar.
+     */
+    @Test
+    fun `a tela diz o tamanho antes de baixar e o tamanho depois de instalado`() {
+        val ausente = WorkspaceViewModel.from(
+            WorkspaceResolution.Resolved(WorkspaceContext(workspace, target)),
+            semanticSearch = WorkspaceViewModel.SemanticSearchRow(
+                runtimeAvailable = true,
+                installed = false,
+                bytes = 135_390_915,
+            ),
+        ) as WorkspaceViewModel.Configured
+
+        assertEquals(false, ausente.semanticSearch.installed)
+        assertEquals(135_390_915, ausente.semanticSearch.bytes)
+        assertTrue(ausente.semanticSearch.runtimeAvailable)
+    }
+
+    @Test
+    fun `sem motor de inferencia a busca por sentido nem e oferecida`() {
+        val model = WorkspaceViewModel.from(
+            WorkspaceResolution.Resolved(WorkspaceContext(workspace, target)),
+        ) as WorkspaceViewModel.Configured
+
+        assertEquals(false, model.semanticSearch.runtimeAvailable)
+        assertEquals(false, model.semanticSearch.installed)
+    }
+
     @Test
     fun `workspace sem documentacao nao inventa linha`() {
         val model = WorkspaceViewModel.from(

@@ -3,6 +3,7 @@ package io.prumo.mcp.ide
 import io.prumo.mcp.documentation.DocumentHit
 import io.prumo.mcp.documentation.DocumentIndex
 import io.prumo.mcp.documentation.IndexedChunk
+import io.prumo.mcp.documentation.fuseByRank
 import org.apache.lucene.analysis.Analyzer
 import org.apache.lucene.analysis.en.EnglishAnalyzer
 import org.apache.lucene.analysis.miscellaneous.PerFieldAnalyzerWrapper
@@ -64,19 +65,20 @@ class LuceneDocumentIndex : DocumentIndex, AutoCloseable {
     @Synchronized
     override fun search(
         workspaceId: String,
+        sources: Collection<String>,
         query: String,
         vector: FloatArray?,
         maxResults: Int,
     ): List<DocumentHit> {
         require(query.isNotBlank()) { "The search query must not be blank." }
         require(maxResults >= 1) { "maxResults must be 1 or greater." }
-        if (size() == 0) {
+        if (size() == 0 || sources.isEmpty()) {
             return emptyList()
         }
 
         return DirectoryReader.open(directory).use { reader ->
             val searcher = IndexSearcher(reader).apply { similarity = BM25Similarity() }
-            val doWorkspace = TermQuery(Term(WORKSPACE, workspaceId))
+            val doWorkspace = reach(workspaceId, sources)
             val porPalavra = searcher.search(within(doWorkspace, textQuery(query)), maxResults).scoreDocs
                 .map { hitOf(searcher, it.doc, it.score, semantic = false) }
             val porVetor = vector
@@ -107,24 +109,32 @@ class LuceneDocumentIndex : DocumentIndex, AutoCloseable {
     }
 
     /**
-     * Junta as duas listas mantendo o melhor de cada trecho.
+     * Junta as duas listas por posição, mantendo o melhor de cada trecho.
      *
      * Os scores das duas buscas não são comparáveis entre si — um é BM25, o outro é distância de
-     * vetor —, então a ordem final é a intercalação das duas, e um trecho que aparece nas duas conta
-     * uma vez só, marcado como semântico. Empate desfeito pela fonte e pela linha, para a mesma
-     * consulta devolver sempre a mesma ordem.
+     * vetor —, então quem decide é a colocação em cada lista, e não a nota. Trecho que aparece nas
+     * duas conta uma vez só e soma as duas contribuições, que é o caso em que as duas buscas
+     * concordam.
      */
-    private fun merge(byWord: List<DocumentHit>, byVector: List<DocumentHit>, maxResults: Int): List<DocumentHit> {
-        val juntos = LinkedHashMap<String, DocumentHit>()
-        val maiorLista = maxOf(byWord.size, byVector.size)
-        for (posicao in 0 until maiorLista) {
-            byVector.getOrNull(posicao)?.let { juntos.putIfAbsent(chaveDe(it), it) }
-            byWord.getOrNull(posicao)?.let { juntos.putIfAbsent(chaveDe(it), it) }
-        }
-        return juntos.values.take(maxResults)
-    }
+    private fun merge(byWord: List<DocumentHit>, byVector: List<DocumentHit>, maxResults: Int): List<DocumentHit> =
+        fuseByRank(byVector, byWord, ::chaveDe).take(maxResults)
 
     private fun chaveDe(hit: DocumentHit) = "${hit.documentationId}|${hit.path}|${hit.firstLine}"
+
+    /**
+     * O alcance de uma busca: o workspace que perguntou, e só as fontes que ele declara agora.
+     *
+     * Fonte desanexada continua no índice até a IDE fechar, porque o índice vive na memória. Quem
+     * decide o que ainda vale é o workspace, a cada chamada — o índice é cache, não é a verdade.
+     */
+    private fun reach(workspaceId: String, sources: Collection<String>): BooleanQuery {
+        val fontes = BooleanQuery.Builder()
+        sources.forEach { fontes.add(TermQuery(Term(SOURCE, it)), BooleanClause.Occur.SHOULD) }
+        return BooleanQuery.Builder()
+            .add(TermQuery(Term(WORKSPACE, workspaceId)), BooleanClause.Occur.FILTER)
+            .add(fontes.build(), BooleanClause.Occur.FILTER)
+            .build()
+    }
 
     /** O trecho só existe dentro do workspace que o indexou. */
     private fun sourceQuery(workspaceId: String, documentationId: String): BooleanQuery =
@@ -133,7 +143,7 @@ class LuceneDocumentIndex : DocumentIndex, AutoCloseable {
             .add(TermQuery(Term(SOURCE, documentationId)), BooleanClause.Occur.FILTER)
             .build()
 
-    private fun within(workspace: TermQuery, query: BooleanQuery): BooleanQuery =
+    private fun within(workspace: BooleanQuery, query: BooleanQuery): BooleanQuery =
         BooleanQuery.Builder()
             .add(workspace, BooleanClause.Occur.FILTER)
             .add(query, BooleanClause.Occur.MUST)

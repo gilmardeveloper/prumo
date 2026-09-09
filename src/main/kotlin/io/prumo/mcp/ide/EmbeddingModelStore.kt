@@ -24,7 +24,14 @@ data class ModelDescriptor(
     val uri: URI,
     val sha256: String,
     val sizeBytes: Long,
-)
+    /** O tokenizador do mesmo modelo. Sem ele o texto não vira a sequência que a rede espera. */
+    val tokenizerUri: URI,
+    val tokenizerSha256: String,
+    val tokenizerSizeBytes: Long,
+) {
+    /** O que se baixa ao todo, dito ao desenvolvedor antes de baixar. */
+    val totalBytes: Long get() = sizeBytes + tokenizerSizeBytes
+}
 
 /** O que existe hoje na máquina. */
 data class ModelState(
@@ -32,6 +39,7 @@ data class ModelState(
     val id: String? = null,
     val sizeBytes: Long = 0,
     val path: Path? = null,
+    val tokenizerPath: Path? = null,
 )
 
 /**
@@ -54,14 +62,16 @@ class EmbeddingModelStore(
     /** O que está instalado agora, sem tocar a rede. */
     fun state(descriptor: ModelDescriptor): ModelState {
         val file = fileOf(descriptor)
-        if (!Files.isRegularFile(file)) {
+        val tokenizer = tokenizerOf(descriptor)
+        if (!Files.isRegularFile(file) || !Files.isRegularFile(tokenizer)) {
             return ModelState(installed = false)
         }
         return ModelState(
             installed = true,
             id = descriptor.id,
-            sizeBytes = Files.size(file),
+            sizeBytes = Files.size(file) + Files.size(tokenizer),
             path = file,
+            tokenizerPath = tokenizer,
         )
     }
 
@@ -80,16 +90,21 @@ class EmbeddingModelStore(
         }
 
         Files.createDirectories(folder)
-        val alvo = fileOf(descriptor)
-        val parcial = folder.resolve("${descriptor.id}$PARTIAL")
+        fetch(descriptor.uri, fileOf(descriptor), descriptor.sha256, "model")
+        fetch(descriptor.tokenizerUri, tokenizerOf(descriptor), descriptor.tokenizerSha256, "tokenizer")
+        return state(descriptor)
+    }
+
+    private fun fetch(uri: URI, alvo: Path, sha256: String, o_que: String) {
+        if (Files.isRegularFile(alvo)) {
+            return
+        }
+        val parcial = Path.of(alvo.toString() + PARTIAL)
         try {
-            open(descriptor.uri).use { entrada ->
-                Files.copy(entrada, parcial, StandardCopyOption.REPLACE_EXISTING)
-            }
-            val resumo = digestOf(parcial)
-            if (!resumo.equals(descriptor.sha256, ignoreCase = true)) {
+            open(uri).use { entrada -> Files.copy(entrada, parcial, StandardCopyOption.REPLACE_EXISTING) }
+            if (!digestOf(parcial).equals(sha256, ignoreCase = true)) {
                 throw ModelInstallException(
-                    "The downloaded model does not match the expected checksum and was discarded.",
+                    "The downloaded $o_que does not match the expected checksum and was discarded.",
                 )
             }
             Files.move(parcial, alvo, StandardCopyOption.REPLACE_EXISTING)
@@ -98,15 +113,21 @@ class EmbeddingModelStore(
             throw failure
         } catch (failure: Exception) {
             Files.deleteIfExists(parcial)
-            throw ModelInstallException("Prumo could not download the model: ${failure.message.orEmpty()}")
+            throw ModelInstallException("Prumo could not download the $o_que: ${failure.message.orEmpty()}")
         }
-        return state(descriptor)
     }
 
-    /** Apaga o modelo. Devolve falso quando não havia nada para apagar. */
-    fun remove(descriptor: ModelDescriptor): Boolean = Files.deleteIfExists(fileOf(descriptor))
+    /** Apaga o modelo e o tokenizador. Devolve falso quando não havia nada para apagar. */
+    fun remove(descriptor: ModelDescriptor): Boolean {
+        val modelo = Files.deleteIfExists(fileOf(descriptor))
+        val tokenizador = Files.deleteIfExists(tokenizerOf(descriptor))
+        return modelo || tokenizador
+    }
 
     private fun fileOf(descriptor: ModelDescriptor): Path = folder.resolve("${descriptor.id}$MODEL_SUFFIX")
+
+    private fun tokenizerOf(descriptor: ModelDescriptor): Path =
+        folder.resolve("${descriptor.id}$TOKENIZER_SUFFIX")
 
     private fun digestOf(file: Path): String {
         val digest = MessageDigest.getInstance("SHA-256")
@@ -124,6 +145,7 @@ class EmbeddingModelStore(
     private companion object {
         const val MODELS = "models"
         const val MODEL_SUFFIX = ".onnx"
+        const val TOKENIZER_SUFFIX = ".tokenizer.json"
         const val PARTIAL = ".partial"
     }
 }

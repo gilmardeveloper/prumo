@@ -5,6 +5,7 @@ import com.intellij.mcpserver.annotations.McpDescription
 import com.intellij.mcpserver.annotations.McpTool
 import com.intellij.ide.plugins.PluginManagerCore
 import com.intellij.openapi.extensions.PluginId
+import io.prumo.mcp.ide.EmbeddingRuntime
 import io.prumo.mcp.ide.PrumoWorkspaceService
 import io.prumo.mcp.workspace.application.WorkspaceResolution
 import kotlinx.serialization.Serializable
@@ -31,6 +32,7 @@ class PrumoDiagnosticsToolset : McpToolset {
             pluginVersion = installedVersion(),
             projectName = project.name,
             workspaceConfigured = resolution is WorkspaceResolution.Resolved,
+            embeddingRuntimeAvailable = EmbeddingRuntime.available,
         )
     }
 
@@ -54,4 +56,15 @@ data class PrumoDiagnostics(
     val projectName: String,
     /** Verdadeiro apenas quando o projeto aberto resolve para exatamente um workspace do Prumo. */
     val workspaceConfigured: Boolean,
+    /**
+     * Se o motor de inferência local carregou nesta instalação.
+     *
+     * Falso não impede nada: a busca na documentação continua por palavra, e a resposta dela declara
+     * que a parte semântica não está disponível.
+     *
+     * Sem valor padrão de propósito: a serialização omite o campo igual ao padrão, e um campo que
+     * some quando é falso fica indistinguível de uma versão do produto que ainda não o tinha —
+     * exatamente o que se quer descobrir ao perguntar.
+     */
+    val embeddingRuntimeAvailable: Boolean,
 )
