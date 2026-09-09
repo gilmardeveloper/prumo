@@ -2,10 +2,13 @@
 
 **Português (Brasil)** · [English](demo.en.md)
 
-Este é o roteiro que decide se o MVP está pronto. Cada passo é um item do critério de conclusão, e
-cada passo diz **o que você deve observar** — passo que não se pode verificar não é passo.
+Este é o passeio completo do produto: espaço de trabalho, fronteira, banco, e um pacote escrito por
+um cliente de IA e instalado por uma pessoa. Cada passo diz **o que você deve observar** — passo que
+não se pode verificar não é passo.
 
 Rode num projeto de verdade, não num de brinquedo. Leva cerca de quarenta minutos na primeira vez.
+Se é a sua primeira vez com o Prumo, instale e conecte o cliente pelo
+[guia de primeiros passos](getting-started.md) antes de começar.
 
 ## O que você precisa
 
