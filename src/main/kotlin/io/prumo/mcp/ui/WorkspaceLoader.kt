@@ -6,6 +6,7 @@ import io.prumo.mcp.ide.PrumoProjectContext
 import io.prumo.mcp.ide.PrumoWorkspaceService
 import io.prumo.mcp.ide.SourceStampReader
 import io.prumo.mcp.documentation.SupportedDocumentFormats
+import io.prumo.mcp.ide.EmbeddingRuntime
 import io.prumo.mcp.knowledge.freshnessOf
 import io.prumo.mcp.pack.application.PackStore
 import io.prumo.mcp.pack.authoring.SubmissionQueue
@@ -66,6 +67,14 @@ object WorkspaceLoader {
                     )
                 }
                 .orEmpty(),
+            semanticSearch = WorkspaceViewModel.SemanticSearchRow(
+                runtimeAvailable = EmbeddingRuntime.available,
+                installed = service.embeddingModels.state(service.embeddingModelDescriptor).installed,
+                bytes = service.embeddingModels.state(service.embeddingModelDescriptor)
+                    .takeIf { it.installed }
+                    ?.sizeBytes
+                    ?: service.embeddingModelDescriptor.totalBytes,
+            ),
             memory = workspaceId?.let { id ->
                 val context = (resolution as? WorkspaceResolution.Resolved)?.context
                 service.knowledge.list(id).map { record ->

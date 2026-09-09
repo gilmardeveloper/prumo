@@ -118,6 +118,17 @@ class PrumoWorkspaceService {
     @Synchronized
     fun forgetEmbedder() = fecharEmbutidor()
 
+    /** O modelo que o produto sabe buscar, para a janela dizer o tamanho antes de baixar. */
+    val embeddingModelDescriptor: ModelDescriptor get() = EmbeddingModel.DESCRIPTOR
+
+    /**
+     * Esquece o que já foi indexado, para o acervo ser montado de novo.
+     *
+     * Chamado quando o modelo entra ou sai: os trechos precisam ganhar ou perder o vetor, e remendar
+     * o índice pela metade deixaria parte do acervo achável por sentido e parte não.
+     */
+    fun forgetIndexing() = indexedSources.clear()
+
     private fun fecharEmbutidor() {
         (embedderState?.second as? AutoCloseable)?.let { runCatching { it.close() } }
         embedderState = null

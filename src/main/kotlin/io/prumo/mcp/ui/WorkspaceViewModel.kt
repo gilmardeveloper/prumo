@@ -39,7 +39,23 @@ sealed interface WorkspaceViewModel {
         val memory: List<MemoryRow> = emptyList(),
         /** A documentação anexada, com o que o Prumo consegue ler dela. */
         val documentation: List<DocumentationRow> = emptyList(),
+        /** O estado da busca por sentido nesta instalação. */
+        val semanticSearch: SemanticSearchRow = SemanticSearchRow(),
     ) : WorkspaceViewModel
+
+    /**
+     * A busca por sentido, como a tela a mostra.
+     *
+     * O desenvolvedor decide se quer o modelo, e para decidir precisa saber o tamanho antes de
+     * baixar. Nada é buscado sem ele mandar.
+     */
+    data class SemanticSearchRow(
+        /** Se o motor de inferência carregou nesta instalação. Falso desliga a oferta. */
+        val runtimeAvailable: Boolean = false,
+        val installed: Boolean = false,
+        /** Quanto ocupa o que está instalado, ou quanto será baixado quando não houver nada. */
+        val bytes: Long = 0,
+    )
 
     /**
      * Uma fonte de documentação, como a tela a mostra.
@@ -140,6 +156,7 @@ sealed interface WorkspaceViewModel {
             activity: List<ActivityRow> = emptyList(),
             memory: List<MemoryRow> = emptyList(),
             documentation: List<DocumentationRow> = emptyList(),
+            semanticSearch: SemanticSearchRow = SemanticSearchRow(),
         ): WorkspaceViewModel = when (resolution) {
             is WorkspaceResolution.NotConfigured -> NotConfigured(resolution.projectName)
 
@@ -166,6 +183,7 @@ sealed interface WorkspaceViewModel {
                     pendingPacks = pendingPacks,
                     installedPacks = installedPacks,
                     documentation = documentation,
+                    semanticSearch = semanticSearch,
                     activity = activity,
                     memory = memory,
                     dataSources = context.workspace.datasources.map {
