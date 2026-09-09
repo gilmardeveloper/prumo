@@ -13,6 +13,9 @@ All notable changes to this project are documented here. The format follows
   false. It also missed the memory family, the inspection catalogue and documentation search
   entirely. Both languages now say what the code does, and the limitations state what extraction
   drops and what the local model does and does not do.
+- **The guide says that Claude Desktop's custom connector is not the way in.** That screen takes a
+  remote `https` address and refuses `http`, localhost included, so the file plus the bridge is the
+  only route — and an entry with `url` in that file is dropped without a word.
 - **The guide covers the clients that have no field for a URL.** Several take a command, a list of
   arguments and an environment instead, and there is no way to guess that the thing to run is the
   `mcp-remote` bridge, with the address, `--allow-http` and `sse-only` as separate arguments. The

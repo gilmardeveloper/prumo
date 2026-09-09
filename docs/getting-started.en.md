@@ -149,6 +149,20 @@ In a client that takes JSON instead of fields, the same thing reads:
 }
 ```
 
+### Claude Desktop
+
+Claude Desktop has a **custom connector** screen, and it **does not work for Prumo**: that field is
+for a remote server, it requires an `https` address and refuses `http` even when the host is
+`127.0.0.1`. The way in here is the configuration file, with the same bridge as the section above.
+
+1. **Settings → Developer → Edit Config**, which opens `claude_desktop_config.json`;
+2. write the `mcpServers` block from the JSON example above;
+3. quit and reopen Claude Desktop.
+
+**Observe:** that file takes a server by command, not by URL. An entry carrying `url` is dropped
+silently, and what you get is a client starting with none of Prumo's tools and no error message
+saying why.
+
 ### Another client
 
 Any MCP-capable client works. What it needs to know is the transport and the address, and both come
