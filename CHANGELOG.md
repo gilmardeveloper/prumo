@@ -13,6 +13,15 @@ All notable changes to this project are documented here. The format follows
   false. It also missed the memory family, the inspection catalogue and documentation search
   entirely. Both languages now say what the code does, and the limitations state what extraction
   drops and what the local model does and does not do.
+- **The guide covers the clients that have no field for a URL.** Several take a command, a list of
+  arguments and an environment instead, and there is no way to guess that the thing to run is the
+  `mcp-remote` bridge, with the address, `--allow-http` and `sse-only` as separate arguments. The
+  guide now fills that form in field by field, and prints the default port instead of only pointing
+  at the screen that shows it.
+- **Token economy is stated as an objective, not left implied.** A 413-page specification costs
+  about 246 thousand tokens of extracted text and does not fit any window; searching for the passage
+  and distilling once are what make it usable. The README says it and the guide has a section on the
+  three habits that change the bill.
 - **A getting-started guide, in both languages.** From installing the plugin to the first answer
   with workspace context: turning on the IDE's MCP server, connecting Claude, Codex and Gemini,
   configuring the workspace, and a first-interaction prompt that makes a client discover the

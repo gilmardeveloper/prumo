@@ -44,9 +44,10 @@ Two sections of that screen matter:
   Stdio Config** buttons, which put the address and the shape that transport expects on your
   clipboard.
 
-**Observe:** the same screen shows the port the IDE published the server on. It belongs to the
-installation, not to the project, and it changes when more than one IDE is open — which is why this
-guide never writes a port number down: always use what the screen copies.
+**Observe:** the screen shows the port the IDE published the server on. The default is `64342`, so
+the SSE address reads `http://127.0.0.1:64342/sse`. The port belongs to the installation, not to the
+project, and it changes when more than one IDE is open — check the number on that screen before
+pasting it anywhere.
 
 ## 4 · Connect your AI client
 
@@ -109,6 +110,45 @@ Gemini reads `~/.gemini/settings.json`, or `.gemini/settings.json` at the projec
 `httpUrl` is for the HTTP Stream transport. If you copied the SSE configuration, the key is `url`
 instead of `httpUrl`.
 
+### A client that only takes a command
+
+Many clients have no field for a URL: they ask for a command to start, a list of arguments, the
+environment variables and a working directory. In those, the thing that talks to the IDE is the
+`mcp-remote` bridge, stdio on one side and SSE on the other. Fill it in like this:
+
+| Field | What to put in |
+|---|---|
+| Command to start | `npx` |
+| Arguments | one per field, in this order: `-y`, `mcp-remote`, `http://127.0.0.1:64342/sse`, `--allow-http`, `--transport`, `sse-only` |
+| Environment variables | nothing |
+| Environment variable forwarding | nothing |
+| Working directory | nothing |
+
+Replace the port with the one the IDE screen shows. `--allow-http` is there because the address is
+`http` and not `https` — nothing leaves your machine. `--transport sse-only` stops the bridge from
+trying HTTP Stream first and taking its time to fall back to SSE. Node has to be installed, since
+`npx` comes with it.
+
+In a client that takes JSON instead of fields, the same thing reads:
+
+```json
+{
+  "mcpServers": {
+    "prumo": {
+      "command": "npx",
+      "args": [
+        "-y",
+        "mcp-remote",
+        "http://127.0.0.1:64342/sse",
+        "--allow-http",
+        "--transport",
+        "sse-only"
+      ]
+    }
+  }
+}
+```
+
 ### Another client
 
 Any MCP-capable client works. What it needs to know is the transport and the address, and both come
@@ -168,6 +208,8 @@ Rules for the rest of the session:
   search before concluding there is nothing there.
 - If semanticAvailable comes back false, the search was by word only — try synonyms before giving
   up.
+- Never ask for a whole document: search for the passage and, if you need more, read its
+  neighbourhood from the line the answer gave you.
 - Call prumo_knowledge_recall before re-reading an expensive source, and store what you distil with
   prumo_knowledge_remember, always naming the source it came from.
 - A refusal from an excluded path or from policy is the boundary working, not an error: do not work
@@ -195,6 +237,28 @@ Ask the client, one sentence each:
 
 The **Activity** tab of the tool window shows the trail: one line per call, with the tool, the
 outcome and who called. Content that was read never appears there.
+
+## 8 · Spend fewer tokens
+
+Prumo also exists so that the answer fits. Context that does not fit the model's window does not
+help, and what does fit is paid for in tokens every new session.
+
+Three habits change the bill, and the prompt in step 6 already asks for them:
+
+- **Search for the passage before reading the document.** The eSocial manual runs to 413 pages,
+  about 246 thousand tokens of extracted text. The answer you want usually fits in three paragraphs,
+  and that is what `prumo_workspace_search_documentation` returns, with the coordinate to cite.
+- **Read the neighbourhood, not the file.** `prumo_workspace_read_documentation` and
+  `prumo_repository_read_file` paginate by line. In a binary format, neighbouring lines from one
+  origin come grouped into one range, so a coordinate never costs more than the text it
+  addresses.
+- **Do not distil twice.** What was expensive to understand goes into the memory with
+  `prumo_knowledge_remember` and comes back next session through `recall`, which returns the list
+  with provenance and freshness — the text only arrives when you ask for one record with `read`.
+
+The bigger waste is not in the call but in a boundary that is too wide: a repository that does not
+belong to the work, a build folder bound as documentation, pages nobody cites. A path excluded in
+step 5 is a token that never gets spent.
 
 ## When it does not work
 

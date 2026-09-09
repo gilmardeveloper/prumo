@@ -28,6 +28,8 @@ Um assistente de IA que ajuda num sistema real precisa de contexto. Hoje esse co
   auditoria, é trabalho que ninguém faz duas vezes.
 - **Trabalho com vários repositórios vaza.** Modernizar um sistema legado significa ler um
   repositório enquanto se escreve outro. A IDE conhece o projeto que você abriu, e nada além dele.
+- **Todo contexto é pago em token.** Um manual de 400 páginas não entra na janela do modelo, e o que
+  entra é relido do zero a cada sessão nova.
 
 ## O que o Prumo faz
 
@@ -47,6 +49,10 @@ documentação e quais bancos pertencem um ao outro, e o que é permitido dentro
   entram pela busca: o que volta é o trecho verbatim com a coordenada para citar — a página, a aba
   e a linha, o parágrafo, o slide. Com o modelo local instalado, a busca também acha por sentido, e
   a inferência acontece na sua máquina.
+- **Menos token por resposta.** Uma especificação de 413 páginas custa cerca de 246 mil tokens de
+  texto extraído, e o que se procura nela costuma caber em três parágrafos. O Prumo devolve o trecho
+  com a coordenada, e a memória da IA evita destilar de novo, na sessão seguinte, o que já custou
+  caro.
 - **Tudo é auditado, nada é copiado.** A trilha registra o que aconteceu — ferramenta, espaço de
   trabalho, banco, tipo do statement, contagem de linhas — e nunca o dado em si.
 - **Conhecimento de equipe que viaja.** Um **Prumo Pack** leva documentação, consultas salvas e
