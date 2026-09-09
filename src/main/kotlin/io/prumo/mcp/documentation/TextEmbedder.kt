@@ -12,6 +12,15 @@ import kotlin.math.sqrt
  * O que o embutidor faz é **ordenar**, nunca redigir: o vetor decide qual trecho aparece, e o trecho
  * devolvido continua sendo o texto verbatim da fonte.
  */
+/**
+ * Para que serve o texto que se vai vetorizar.
+ *
+ * Não é detalhe de implementação: o modelo desta família é treinado com o papel declarado no começo
+ * do texto, e trecho indexado e pergunta feita ocupam espaços diferentes. Quem chama diz o papel;
+ * como ele é escrito é problema de quem conhece o modelo.
+ */
+enum class TextRole { PASSAGE, QUERY }
+
 interface TextEmbedder {
 
     /** Quantas dimensões tem o vetor. Vetor de dimensão diferente não entra no mesmo índice. */
@@ -20,9 +29,10 @@ interface TextEmbedder {
     /**
      * Os vetores dos textos, na mesma ordem em que vieram.
      *
+     * @param role o papel de todos os textos deste lote.
      * @throws IllegalArgumentException quando a lista é vazia.
      */
-    fun embed(texts: List<String>): List<FloatArray>
+    fun embed(texts: List<String>, role: TextRole): List<FloatArray>
 }
 
 /**

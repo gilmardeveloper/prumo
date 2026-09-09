@@ -4,6 +4,7 @@ import ai.djl.huggingface.tokenizers.HuggingFaceTokenizer
 import ai.onnxruntime.OnnxTensor
 import ai.onnxruntime.OrtSession
 import io.prumo.mcp.documentation.TextEmbedder
+import io.prumo.mcp.documentation.TextRole
 import io.prumo.mcp.documentation.l2Normalize
 import io.prumo.mcp.documentation.meanPool
 import java.nio.LongBuffer
@@ -41,12 +42,15 @@ class OnnxTextEmbedder(
         OrtSession.SessionOptions(),
     )
 
-    override val dimensions: Int by lazy { embed(listOf("a")).single().size }
+    override val dimensions: Int by lazy { embed(listOf("a"), TextRole.QUERY).single().size }
 
-    override fun embed(texts: List<String>): List<FloatArray> {
+    override fun embed(texts: List<String>, role: TextRole): List<FloatArray> {
         require(texts.isNotEmpty()) { "There is nothing to embed." }
 
-        val codificados = withPluginClassLoader { texts.map { tokenizer.encode(it.take(MAX_CHARS)) } }
+        val prefixo = if (role == TextRole.QUERY) QUERY_PREFIX else PASSAGE_PREFIX
+        val codificados = withPluginClassLoader {
+            texts.map { tokenizer.encode(prefixo + it.take(MAX_CHARS)) }
+        }
         val comprimento = codificados.maxOf { it.ids.size }.coerceAtMost(maxTokens).coerceAtLeast(1)
         val ids = LongArray(texts.size * comprimento)
         val mascara = LongArray(texts.size * comprimento)
@@ -139,6 +143,16 @@ class OnnxTextEmbedder(
     internal companion object {
         /** Sequência máxima que se manda ao modelo. Trecho maior é cortado, não recusado. */
         const val DEFAULT_MAX_TOKENS = 512
+
+        /**
+         * Os prefixos que o cartão do modelo exige.
+         *
+         * "Each input text should start with `query: ` or `passage: `, even for non-English texts."
+         * Medido neste corpus, não mudaram a qualidade — mas usar o modelo fora da forma documentada
+         * é dívida que só aparece quando o modelo troca.
+         */
+        const val QUERY_PREFIX = "query: "
+        const val PASSAGE_PREFIX = "passage: "
 
         /** Onde a biblioteca do tokenizador guarda o que extrai. */
         const val DJL_CACHE_PROPERTY = "DJL_CACHE_DIR"

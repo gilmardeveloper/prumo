@@ -1,5 +1,6 @@
 package io.prumo.mcp.ide
 
+import io.prumo.mcp.documentation.TextRole
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertTrue
 import org.junit.jupiter.api.Assumptions.assumeTrue
@@ -26,8 +27,8 @@ class OnnxTextEmbedderTest {
     @Test
     fun `o mesmo texto devolve sempre o mesmo vetor`() {
         embutidor { embutidor ->
-            val primeiro = embutidor.embed(listOf("rubrica com incidência suspensa")).single()
-            val segundo = embutidor.embed(listOf("rubrica com incidência suspensa")).single()
+            val primeiro = embutidor.embed(listOf("rubrica com incidência suspensa"), TextRole.PASSAGE).single()
+            val segundo = embutidor.embed(listOf("rubrica com incidência suspensa"), TextRole.PASSAGE).single()
 
             assertTrue(primeiro.contentEquals(segundo), "o mesmo texto produziu vetores diferentes")
         }
@@ -43,6 +44,7 @@ class OnnxTextEmbedderTest {
                     "o servidor tem direito a adicional de insalubridade",
                     "o docker-compose sobe uma réplica na porta 3030",
                 ),
+                TextRole.PASSAGE,
             )
 
             val entreSinonimos = cosseno(vetores[0], vetores[1])
@@ -58,7 +60,7 @@ class OnnxTextEmbedderTest {
     @Test
     fun `o vetor sai normalizado e com a dimensao do modelo`() {
         embutidor { embutidor ->
-            val vetor = embutidor.embed(listOf("qualquer texto")).single()
+            val vetor = embutidor.embed(listOf("qualquer texto"), TextRole.PASSAGE).single()
 
             assertEquals(384, vetor.size, "dimensão inesperada para este modelo")
             assertEquals(1f, cosseno(vetor, vetor), 1e-5f)
@@ -69,8 +71,8 @@ class OnnxTextEmbedderTest {
     @Test
     fun `lote devolve na mesma ordem em que entrou`() {
         embutidor { embutidor ->
-            val separados = listOf("primeiro texto", "segundo texto").map { embutidor.embed(listOf(it)).single() }
-            val emLote = embutidor.embed(listOf("primeiro texto", "segundo texto"))
+            val separados = listOf("primeiro texto", "segundo texto").map { embutidor.embed(listOf(it), TextRole.PASSAGE).single() }
+            val emLote = embutidor.embed(listOf("primeiro texto", "segundo texto"), TextRole.PASSAGE)
 
             assertTrue(cosseno(separados[0], emLote[0]) > 0.99f, "o lote trocou a ordem ou mudou o resultado")
             assertTrue(cosseno(separados[1], emLote[1]) > 0.99f)
@@ -80,7 +82,7 @@ class OnnxTextEmbedderTest {
     @Test
     fun `texto muito maior que a janela nao quebra`() {
         embutidor { embutidor ->
-            val vetor = embutidor.embed(listOf("rubrica ".repeat(5_000))).single()
+            val vetor = embutidor.embed(listOf("rubrica ".repeat(5_000)), TextRole.PASSAGE).single()
 
             assertEquals(384, vetor.size)
         }
@@ -89,7 +91,7 @@ class OnnxTextEmbedderTest {
     @Test
     fun `lote vazio e recusado`() {
         embutidor { embutidor ->
-            assertTrue(runCatching { embutidor.embed(emptyList()) }.isFailure)
+            assertTrue(runCatching { embutidor.embed(emptyList(), TextRole.PASSAGE) }.isFailure)
         }
     }
 
@@ -106,7 +108,7 @@ class OnnxTextEmbedderTest {
         thread.contextClassLoader = ClassLoader.getPlatformClassLoader()
         try {
             embutidor { embutidor ->
-                assertEquals(384, embutidor.embed(listOf("rubrica")).single().size)
+                assertEquals(384, embutidor.embed(listOf("rubrica"), TextRole.PASSAGE).single().size)
             }
         } finally {
             thread.contextClassLoader = anterior
@@ -159,7 +161,7 @@ class OnnxTextEmbedderTest {
             )
             assertEquals(
                 384,
-                embutidor.embed(listOf("rubrica")).single().size,
+                embutidor.embed(listOf("rubrica"), TextRole.PASSAGE).single().size,
                 "o cache foi limpo mas o tokenizador não voltou a funcionar",
             )
         }
@@ -183,6 +185,21 @@ class OnnxTextEmbedderTest {
             } else {
                 System.setProperty(OnnxTextEmbedder.DJL_CACHE_PROPERTY, anterior)
             }
+        }
+    }
+
+    /**
+     * O papel não é enfeite: o modelo é treinado com ele no começo do texto, e o mesmo texto como
+     * trecho e como pergunta ocupa espaços diferentes.
+     */
+    @Test
+    fun `o mesmo texto como trecho e como pergunta da vetores diferentes`() {
+        embutidor { embutidor ->
+            val comoTrecho = embutidor.embed(listOf("adicional de insalubridade"), TextRole.PASSAGE).single()
+            val comoPergunta = embutidor.embed(listOf("adicional de insalubridade"), TextRole.QUERY).single()
+
+            assertTrue(!comoTrecho.contentEquals(comoPergunta), "o papel não chegou ao modelo")
+            assertTrue(cosseno(comoTrecho, comoPergunta) > 0.9f, "os dois deviam continuar falando do mesmo assunto")
         }
     }
 

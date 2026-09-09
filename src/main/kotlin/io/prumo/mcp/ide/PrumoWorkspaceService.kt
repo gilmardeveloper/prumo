@@ -13,6 +13,7 @@ import io.prumo.mcp.documentation.DocumentationSource
 import io.prumo.mcp.documentation.chunksOfSource
 import io.prumo.mcp.documentation.IndexedChunk
 import io.prumo.mcp.documentation.TextEmbedder
+import io.prumo.mcp.documentation.TextRole
 import io.prumo.mcp.documentation.signatureOfSource
 import io.prumo.mcp.platform.PrumoDirectories
 import io.prumo.mcp.platform.SystemEnvironmentProbe
@@ -166,7 +167,7 @@ class PrumoWorkspaceService {
         val embutidor = embedder() ?: return chunks
         return runCatching {
             chunks.chunked(EMBEDDING_BATCH).flatMap { lote ->
-                val vetores = embutidor.embed(lote.map { it.chunk.text })
+                val vetores = embutidor.embed(lote.map { it.chunk.text }, TextRole.PASSAGE)
                 lote.mapIndexed { indice, pedaco -> pedaco.copy(vector = vetores[indice]) }
             }
         }.getOrElse { falha ->
@@ -177,7 +178,7 @@ class PrumoWorkspaceService {
 
     /** O vetor da consulta, ou nulo quando não há modelo — a busca segue por palavra. */
     fun embedQuery(query: String): FloatArray? =
-        embedder()?.let { embutidor -> runCatching { embutidor.embed(listOf(query)).single() }.getOrNull() }
+        embedder()?.let { embutidor -> runCatching { embutidor.embed(listOf(query), TextRole.QUERY).single() }.getOrNull() }
 
     /** Se a fonte já está indexada e atualizada, sem indexar nada. */
     fun isIndexed(workspaceId: String, source: DocumentationSource): Boolean =
