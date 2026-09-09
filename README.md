@@ -28,6 +28,8 @@ Um assistente de IA que ajuda num sistema real precisa de contexto. Hoje esse co
   auditoria, é trabalho que ninguém faz duas vezes.
 - **Trabalho com vários repositórios vaza.** Modernizar um sistema legado significa ler um
   repositório enquanto se escreve outro. A IDE conhece o projeto que você abriu, e nada além dele.
+- **Todo contexto é pago em token.** Um manual de 400 páginas não entra na janela do modelo, e o que
+  entra é relido do zero a cada sessão nova.
 
 ## O que o Prumo faz
 
@@ -43,6 +45,14 @@ documentação e quais bancos pertencem um ao outro, e o que é permitido dentro
   barreira principal.
 - **Nada é escrito dentro dos seus repositórios.** Todo byte que o Prumo produz fica num diretório
   do sistema operacional, nunca no seu projeto.
+- **A documentação responde por passagem.** Especificação grande, PDF, Word, Excel e PowerPoint
+  entram pela busca: o que volta é o trecho verbatim com a coordenada para citar — a página, a aba
+  e a linha, o parágrafo, o slide. Com o modelo local instalado, a busca também acha por sentido, e
+  a inferência acontece na sua máquina.
+- **Menos token por resposta.** Uma especificação de 413 páginas custa cerca de 246 mil tokens de
+  texto extraído, e o que se procura nela costuma caber em três parágrafos. O Prumo devolve o trecho
+  com a coordenada, e a memória da IA evita destilar de novo, na sessão seguinte, o que já custou
+  caro.
 - **Tudo é auditado, nada é copiado.** A trilha registra o que aconteceu — ferramenta, espaço de
   trabalho, banco, tipo do statement, contagem de linhas — e nunca o dado em si.
 - **Conhecimento de equipe que viaja.** Um **Prumo Pack** leva documentação, consultas salvas e
@@ -83,9 +93,14 @@ Na IDE:
 O Prumo não sobe servidor próprio: ele contribui as ferramentas dele para o servidor MCP da própria
 IDE.
 
-1. **Settings → Tools → MCP Server**, marque a opção de habilitar e anote a porta.
-2. Aponte o seu cliente de IA para esse endereço. A IDE publica o servidor por SSE.
+1. **Settings → Tools → MCP Server**, marque a opção de habilitar.
+2. Aponte o seu cliente de IA para o servidor. A mesma tela auto-configura os clientes que ela
+   conhece e copia o endereço para os demais.
 3. Peça ao cliente a lista de ferramentas: as que começam com `prumo_` são as deste plugin.
+
+O passo a passo por cliente — Claude, Codex e Gemini —, a configuração do espaço de trabalho e o
+prompt que faz o cliente encontrar tudo já na primeira interação estão em
+[docs/getting-started.md](docs/getting-started.md).
 
 ## O seu primeiro espaço de trabalho
 
@@ -113,20 +128,22 @@ IA seguem sempre em inglês: são contrato lido por uma máquina, não texto de 
 
 ## As ferramentas MCP
 
-Vinte e cinco ferramentas, documentadas uma a uma em [docs/mcp-tools.md](docs/mcp-tools.md):
+Trinta e duas ferramentas, documentadas uma a uma em [docs/mcp-tools.md](docs/mcp-tools.md):
 
 | Grupo | O que responde |
 |---|---|
-| `prumo_workspace_*` | Qual é o espaço de trabalho atual, o que ele permite, o que pertence a ele, se está pronto |
+| `prumo_workspace_*` | Qual é o espaço de trabalho atual, o que ele permite, o que pertence a ele, se está pronto — e a passagem da documentação que responde à pergunta |
 | `prumo_repository_*` | Estado do Git, branch e diff; ler arquivo, buscar texto, listar estrutura — **inclusive de repositórios vinculados que não estão abertos na IDE** |
 | `prumo_ide_get_current_context` | Onde a pessoa está agora: arquivo, cursor, seleção, símbolos que a contêm, módulo |
+| `prumo_quality_list_inspections` | O que esta IDE sabe procurar: as inspeções registradas e habilitadas no perfil corrente |
 | `prumo_database_*` | Quais bancos existem, seus schemas e tabelas, e um statement de leitura por vez |
+| `prumo_knowledge_*` | A memória da IA: guardar o que foi destilado, procurar, ler e apagar, com procedência e veredicto de frescor |
 | `prumo_pack_*` | Packs instalados, o conhecimento deles, e o ciclo de autoria que um cliente de IA usa para propor novos |
 
-O Prumo não repete o que o servidor MCP da IDE já faz — busca de símbolo, inspeções, build, testes,
-refatoração, depurador. Ele acrescenta o que as ferramentas nativas não fazem: a fronteira do espaço
-de trabalho, repositórios que não são o projeto aberto, estado do Git, bancos isolados e
-conhecimento de equipe portátil.
+O Prumo não repete o que o servidor MCP da IDE já faz — busca de símbolo, inspeção sobre um arquivo,
+build, testes, refatoração, depurador. Ele acrescenta o que as ferramentas nativas não fazem: a
+fronteira do espaço de trabalho, repositórios que não são o projeto aberto, estado do Git, bancos
+isolados e conhecimento de equipe portátil.
 
 ## Segurança
 
@@ -147,17 +164,20 @@ protege. Em resumo:
 
 Cada um desses pontos é um teste nomeado na bateria de segurança: `./gradlew test -PsecurityOnly`.
 
-## Limitações honestas deste MVP
+## Limitações honestas
 
-- **Só PostgreSQL.** A arquitetura aceita outros bancos sem reescrita; o MVP entrega um.
+- **Só PostgreSQL.** A arquitetura aceita outros bancos sem reescrita; o produto entrega um.
 - **Análise estática é detecção de sinal, não prova.** O classificador de risco encontra padrões
   destrutivos conhecidos. Um script escrito para esconder o que faz passa. As barreiras reais são as
   capacidades concedidas, o confinamento e a sua leitura da tela de consentimento.
 - **Confinamento de script não é sandbox do sistema operacional.** O diretório de trabalho e o
   ambiente são controlados; o processo ainda roda com o seu usuário. Um comando com caminho absoluto
   alcança o disco inteiro.
-- **PDF é catalogado, não extraído.** O Prumo avisa ao cliente que o documento existe e não finge
-  lê-lo.
+- **Formato binário é extraído, não interpretado.** De PDF, Word, Excel e PowerPoint sai o texto e
+  nada além dele: estilo, tema, propriedade do documento, relação e desenho ficam no arquivo. PDF
+  digitalizado, cujas páginas são imagem, é recusado em vez de devolvido vazio.
+- **O modelo local ordena, nunca redige.** Ele decide qual trecho aparece; o trecho continua sendo
+  o texto verbatim do documento. Sem o modelo, a busca é só por palavra, e a resposta declara isso.
 - **Validado primeiro em Windows.** A paridade com Linux é requisito de projeto, coberta por testes
   e pela integração contínua, mas o roteiro de ponta a ponta foi executado em Windows.
 - **Interface em português e inglês.** A superfície MCP fica em inglês de propósito: nome e

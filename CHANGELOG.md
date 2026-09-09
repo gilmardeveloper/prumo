@@ -6,6 +6,39 @@ All notable changes to this project are documented here. The format follows
 
 ## [Unreleased]
 
+## [0.11.1] - 2026-09-09
+
+### Documentation
+
+- **The README described a product that no longer exists.** It announced twenty-five tools when
+  thirty-two are registered, and stated that PDF is catalogued and not extracted — which 0.9.0 made
+  false. It also missed the memory family, the inspection catalogue and documentation search
+  entirely. Both languages now say what the code does, and the limitations state what extraction
+  drops and what the local model does and does not do.
+- **The demonstration stopped calling itself the MVP acceptance script.** The MVP was signed off,
+  and that document is now what it actually is: the complete walk through the product, pointing new
+  readers at the getting-started guide first.
+- **Claude Code and Claude Desktop are told apart.** They share an application and share nothing of
+  their configuration: the Code tab reads what the `claude` command writes, takes SSE directly and
+  needs no bridge, while the desktop app takes neither.
+- **The guide says that Claude Desktop's custom connector is not the way in.** That screen takes a
+  remote `https` address and refuses `http`, localhost included, so the file plus the bridge is the
+  only route — and an entry with `url` in that file is dropped without a word.
+- **The guide covers the clients that have no field for a URL.** Several take a command, a list of
+  arguments and an environment instead, and there is no way to guess that the thing to run is the
+  `mcp-remote` bridge, with the address, `--allow-http` and `sse-only` as separate arguments. The
+  guide now fills that form in field by field, and prints the default port instead of only pointing
+  at the screen that shows it.
+- **Token economy is stated as an objective, not left implied.** A 413-page specification costs
+  about 246 thousand tokens of extracted text and does not fit any window; searching for the passage
+  and distilling once are what make it usable. The README says it and the guide has a section on the
+  three habits that change the bill.
+- **A getting-started guide, in both languages.** From installing the plugin to the first answer
+  with workspace context: turning on the IDE's MCP server, connecting Claude, Codex and Gemini,
+  configuring the workspace, and a first-interaction prompt that makes a client discover the
+  boundary before it starts working. No port number is written down anywhere in it — the address
+  belongs to the installation, and the IDE screen is what copies it.
+
 ## [0.11.0] - 2026-09-08
 
 ### Added
@@ -939,12 +972,13 @@ full cycle with a real AI client — are still open.
 - Repository role and workspace type explain themselves in the dialog: both describe the work to the
   AI client and enforce nothing, which access modes and policies do.
 
-[Unreleased]: https://github.com/gilmardeveloper/prumo/compare/v0.11.0...HEAD
-[0.11.0]: https://github.com/gilmardeveloper/prumo/compare/v0.10.0...v0.11.0
-[0.10.0]: https://github.com/gilmardeveloper/prumo/compare/v0.9.0...v0.10.0
-[0.9.0]: https://github.com/gilmardeveloper/prumo/compare/v0.8.1...v0.9.0
-[0.8.1]: https://github.com/gilmardeveloper/prumo/compare/v0.8.0...v0.8.1
-[0.8.0]: https://github.com/gilmardeveloper/prumo/compare/141ca9dbe62d55f9b1402bb38d3c55776b589e30...v0.8.0
+[Unreleased]: https://github.com/gilmardeveloper/prumo/compare/803354b40448a846b8816f88e6b0774355b487f7...HEAD
+[0.11.1]: https://github.com/gilmardeveloper/prumo/compare/be8bc65baeb5f0da9ddef08d567197619ada0b6c...803354b40448a846b8816f88e6b0774355b487f7
+[0.11.0]: https://github.com/gilmardeveloper/prumo/compare/7bcb8899af0702b205b8d3beea1d532b0e757aa7...be8bc65baeb5f0da9ddef08d567197619ada0b6c
+[0.10.0]: https://github.com/gilmardeveloper/prumo/compare/89bc9990733c6091fe053590791392508a3cf2b7...7bcb8899af0702b205b8d3beea1d532b0e757aa7
+[0.9.0]: https://github.com/gilmardeveloper/prumo/compare/43b535a863e0b66817bd07d4387461b2bc15baca...89bc9990733c6091fe053590791392508a3cf2b7
+[0.8.1]: https://github.com/gilmardeveloper/prumo/compare/dffa50fcd5877e9225589c5bcc8e7d0cf97261ad...43b535a863e0b66817bd07d4387461b2bc15baca
+[0.8.0]: https://github.com/gilmardeveloper/prumo/compare/141ca9dbe62d55f9b1402bb38d3c55776b589e30...dffa50fcd5877e9225589c5bcc8e7d0cf97261ad
 [0.7.0]: https://github.com/gilmardeveloper/prumo/compare/v0.6.2...141ca9dbe62d55f9b1402bb38d3c55776b589e30
 [0.6.2]: https://github.com/gilmardeveloper/prumo/compare/717f4374c7ead2329efc531d0e8dbc73e4a93211...v0.6.2
 [0.6.1]: https://github.com/gilmardeveloper/prumo/compare/f4ba8907b60731281af201f65526f623c40e9668...717f4374c7ead2329efc531d0e8dbc73e4a93211

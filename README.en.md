@@ -28,6 +28,8 @@ An AI client that helps with a real codebase needs context. Today that context i
   work that nobody does twice.
 - **Multi-repository work leaks.** Modernizing a legacy system means reading one repository while
   writing another. The IDE knows about the project you opened, and nothing else.
+- **All context is paid for in tokens.** A 400-page manual does not fit the model's window, and what
+  does fit is read again from scratch every new session.
 
 ## What Prumo does
 
@@ -42,6 +44,14 @@ documentation and which databases belong together, and what is allowed inside th
   classifier — and the read-only credential you configure remains the real barrier.
 - **Nothing is written inside your repositories.** Every byte Prumo produces lives in an operating
   system directory, never in your project.
+- **Documentation answers with the passage.** A large specification, PDF, Word, Excel and PowerPoint
+  come in through search: what comes back is the verbatim passage with the coordinate to cite — the
+  page, the sheet and row, the paragraph, the slide. With the local model installed, search also
+  finds by meaning, and the inference happens on your machine.
+- **Fewer tokens per answer.** A 413-page specification costs about 246 thousand tokens of extracted
+  text, and what you are looking for in it usually fits in three paragraphs. Prumo returns the
+  passage with its coordinate, and the AI memory keeps the next session from distilling again what
+  was expensive the first time.
 - **Everything is audited, nothing is copied.** The trail records what happened — tool, workspace,
   data source, statement type, row count — and never the data itself.
 - **Team knowledge that travels.** A **Prumo Pack** carries documentation, saved queries and scripts
@@ -69,9 +79,13 @@ cd prumo
 The plugin lands in `build/distributions/`. In the IDE: **Settings → Plugins → ⚙ → Install Plugin
 from Disk…**, pick the ZIP, restart.
 
-**Enable the MCP server** in **Settings → Tools → MCP Server**, and point your AI client at it. The
-IDE exposes the server over SSE; Prumo contributes its tools to that same server instead of running
-one of its own.
+**Enable the MCP server** in **Settings → Tools → MCP Server**, and point your AI client at it. That
+same screen auto-configures the clients it knows and copies the address for the rest. Prumo
+contributes its tools to that server instead of running one of its own.
+
+The step by step for each client — Claude, Codex and Gemini —, the workspace setup and the prompt
+that makes a client find everything on the first interaction are in
+[docs/getting-started.en.md](docs/getting-started.en.md).
 
 ## Your first workspace
 
@@ -92,20 +106,22 @@ so the boundary is visible while you work, not buried in a settings file.
 
 ## The MCP surface
 
-Twenty-five tools, documented one by one in [docs/mcp-tools.en.md](docs/mcp-tools.en.md):
+Thirty-two tools, documented one by one in [docs/mcp-tools.en.md](docs/mcp-tools.en.md):
 
 | Group | What it answers |
 |---|---|
-| `prumo_workspace_*` | What is the current workspace, what does it allow, what belongs to it, is it ready |
+| `prumo_workspace_*` | What is the current workspace, what does it allow, what belongs to it, is it ready — and the documentation passage that answers the question |
 | `prumo_repository_*` | Git status, branch and diff; read a file, search text, list structure — **including repositories that are bound but not open in the IDE** |
 | `prumo_ide_get_current_context` | Where the developer is right now: file, caret, selection, enclosing symbols, module |
+| `prumo_quality_list_inspections` | What this IDE knows how to look for: the inspections registered and enabled in the current profile |
 | `prumo_database_*` | Which databases, their schemas and tables, and one read-only statement at a time |
+| `prumo_knowledge_*` | The AI memory: store what was distilled, search, read and forget, with provenance and a freshness verdict |
 | `prumo_pack_*` | Installed packs, their knowledge, and the authoring cycle an AI client uses to propose new ones |
 
-Prumo does not duplicate what the IDE's own MCP server already does — symbol search, inspections,
-build, tests, refactoring, debugger. It adds what the native tools cannot: the workspace boundary,
-repositories that are not the open project, Git state, isolated databases and portable team
-knowledge.
+Prumo does not duplicate what the IDE's own MCP server already does — symbol search, inspecting a
+file, build, tests, refactoring, debugger. It adds what the native tools cannot: the workspace
+boundary, repositories that are not the open project, Git state, isolated databases and portable
+team knowledge.
 
 ## Security
 
@@ -125,16 +141,21 @@ Prumo does **not** protect against. In short:
 
 Every one of these is a named test in the security suite: `./gradlew test -PsecurityOnly`.
 
-## Honest limitations of this MVP
+## Honest limitations
 
-- **PostgreSQL only.** The architecture accepts other engines without a rewrite; the MVP ships one.
+- **PostgreSQL only.** The architecture accepts other engines without a rewrite; the product ships
+  one.
 - **Static analysis is signal detection, not proof.** The risk classifier finds known destructive
   patterns. A script written to hide what it does can pass. The real barriers are the granted
   capabilities, the confinement and your own reading of the consent screen.
 - **Script confinement is not an OS sandbox.** The working directory and the environment are
   controlled; the process still runs as your user. A command with an absolute path reaches the disk.
-- **PDF is catalogued, not extracted.** Prumo tells the client the document exists and does not
-  pretend to read it.
+- **Binary formats are extracted, not interpreted.** From PDF, Word, Excel and PowerPoint comes the
+  text and nothing else: style, theme, document properties, relationships and drawings stay in the
+  file. A scanned PDF, whose pages are images, is refused rather than returned empty.
+- **The local model ranks, it never writes.** It decides which passage shows up; the passage is
+  still the verbatim text of the document. Without it, search is by word only, and the answer says
+  so.
 - **Validated on Windows first.** Linux parity is a design requirement and is covered by tests and
   by CI, but the end-to-end script was run on Windows.
 - **Interface in English and Brazilian Portuguese.** It follows the IDE language, and
@@ -149,9 +170,9 @@ registry, richer pack tooling. Nothing in this list is half-built in the codebas
 
 ## Trying the whole thing
 
-[docs/demo.en.md](docs/demo.en.md) walks the complete cycle end to end — workspace, boundary, database,
-a pack written by an AI client and installed by a human — with what to observe at each step. It is
-the script that decides whether this MVP is done.
+[docs/demo.en.md](docs/demo.en.md) walks the complete cycle end to end — workspace, boundary,
+database, a pack written by an AI client and installed by a human — with what to observe at each
+step.
 
 ## Contributing
 
