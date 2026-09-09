@@ -122,11 +122,12 @@ class WorkspaceToolset : McpToolset {
                     budgetNanos = INDEXING_BUDGET_NANOS,
                 )
             }
+            val vetor = withContext(Dispatchers.IO) { service.embedQuery(query) }
             val hits = withContext(Dispatchers.IO) {
                 service.documentIndex.search(
                     workspaceId = call.context.workspace.id,
                     query = query,
-                    vector = null,
+                    vector = vetor,
                     maxResults = maxResults.coerceIn(1, MAX_SEARCH_RESULTS),
                 )
             }
@@ -145,7 +146,7 @@ class WorkspaceToolset : McpToolset {
                         semantic = it.semantic,
                     )
                 },
-                semanticAvailable = false,
+                semanticAvailable = vetor != null,
                 searchedSources = sources.size,
                 pendingSources = pendentes,
             )

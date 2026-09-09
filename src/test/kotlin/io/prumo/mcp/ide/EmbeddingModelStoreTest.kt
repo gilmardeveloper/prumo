@@ -44,7 +44,8 @@ class EmbeddingModelStoreTest {
         val estado = store.install(descritor())
 
         assertTrue(estado.installed)
-        assertEquals(conteudo.size.toLong(), estado.sizeBytes)
+        assertEquals(conteudo.size.toLong() * 2, estado.sizeBytes, "o tamanho soma modelo e tokenizador")
+        assertTrue(estado.tokenizerPath!!.startsWith(root.resolve("cache")), estado.tokenizerPath.toString())
         assertTrue(estado.path!!.startsWith(root.resolve("cache")), estado.path.toString())
     }
 
@@ -80,7 +81,7 @@ class EmbeddingModelStoreTest {
         store.install(descritor())
         store.install(descritor())
 
-        assertEquals(1, buscas)
+        assertEquals(2, buscas, "cada arquivo é buscado uma vez, e nenhum é buscado duas")
     }
 
     @Test
@@ -110,6 +111,9 @@ class EmbeddingModelStoreTest {
         uri = URI("https://exemplo.invalido/modelo.onnx"),
         sha256 = sha256,
         sizeBytes = conteudo.size.toLong(),
+        tokenizerUri = URI("https://exemplo.invalido/tokenizer.json"),
+        tokenizerSha256 = resumoDe(conteudo),
+        tokenizerSizeBytes = conteudo.size.toLong(),
     )
 
     private fun resumoDe(bytes: ByteArray): String =
