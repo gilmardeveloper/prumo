@@ -6,6 +6,19 @@ All notable changes to this project are documented here. The format follows
 
 ## [Unreleased]
 
+### Documentation
+
+- **The README described a product that no longer exists.** It announced twenty-five tools when
+  thirty-two are registered, and stated that PDF is catalogued and not extracted — which 0.9.0 made
+  false. It also missed the memory family, the inspection catalogue and documentation search
+  entirely. Both languages now say what the code does, and the limitations state what extraction
+  drops and what the local model does and does not do.
+- **A getting-started guide, in both languages.** From installing the plugin to the first answer
+  with workspace context: turning on the IDE's MCP server, connecting Claude, Codex and Gemini,
+  configuring the workspace, and a first-interaction prompt that makes a client discover the
+  boundary before it starts working. No port number is written down anywhere in it — the address
+  belongs to the installation, and the IDE screen is what copies it.
+
 ## [0.11.0] - 2026-09-08
 
 ### Added
