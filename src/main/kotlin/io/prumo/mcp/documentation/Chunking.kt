@@ -79,8 +79,14 @@ fun chunksOf(
     return chunks
 }
 
-/** Tamanho alvo de um pedaço. */
-const val DEFAULT_MAX_CHARS = 1_200
+/**
+ * Tamanho alvo de um pedaço.
+ *
+ * Medido sobre o MOS do eSocial, com 20 perguntas em linguagem natural: 400 caracteres deu 9 acertos
+ * em 20, 800 deu 13, 1.200 deu 11 e 2.000 deu 12. É a alavanca de maior efeito medido da família —
+ * maior que trocar o modelo por um 2,4 vezes maior, que piorou.
+ */
+const val DEFAULT_MAX_CHARS = 800
 
 /** Quanto do pedaço anterior reaparece no seguinte. */
-const val DEFAULT_OVERLAP_CHARS = 150
+const val DEFAULT_OVERLAP_CHARS = 100

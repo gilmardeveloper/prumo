@@ -79,6 +79,31 @@ class DocumentationIndexerTest {
         assertTrue(pedacos.isEmpty())
     }
 
+    /**
+     * Sem a receita na assinatura, mudar o corte ou o prefixo deixaria o acervo metade na receita
+     * velha e metade na nova, e a ordem devolvida não teria sentido.
+     */
+    @Test
+    fun `a assinatura carrega a receita de indexacao`(@TempDir root: Path) {
+        val arquivo = root.resolve("regras.md")
+        Files.writeString(arquivo, "conteudo")
+
+        val assinatura = signatureOfSource(fonte("regras", arquivo))
+
+        assertTrue(assinatura.startsWith(INDEX_RECIPE), assinatura)
+    }
+
+    @Test
+    fun `a assinatura muda quando o arquivo muda`(@TempDir root: Path) {
+        val arquivo = root.resolve("regras.md")
+        Files.writeString(arquivo, "conteudo")
+        val antes = signatureOfSource(fonte("regras", arquivo))
+
+        Files.writeString(arquivo, "conteudo bem maior do que era antes")
+
+        assertTrue(antes != signatureOfSource(fonte("regras", arquivo)))
+    }
+
     private fun leitor(): (Path) -> ExtractedDocument = { arquivo ->
         ExtractedDocument(
             listOf(ExtractedLine(SourceCoordinate.Paragraph(1), "texto de ${arquivo.fileName}")),

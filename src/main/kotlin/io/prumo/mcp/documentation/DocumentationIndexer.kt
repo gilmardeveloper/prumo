@@ -43,15 +43,26 @@ private fun filesOf(root: Path): List<Path> = when {
 /**
  * A assinatura de uma fonte: o que muda quando algum arquivo dela muda.
  *
- * Junta caminho, tamanho e data de cada arquivo legível. Não abre arquivo nenhum, porque isso roda a
- * cada busca; o resumo do conteúdo fica para o cache de extração, que é quem decide se o texto
- * guardado ainda vale.
+ * Junta caminho, tamanho e data de cada arquivo legível, e a versão da receita de indexação. Não
+ * abre arquivo nenhum, porque isso roda a cada busca; o resumo do conteúdo fica para o cache de
+ * extração, que é quem decide se o texto guardado ainda vale.
+ *
+ * A receita entra na assinatura porque mudar o corte, o prefixo ou o modelo muda o vetor: sem isso, o
+ * acervo ficaria metade na receita velha e metade na nova, e a ordem devolvida não teria sentido.
  */
 fun signatureOfSource(source: DocumentationSource): String {
-    val root = runCatching { Path.of(source.location) }.getOrNull() ?: return "ausente"
-    return filesOf(root).joinToString("|") { file ->
+    val root = runCatching { Path.of(source.location) }.getOrNull() ?: return INDEX_RECIPE + ":ausente"
+    return INDEX_RECIPE + ":" + filesOf(root).joinToString("|") { file ->
         val tamanho = runCatching { Files.size(file) }.getOrDefault(-1)
         val data = runCatching { Files.getLastModifiedTime(file).toMillis() }.getOrDefault(-1)
         "$file:$tamanho:$data"
     }
 }
+
+/**
+ * A versão da receita de indexação.
+ *
+ * Sobe quando muda qualquer coisa que altere o vetor de um trecho já indexado: o tamanho do corte, o
+ * prefixo do modelo ou o próprio modelo.
+ */
+const val INDEX_RECIPE = "r2"
