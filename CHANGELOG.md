@@ -6,6 +6,43 @@ All notable changes to this project are documented here. The format follows
 
 ## [Unreleased]
 
+## [0.11.0] - 2026-09-08
+
+### Added
+
+- **Documentation search now understands what is being asked.** Ask "how does the employee announce
+  they are leaving" and the answer comes back with the passage on termination pay, sharing not one
+  word with the question. The model runs on this machine: the developer downloads it once from the
+  Prumo window — about 130 MB — and can remove it from the same place. Nothing written leaves the
+  machine, and after the download there is no network. **The model ranks, it never writes**: what
+  comes back is still the verbatim text of the document, with the page to cite. Without the model,
+  search keeps working by word and the answer says so, which changes what finding nothing means.
+- **`prumo_diagnostics` says whether the local inference engine loaded**, so a client can tell a
+  product that has the feature from one that does not.
+
+### Changed
+
+- **Passages are cut at 800 characters instead of 1,200.** Measured over the eSocial MOS with twenty
+  natural-language questions: 400 characters scored 9 hits out of 20, 800 scored 13, 1,200 scored 11
+  and 2,000 scored 12. Doubling the model, by contrast, scored one hit worse — so the cut is the
+  lever, not the model.
+- **The two halves of the search are now fused by rank, not interleaved.** Their scores are not
+  comparable — one is BM25, the other vector distance — so what decides is how well each passage
+  places in each list, and a passage both halves point at outranks one that leads a single list.
+- **Text now reaches the model with its role declared**, `passage:` or `query:`, which is the usage
+  the model documents. Measured neutral on this corpus; using a model outside its documented form is
+  debt that only surfaces when the model changes.
+- **Indexing carries a recipe version.** Changing the cut, the prefix or the model invalidates the
+  index on its own — half the shelf on the old recipe and half on the new returns an order that means
+  nothing.
+
+### Fixed
+
+- **A documentation source detached from the workspace kept answering searches.** The index lives in
+  memory and holds what was indexed at some point; nothing consulted what the workspace declares
+  now. Search is now restricted to the sources currently attached, in both halves — by word and by
+  vector — and an empty list returns nothing rather than everything.
+
 ## [0.10.0] - 2026-09-08
 
 ### Changed
@@ -902,7 +939,8 @@ full cycle with a real AI client — are still open.
 - Repository role and workspace type explain themselves in the dialog: both describe the work to the
   AI client and enforce nothing, which access modes and policies do.
 
-[Unreleased]: https://github.com/gilmardeveloper/prumo/compare/v0.10.0...HEAD
+[Unreleased]: https://github.com/gilmardeveloper/prumo/compare/v0.11.0...HEAD
+[0.11.0]: https://github.com/gilmardeveloper/prumo/compare/v0.10.0...v0.11.0
 [0.10.0]: https://github.com/gilmardeveloper/prumo/compare/v0.9.0...v0.10.0
 [0.9.0]: https://github.com/gilmardeveloper/prumo/compare/v0.8.1...v0.9.0
 [0.8.1]: https://github.com/gilmardeveloper/prumo/compare/v0.8.0...v0.8.1
