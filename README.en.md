@@ -28,6 +28,8 @@ An AI client that helps with a real codebase needs context. Today that context i
   work that nobody does twice.
 - **Multi-repository work leaks.** Modernizing a legacy system means reading one repository while
   writing another. The IDE knows about the project you opened, and nothing else.
+- **All context is paid for in tokens.** A 400-page manual does not fit the model's window, and what
+  does fit is read again from scratch every new session.
 
 ## What Prumo does
 
@@ -46,6 +48,10 @@ documentation and which databases belong together, and what is allowed inside th
   come in through search: what comes back is the verbatim passage with the coordinate to cite — the
   page, the sheet and row, the paragraph, the slide. With the local model installed, search also
   finds by meaning, and the inference happens on your machine.
+- **Fewer tokens per answer.** A 413-page specification costs about 246 thousand tokens of extracted
+  text, and what you are looking for in it usually fits in three paragraphs. Prumo returns the
+  passage with its coordinate, and the AI memory keeps the next session from distilling again what
+  was expensive the first time.
 - **Everything is audited, nothing is copied.** The trail records what happened — tool, workspace,
   data source, statement type, row count — and never the data itself.
 - **Team knowledge that travels.** A **Prumo Pack** carries documentation, saved queries and scripts

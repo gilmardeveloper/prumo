@@ -45,9 +45,10 @@ A tela tem duas seções que interessam:
   **Copy Stdio Config**, que copiam para a área de transferência o endereço e o formato que aquele
   transporte espera.
 
-**Observe:** a mesma tela mostra a porta em que a IDE publicou o servidor. Ela pertence à
-instalação, não ao projeto, e muda quando há mais de uma IDE aberta — por isso este guia nunca
-escreve um número de porta: use sempre o que a tela copia.
+**Observe:** a tela mostra a porta em que a IDE publicou o servidor. O padrão é a `64342`, e o
+endereço do transporte SSE fica `http://127.0.0.1:64342/sse`. A porta pertence à instalação, não ao
+projeto, e muda quando há mais de uma IDE aberta — confira o número na tela antes de colá-lo em
+qualquer lugar.
 
 ## 4 · Conectar o seu cliente de IA
 
@@ -110,6 +111,45 @@ O Gemini lê `~/.gemini/settings.json`, ou `.gemini/settings.json` na raiz do pr
 `httpUrl` é para o transporte de HTTP Stream. Se você copiou a configuração SSE, a chave é `url` no
 lugar de `httpUrl`.
 
+### Cliente que só aceita comando
+
+Boa parte dos clientes não tem campo para URL: pede um comando para iniciar, uma lista de
+argumentos, as variáveis de ambiente e o diretório de trabalho. Nesses, quem conversa com a IDE é a
+ponte `mcp-remote`, que fala stdio de um lado e SSE do outro. Preencha assim:
+
+| Campo | O que preencher |
+|---|---|
+| Comando para iniciar | `npx` |
+| Argumentos | um por campo, nesta ordem: `-y`, `mcp-remote`, `http://127.0.0.1:64342/sse`, `--allow-http`, `--transport`, `sse-only` |
+| Variáveis do ambiente | nada |
+| Encaminhamento de variáveis do ambiente | nada |
+| Diretório de trabalho | nada |
+
+Troque a porta pela que a tela da IDE mostra. `--allow-http` existe porque o endereço é `http` e não
+`https` — nada sai da sua máquina. `--transport sse-only` evita que a ponte tente primeiro o
+transporte de HTTP Stream e demore a cair para o SSE. É preciso ter o Node instalado, porque o `npx`
+vem com ele.
+
+No cliente que aceita JSON em vez de campos, o mesmo fica assim:
+
+```json
+{
+  "mcpServers": {
+    "prumo": {
+      "command": "npx",
+      "args": [
+        "-y",
+        "mcp-remote",
+        "http://127.0.0.1:64342/sse",
+        "--allow-http",
+        "--transport",
+        "sse-only"
+      ]
+    }
+  }
+}
+```
+
 ### Outro cliente
 
 Qualquer cliente que fale MCP serve. O que ele precisa saber é o transporte e o endereço — os dois
@@ -169,6 +209,8 @@ Regras para o resto da sessão:
 - Se essa busca devolver pendingSources maior que zero, o acervo ainda está sendo indexado: repita a
   busca antes de concluir que não há nada.
 - Se semanticAvailable vier falso, a busca foi só por palavra — tente sinônimos antes de desistir.
+- Não peça documento inteiro: procure a passagem e, se precisar de mais, leia a vizinhança pela
+  linha que a resposta indicou.
 - Consulte prumo_knowledge_recall antes de reler fonte cara, e grave com prumo_knowledge_remember o
   que você destilar, sempre nomeando a fonte de onde veio.
 - Recusa por caminho excluído ou por política é a fronteira funcionando, não erro: não contorne, não
@@ -196,6 +238,27 @@ Peça ao cliente, em uma frase cada:
 
 A aba **Atividade** da janela mostra a trilha: uma linha por chamada, com a ferramenta, o desfecho e
 quem chamou. Conteúdo lido nunca entra ali.
+
+## 8 · Gastar menos token
+
+O Prumo existe também para a resposta caber. Contexto que não entra na janela do modelo não ajuda, e
+o que entra é pago em token a cada sessão nova.
+
+Três hábitos mudam a conta, e o prompt do passo 6 já os pede:
+
+- **Procure a passagem antes de ler o documento.** O manual do eSocial tem 413 páginas, cerca de 246
+  mil tokens de texto extraído. A resposta que interessa costuma caber em três parágrafos, e é isso
+  que `prumo_workspace_search_documentation` devolve, com a coordenada para citar.
+- **Leia a vizinhança, não o arquivo.** `prumo_workspace_read_documentation` e
+  `prumo_repository_read_file` paginam por linha. Em formato binário, linhas vizinhas de mesma
+  origem vêm agrupadas numa faixa só, para endereçar o trecho não custar mais que o trecho.
+- **Não destile duas vezes.** O que custou caro para entender vai para a memória com
+  `prumo_knowledge_remember` e volta na sessão seguinte pelo `recall`, que devolve a lista com
+  procedência e frescor — o texto só vem quando você pede um registro pelo `read`.
+
+O desperdício maior não está na chamada, e sim na fronteira grande demais: repositório que não
+pertence ao trabalho, pasta de build vinculada, documentação que ninguém cita. Caminho excluído no
+passo 5 é token que nunca chega a ser gasto.
 
 ## Quando não funciona
 
