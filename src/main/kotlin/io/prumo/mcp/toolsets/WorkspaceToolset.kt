@@ -126,6 +126,7 @@ class WorkspaceToolset : McpToolset {
             val hits = withContext(Dispatchers.IO) {
                 service.documentIndex.search(
                     workspaceId = call.context.workspace.id,
+                    sources = sources.map { it.id },
                     query = query,
                     vector = vetor,
                     maxResults = maxResults.coerceIn(1, MAX_SEARCH_RESULTS),

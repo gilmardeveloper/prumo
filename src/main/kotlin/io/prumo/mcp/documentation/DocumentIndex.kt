@@ -74,12 +74,21 @@ interface DocumentIndex {
      * Os trechos que respondem à consulta, do mais forte para o menos.
      *
      * @param workspaceId o workspace que perguntou. Trecho de outro workspace nunca é devolvido.
+     * @param sources as fontes que o workspace declara **agora**. O índice guarda o que foi indexado
+     *   um dia; quem decide o que ainda vale é o workspace, e fonte que saiu dele não volta pela
+     *   busca. Lista vazia devolve vazio, e não tudo.
      * @param query o texto procurado, como o cliente o escreveu.
      * @param vector a consulta em forma vetorial, ou nulo quando não há modelo — a busca continua
      *   funcionando por palavra.
      * @param maxResults quantos trechos devolver no máximo.
      */
-    fun search(workspaceId: String, query: String, vector: FloatArray?, maxResults: Int): List<DocumentHit>
+    fun search(
+        workspaceId: String,
+        sources: Collection<String>,
+        query: String,
+        vector: FloatArray?,
+        maxResults: Int,
+    ): List<DocumentHit>
 
     /** Quantos pedaços estão indexados agora, somando todos os workspaces. */
     fun size(): Int

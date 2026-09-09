@@ -481,6 +481,10 @@ class ToolDescriptionTest {
             "a descrição promete busca por sentido, e a consulta nunca vira vetor",
         )
         assertTrue(
+            fonteDaBusca.contains("sources = sources.map { it.id }"),
+            "a busca não restringe às fontes que o workspace declara agora, e devolveria fonte desanexada",
+        )
+        assertTrue(
             busca.description.contains("prumo_workspace_read_documentation"),
             "a busca não diz como ler em volta do trecho",
         )

@@ -17,12 +17,15 @@ class LuceneDocumentIndexTest {
 
     private val WORKSPACE = "folha"
 
+    /** Todas as fontes que os testes usam, como se o workspace as declarasse. */
+    private val TODAS = listOf("mos", "anexo", "confidencial", "manual", "docs")
+
     @Test
     fun `acha por palavra, e devolve a coordenada para citar`() {
         indice { indice ->
             indice.replaceSource(WORKSPACE, "mos", listOf(trecho("mos", "regras.pdf", 12, "A rubrica 662 tem teto proprio")))
 
-            val hits = indice.search(WORKSPACE, "rubrica", vector = null, maxResults = 5)
+            val hits = indice.search(WORKSPACE, TODAS, "rubrica", vector = null, maxResults = 5)
 
             assertEquals(1, hits.size)
             assertEquals("page 12", hits.single().coordinate)
@@ -43,7 +46,7 @@ class LuceneDocumentIndexTest {
                 ),
             )
 
-            val hits = indice.search(WORKSPACE, "servidor", vector = floatArrayOf(0.99f, 0.01f), maxResults = 1)
+            val hits = indice.search(WORKSPACE, TODAS, "servidor", vector = floatArrayOf(0.99f, 0.01f), maxResults = 1)
 
             assertEquals("page 3", hits.single().coordinate)
             assertTrue(hits.single().semantic, "o trecho veio por vetor e não está marcado como tal")
@@ -55,7 +58,7 @@ class LuceneDocumentIndexTest {
         indice { indice ->
             indice.replaceSource(WORKSPACE, "mos", listOf(trecho("mos", "regras.pdf", 1, "pagamento da folha")))
 
-            val hits = indice.search(WORKSPACE, "pagamentos", vector = null, maxResults = 5)
+            val hits = indice.search(WORKSPACE, TODAS, "pagamentos", vector = null, maxResults = 5)
 
             assertEquals(1, hits.size, "o stemming devia achar a flexão")
         }
@@ -71,7 +74,7 @@ class LuceneDocumentIndexTest {
             )
 
             val ordens = (1..5).map { _ ->
-                indice.search(WORKSPACE, "rubrica", floatArrayOf(1f, 0f), maxResults = 5).map { it.coordinate }
+                indice.search(WORKSPACE, TODAS, "rubrica", floatArrayOf(1f, 0f), maxResults = 5).map { it.coordinate }
             }
 
             assertEquals(1, ordens.distinct().size, "ordens diferentes entre chamadas: $ordens")
@@ -86,7 +89,7 @@ class LuceneDocumentIndexTest {
 
             indice.replaceSource(WORKSPACE, "mos", listOf(trecho("mos", "a.pdf", 1, "rubrica do mos, revisada")))
 
-            val hits = indice.search(WORKSPACE, "rubrica", vector = null, maxResults = 10)
+            val hits = indice.search(WORKSPACE, TODAS, "rubrica", vector = null, maxResults = 10)
             assertEquals(2, hits.size)
             assertTrue(hits.any { it.text.contains("revisada") })
             assertTrue(hits.any { it.documentationId == "anexo" })
@@ -100,14 +103,14 @@ class LuceneDocumentIndexTest {
             indice.removeSource(WORKSPACE, "mos")
 
             assertEquals(0, indice.size())
-            assertTrue(indice.search(WORKSPACE, "rubrica", vector = null, maxResults = 5).isEmpty())
+            assertTrue(indice.search(WORKSPACE, TODAS, "rubrica", vector = null, maxResults = 5).isEmpty())
         }
     }
 
     @Test
     fun `indice vazio responde sem quebrar`() {
         indice { indice ->
-            assertTrue(indice.search(WORKSPACE, "rubrica", vector = null, maxResults = 5).isEmpty())
+            assertTrue(indice.search(WORKSPACE, TODAS, "rubrica", vector = null, maxResults = 5).isEmpty())
             assertEquals(0, indice.size())
         }
     }
@@ -117,7 +120,7 @@ class LuceneDocumentIndexTest {
         indice { indice ->
             indice.replaceSource(WORKSPACE, "mos", listOf(trecho("mos", "regras.pdf", 12, "A rubrica 662 tem teto")))
 
-            val hit = indice.search(WORKSPACE, "rubrica", vector = null, maxResults = 1).single()
+            val hit = indice.search(WORKSPACE, TODAS, "rubrica", vector = null, maxResults = 1).single()
 
             assertEquals(40, hit.firstLine)
             assertEquals(44, hit.lastLine)
@@ -139,7 +142,7 @@ class LuceneDocumentIndexTest {
             )
             indice.replaceSource("outro", "manual", listOf(trecho("manual", "manual.md", 1, "salarios do manual")))
 
-            val doOutro = indice.search("outro", "salarios", vector = null, maxResults = 10)
+            val doOutro = indice.search("outro", TODAS, "salarios", vector = null, maxResults = 10)
 
             assertEquals(listOf("manual"), doOutro.map { it.documentationId })
             assertEquals(1, indice.countOf("folha", "confidencial"))
@@ -156,7 +159,7 @@ class LuceneDocumentIndexTest {
                 listOf(trecho("confidencial", "salarios.xlsx", 1, "tabela de salarios", vetor(1f, 0f))),
             )
 
-            val doOutro = indice.search("outro", "qualquer", floatArrayOf(1f, 0f), maxResults = 10)
+            val doOutro = indice.search("outro", TODAS, "qualquer", floatArrayOf(1f, 0f), maxResults = 10)
 
             assertTrue(doOutro.isEmpty(), "a busca vetorial atravessou a fronteira: $doOutro")
         }
@@ -172,8 +175,46 @@ class LuceneDocumentIndexTest {
             assertEquals(1, indice.countOf("outro", "docs"))
             assertEquals(
                 listOf("regra da folha"),
-                indice.search("folha", "regra", vector = null, maxResults = 5).map { it.text },
+                indice.search("folha", TODAS, "regra", vector = null, maxResults = 5).map { it.text },
             )
+        }
+    }
+
+    /**
+     * O índice vive na memória e guarda o que foi indexado um dia. Quem decide o que ainda vale é o
+     * workspace, a cada chamada: fonte desanexada não volta pela busca.
+     */
+    @Test
+    fun `fonte que saiu do workspace nao e devolvida`() {
+        indice { indice ->
+            indice.replaceSource(WORKSPACE, "mos", listOf(trecho("mos", "a.pdf", 1, "rubrica do mos")))
+            indice.replaceSource(WORKSPACE, "anexo", listOf(trecho("anexo", "b.pdf", 1, "rubrica do anexo")))
+
+            val soComAnexo = indice.search(WORKSPACE, listOf("anexo"), "rubrica", null, 10)
+
+            assertEquals(listOf("anexo"), soComAnexo.map { it.documentationId })
+        }
+    }
+
+    @Test
+    fun `workspace sem fonte declarada nao devolve nada`() {
+        indice { indice ->
+            indice.replaceSource(WORKSPACE, "mos", listOf(trecho("mos", "a.pdf", 1, "rubrica do mos")))
+
+            assertTrue(indice.search(WORKSPACE, emptyList(), "rubrica", null, 10).isEmpty())
+        }
+    }
+
+    @Test
+    fun `o vetor tambem respeita a fonte declarada`() {
+        indice { indice ->
+            indice.replaceSource(
+                WORKSPACE,
+                "mos",
+                listOf(trecho("mos", "a.pdf", 1, "rubrica do mos", vetor(1f, 0f))),
+            )
+
+            assertTrue(indice.search(WORKSPACE, listOf("anexo"), "qualquer", floatArrayOf(1f, 0f), 10).isEmpty())
         }
     }
 
