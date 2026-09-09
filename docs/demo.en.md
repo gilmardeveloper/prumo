@@ -2,10 +2,13 @@
 
 **English** · [Português (Brasil)](demo.md)
 
-This is the script that decides whether the MVP is done. Every step is an item of the completion
-criteria, and every step says **what you should observe** — a step you cannot verify is not a step.
+This is the complete walk through the product: workspace, boundary, database, and a pack written by
+an AI client and installed by a human. Every step says **what you should observe** — a step you
+cannot verify is not a step.
 
-Run it on a real project, not on a toy. It takes about forty minutes the first time.
+Run it on a real project, not on a toy. It takes about forty minutes the first time. If this is your
+first time with Prumo, install it and connect your client through the
+[getting-started guide](getting-started.en.md) before you begin.
 
 ## What you need
 

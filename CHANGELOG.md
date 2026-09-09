@@ -13,6 +13,9 @@ All notable changes to this project are documented here. The format follows
   false. It also missed the memory family, the inspection catalogue and documentation search
   entirely. Both languages now say what the code does, and the limitations state what extraction
   drops and what the local model does and does not do.
+- **The demonstration stopped calling itself the MVP acceptance script.** The MVP was signed off,
+  and that document is now what it actually is: the complete walk through the product, pointing new
+  readers at the getting-started guide first.
 - **Claude Code and Claude Desktop are told apart.** They share an application and share nothing of
   their configuration: the Code tab reads what the `claude` command writes, takes SSE directly and
   needs no bridge, while the desktop app takes neither.
