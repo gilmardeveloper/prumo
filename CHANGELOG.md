@@ -13,6 +13,9 @@ All notable changes to this project are documented here. The format follows
   false. It also missed the memory family, the inspection catalogue and documentation search
   entirely. Both languages now say what the code does, and the limitations state what extraction
   drops and what the local model does and does not do.
+- **Claude Code and Claude Desktop are told apart.** They share an application and share nothing of
+  their configuration: the Code tab reads what the `claude` command writes, takes SSE directly and
+  needs no bridge, while the desktop app takes neither.
 - **The guide says that Claude Desktop's custom connector is not the way in.** That screen takes a
   remote `https` address and refuses `http`, localhost included, so the file plus the bridge is the
   only route — and an entry with `url` in that file is dropped without a word.
