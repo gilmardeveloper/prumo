@@ -92,6 +92,45 @@ class OnnxTextEmbedderTest {
         }
     }
 
+    /**
+     * Medido dentro da IDE: o tokenizador descobre a biblioteca nativa lendo um arquivo de
+     * propriedades pelo classloader de **contexto da thread**, e numa thread de fundo da IDE esse
+     * classloader não enxerga o jar do plugin. Aqui a hostilidade é reproduzida trocando o
+     * classloader de contexto antes de abrir o embutidor.
+     */
+    @Test
+    fun `abre com o classloader de contexto trocado por um que nao enxerga a biblioteca`() {
+        val thread = Thread.currentThread()
+        val anterior = thread.contextClassLoader
+        thread.contextClassLoader = ClassLoader.getPlatformClassLoader()
+        try {
+            embutidor { embutidor ->
+                assertEquals(384, embutidor.embed(listOf("rubrica")).single().size)
+            }
+        } finally {
+            thread.contextClassLoader = anterior
+        }
+    }
+
+    /**
+     * O teste acima não distingue o código corrigido do código antigo quando a biblioteca já foi
+     * inicializada por outro teste da mesma JVM. O que está preso aqui é a troca em si.
+     */
+    @Test
+    fun `o embutidor troca o classloader antes de falar com o tokenizador`() {
+        val fonte = Files.readString(Path.of("src/main/kotlin/io/prumo/mcp/ide/OnnxTextEmbedder.kt"))
+
+        assertTrue(
+            fonte.contains("thread.contextClassLoader = OnnxTextEmbedder::class.java.classLoader"),
+            "o embutidor voltou a confiar no classloader de contexto da thread",
+        )
+        val criacao = fonte.substringAfter("private val tokenizer").substringBefore("private val session")
+        assertTrue(
+            criacao.contains("withPluginClassLoader") && criacao.contains("HuggingFaceTokenizer.newInstance"),
+            "a criação do tokenizador saiu de dentro da troca de classloader: $criacao",
+        )
+    }
+
     private fun embutidor(bloco: (OnnxTextEmbedder) -> Unit) {
         val modelo = pasta.resolve("model_quantized.onnx")
         val tokenizador = pasta.resolve("tokenizer.json")

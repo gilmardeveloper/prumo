@@ -29,7 +29,9 @@ class OnnxTextEmbedder(
         "The local inference engine did not load in this installation."
     }
 
-    private val tokenizer: HuggingFaceTokenizer = HuggingFaceTokenizer.newInstance(tokenizerFile)
+    private val tokenizer: HuggingFaceTokenizer = withPluginClassLoader {
+        HuggingFaceTokenizer.newInstance(tokenizerFile)
+    }
 
     private val session: OrtSession = environment.createSession(
         modelFile.toString(),
@@ -41,7 +43,7 @@ class OnnxTextEmbedder(
     override fun embed(texts: List<String>): List<FloatArray> {
         require(texts.isNotEmpty()) { "There is nothing to embed." }
 
-        val codificados = texts.map { tokenizer.encode(it.take(MAX_CHARS)) }
+        val codificados = withPluginClassLoader { texts.map { tokenizer.encode(it.take(MAX_CHARS)) } }
         val comprimento = codificados.maxOf { it.ids.size }.coerceAtMost(maxTokens).coerceAtLeast(1)
         val ids = LongArray(texts.size * comprimento)
         val mascara = LongArray(texts.size * comprimento)
@@ -79,6 +81,25 @@ class OnnxTextEmbedder(
     override fun close() {
         session.close()
         tokenizer.close()
+    }
+
+    /**
+     * Roda o bloco com o classloader do plugin no lugar do classloader de contexto da thread.
+     *
+     * O tokenizador descobre qual biblioteca nativa carregar lendo um arquivo de propriedades pelo
+     * classloader de contexto. Numa thread de fundo da IDE esse classloader é o da plataforma, que
+     * não enxerga o jar do plugin, e a busca por sentido morria com "No tokenizers version found in
+     * property file" — medido dentro da IDE, não suposto.
+     */
+    private fun <T> withPluginClassLoader(block: () -> T): T {
+        val thread = Thread.currentThread()
+        val anterior = thread.contextClassLoader
+        thread.contextClassLoader = OnnxTextEmbedder::class.java.classLoader
+        try {
+            return block()
+        } finally {
+            thread.contextClassLoader = anterior
+        }
     }
 
     private fun tensor(valores: LongArray, forma: LongArray): OnnxTensor =
